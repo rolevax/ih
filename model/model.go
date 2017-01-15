@@ -4,16 +4,17 @@ import (
 	"net"
 )
 
-type UserAuth struct {
+type Login struct {
 	Username	string
 	Password	string
 	Conn		net.Conn
 }
 
+type Uid int
+
 type User struct {
-	Id			int
+	Id			Uid
 	Username	string
 	Nickname	string
-	Conn		net.Conn	`json:"-"`
 }
 

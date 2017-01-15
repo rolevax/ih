@@ -7,3 +7,11 @@ Please don't forget to use `--recursive` when cloning.
 git clone --recursive https://bitbucket.org/rolevax/sakilogy-server.git
 ```
 
+## Build
+
+```
+cd saki; make; cd ..
+go build
+```
+
+

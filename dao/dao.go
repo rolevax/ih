@@ -28,27 +28,25 @@ func (dao *Dao) Close() {
 	dao.db.Close()
 }
 
-func (dao *Dao) Auth(userAuth *model.UserAuth) *model.User {
+func (dao *Dao) Login(login *model.Login) *model.User {
 	var user model.User
 	var password string
 
 	err := dao.db.QueryRow(
 		`select id, username, nickname, password
-		from users where username = ?`, userAuth.Username).
+		from users where username = ?`, login.Username).
 		Scan(&user.Id, &user.Username, &user.Nickname, &password)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil
 		}
-		log.Fatal("Dao.Auth", err)
+		log.Fatal("Dao.Login", err)
 	}
 
-	if userAuth.Password != password {
+	if login.Password != password {
 		return nil
 	}
-
-	user.Conn = userAuth.Conn
 
 	return &user
 }

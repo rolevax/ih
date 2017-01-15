@@ -70,8 +70,8 @@ func handle(conn net.Conn, conns *srv.Conns) {
 		}
 		conn.Close()
 	case "login":
-		userAuth := model.UserAuth{req.Username, req.Password, conn}
-		conns.Auth <- &userAuth
+		login := model.Login{req.Username, req.Password, conn}
+		conns.Login <- &login
 	default:
 		log.Println("E main.handle unkown request", req.Type)
 		conn.Close()

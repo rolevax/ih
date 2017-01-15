@@ -19,7 +19,15 @@ client
 { Type: "signup", Username: "...", Password: "...", Nickname: "..." }
 	{ Type: "auth", Ok: false, Reason: "..." } close
 	{ Type: "auth", Ok: true, User: {...} }
+
 { Type: "book" }
-	{ Type: "start", Nicknames: [...] }
+	four { Type: "start", Users: [...], GirlIds: [...], TempDealer: ? }
+{ Type: "ready" }
+	four { Type: "t-points-changed", Points: [...] }
+	peer { Type: "t-activated", Actions: [ (dice) ] }
+{ Type: "t-action", Acttion: {...} }
+	four { Type: "t-(public)", Args: [...] }
+	peer { Type: "t-(private)", Actions: [ (dice) ] }
+
 
 

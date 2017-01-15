@@ -1,12 +1,25 @@
 #include "tablesession.h"
+#include "tableopob.h"
 
-std::vector<std::string> TableSession::Action(int who, int encodedAct) {
-	std::vector<std::string> res;
-    res.resize(4);
-    res[0] = "haha0";
-    res[1] = "haha1";
-    res[2] = "haha2";
-    res[3] = "haha3";
-	return res;
+TableSession::TableSession()
+{
+	mOpOb = new TableOpOb();
+}
+
+TableSession::~TableSession()
+{
+	delete mOpOb;
+}
+
+std::vector<Mail> TableSession::Start() 
+{
+	mOpOb->start();
+	return mOpOb->popMails();
+}
+
+std::vector<Mail> TableSession::Action(int who, int encodedAct) 
+{
+	mOpOb->action(who, encodedAct);
+	return mOpOb->popMails();
 }
 

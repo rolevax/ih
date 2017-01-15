@@ -8,7 +8,7 @@
 %include "std_vector.i"
 
 namespace std {
-   %template(StringVector) vector<string>;
+   %template(MailVector) vector<Mail>;
 }
 
 %include "tablesession.h"
