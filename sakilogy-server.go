@@ -1,32 +1,82 @@
 package main
 
 import (
+	"log"
 	"net"
-	"fmt"
 	"bufio"
-	"strings"
-	"bitbucket.org/rolevax/sakilogy-server/saki"
+	"encoding/json"
+	"bitbucket.org/rolevax/sakilogy-server/srv"
+	"bitbucket.org/rolevax/sakilogy-server/dao"
+	"bitbucket.org/rolevax/sakilogy-server/model"
 )
 
 func main() {
-    session := saki.NewTableSession()
-	sv := session.Action(0, 3)
-	fmt.Println("action result 0", sv.Get(0))
+	dao := dao.New()
+	defer dao.Close()
 
-	ln, _ := net.Listen("tcp", ":6171")
-	fmt.Println("sakilogy server listening at 6171")
+	conns := srv.NewConns(dao)
+	go conns.Loop()
 
-	conn, _ := ln.Accept()
+	ln, err := net.Listen("tcp", ":6171")
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		log.Println("listen 6171")
+	}
 
 	for {
-		message, err := bufio.NewReader(conn).ReadString('\n')
+		conn, err := ln.Accept()
+
 		if err != nil {
-			fmt.Println("Read error: ", err.Error())
-			break
+			log.Println("E accept", err)
+		} else {
+			handle(conn, conns)
 		}
-		fmt.Print("Message Received:", string(message))
-		back := strings.ToUpper(message)
-		conn.Write([]byte(back + "\n"))
 	}
 }
+
+func handle(conn net.Conn, conns *srv.Conns) {
+	breq, err := bufio.NewReader(conn).ReadBytes('\n')
+	if err != nil {
+		log.Println("E main:handle", err)
+		conn.Close()
+		return
+	}
+
+	var req struct {
+		Type		string
+		Username	string
+		Password	string
+	}
+
+	if err := json.Unmarshal(breq, &req); err != nil {
+		log.Println("E main:handle", err)
+		conn.Close()
+		return
+	}
+
+	switch req.Type {
+	case "fetch-ann":
+		reply := struct {
+			Type	string
+			Ann		string
+			Login	bool
+		} { "fetch-ann", "[公告]服务器正在测试", true }
+		jsonb, _ := json.Marshal(reply)
+		if _, err := conn.Write(append(jsonb, '\n')); err != nil {
+			log.Println("E main:handle write ann", err)
+		} else {
+			log.Println(conn.RemoteAddr(), "<--- announcement")
+		}
+		conn.Close()
+	case "login":
+		userAuth := model.UserAuth{req.Username, req.Password, conn}
+		conns.Auth <- &userAuth
+	default:
+		log.Println("E main.handle unkown request", req.Type)
+		conn.Close()
+	}
+}
+
+
 
