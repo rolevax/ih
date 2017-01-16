@@ -27,7 +27,7 @@ client
 	peer { Type: "t-activated", Actions: [ (dice) ] }
 { Type: "t-action", Acttion: {...} }
 	four { Type: "t-(public)", Args: [...] }
-	peer { Type: "t-(private)", Actions: [ (dice) ] }
+	peer { Type: "t-activated", Action: {...}, LastDiscarder: ? }
 
 
 

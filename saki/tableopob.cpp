@@ -1,5 +1,11 @@
 #include "tableopob.h"
 
+#include "libsaki/string_enum.h"
+
+#include "json.hpp"
+
+using json = nlohmann::json;
+
 TableOp::TableOp(TableOpOb &opOb, saki::Who self) 
 	: saki::TableOperator(self)
 	, mOpOb(opOb)
@@ -25,7 +31,31 @@ TableOpOb::TableOpOb()
 
 void TableOpOb::onActivated(saki::Who who, saki::Table &table)
 {
+    const saki::TicketFolder &tifo = table.getTicketFolder(who);
+
 	// FUCK append to msg
+
+    json map;
+    saki::Who focusWho;
+
+    using AC = saki::ActCode;
+    static const AC just[] = {
+        AC::PASS, AC::SPIN_OUT, AC::RIICHI,
+        AC::TSUMO, AC::RYUUKYOKU,
+        AC::END_TABLE, AC::NEXT_ROUND,
+        AC::DICE, AC::IRS_CLICK
+    };
+
+    for (AC code : just)
+        if (tifo.can(code))
+            map[saki::stringOf(code)] = true;
+
+    json msg;
+    msg["Type"] = "t-activated";
+    msg["Action"] = map;
+    msg["LastDiscarder"] = focusWho.nobody() ? -1 
+                                             : focusWho.turnFrom(who);
+    mMails.emplace_back(who.index(), msg.dump());
 }
 
 std::vector<Mail> TableOpOb::popMails()
@@ -47,6 +77,8 @@ void TableOpOb::start()
 	saki::Who td(0);
 
 	mTable.reset(new saki::Table(points, girlIds, ops, obs, rule, td));
+
+    mTable->start();
 }
 
 void TableOpOb::action(int who, int encodedAct)

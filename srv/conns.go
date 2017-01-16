@@ -14,6 +14,7 @@ type Conns struct {
 	Login	chan *model.Login
 	Logout	chan model.Uid
 	Start	chan [4]model.Uid
+    Peer    chan *Mail
 	dao		*dao.Dao
 	users	map[model.Uid]*model.User
 	conns	map[model.Uid]net.Conn
@@ -27,6 +28,8 @@ func NewConns(dao *dao.Dao) *Conns {
 	conns.Login = make(chan *model.Login)
 	conns.Logout = make(chan model.Uid)
 	conns.Start = make(chan [4]model.Uid)
+	conns.Peer = make(chan *Mail)
+
 	conns.dao = dao
 	conns.users = make(map[model.Uid]*model.User)
 	conns.conns = make(map[model.Uid]net.Conn)
@@ -52,8 +55,9 @@ func (conns *Conns) Loop() {
 		case uid := <-conns.Logout:
 			conns.logout(uid)
 		case uids := <-conns.Start:
-			log.Println("send create to table")
 			conns.tables.Create <- uids
+		case mail := <-conns.Peer:
+            conns.send(mail.To, mail.Msg)
 		}
 	}
 }
@@ -108,6 +112,8 @@ func (conns *Conns) readLoop(uid model.Uid) {
 			conns.books.Book <- uid
 		case "unbook":
 			conns.books.Unbook <- uid
+        case "ready":
+            conns.tables.Ready <- uid
 		}
 	}
 }
@@ -119,10 +125,16 @@ func (conns *Conns) send(uid model.Uid, msg interface{}) {
 		return
 	}
 
-	jsonb, err := json.Marshal(msg)
-	if err != nil {
-		log.Fatal("Conns.send", err)
-	}
+    var jsonb []byte
+    if str, ok := msg.(string); ok {
+        jsonb = []byte(str)
+    } else {
+        var err error
+        jsonb, err = json.Marshal(msg)
+        if err != nil {
+            log.Fatal("Conns.send", err)
+        }
+    }
 
 	if _, err := conn.Write(append(jsonb, '\n')); err != nil {
 		log.Println("Conns.send", err)

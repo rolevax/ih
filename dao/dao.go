@@ -51,4 +51,22 @@ func (dao *Dao) Login(login *model.Login) *model.User {
 	return &user
 }
 
+func (dao *Dao) GetUser(uid model.Uid) *model.User {
+	var user model.User
+
+	err := dao.db.QueryRow(
+		`select id, username, nickname 
+		from users where id = ?`, uid).
+		Scan(&user.Id, &user.Username, &user.Nickname)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil
+		}
+		log.Fatal("Dao.GetUser", err)
+	}
+
+	return &user
+}
+
 
