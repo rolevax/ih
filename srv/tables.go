@@ -6,9 +6,16 @@ import (
 	"bitbucket.org/rolevax/sakilogy-server/saki"
 )
 
+type Action struct {
+	Uid			model.Uid
+	ActStr		string
+	ActArg		string
+}
+
 type Tables struct {
 	Create		chan [4]model.Uid
 	Ready		chan model.Uid
+	Action		chan *Action
 	conns		*Conns
 	sessions	[]*session
 }
@@ -18,6 +25,7 @@ func NewTables(conns *Conns) *Tables {
 
 	tables.Create = make(chan [4]model.Uid)
 	tables.Ready = make(chan model.Uid)
+	tables.Action = make(chan *Action)
 	tables.conns = conns
 	tables.sessions = make([]*session, 16)[0:0]
 
@@ -31,6 +39,8 @@ func (tables *Tables) Loop() {
 			tables.add(uids)
 		case uid := <-tables.Ready:
 			tables.ready(uid)
+		case act := <-tables.Action:
+			tables.action(act)
 		}
 	}
 }
@@ -43,7 +53,7 @@ func (tables *Tables) add(uids [4]model.Uid) {
 
 func (tables *Tables) ready(uid model.Uid) {
 	for _, s := range tables.sessions {
-		if i, ok := s.findUid(uid); ok {
+		if i, ok := s.findUser(uid); ok {
 			s.readys[i] = true
 			if s.readys[0] && s.readys[1] && s.readys[2] && s.readys[3] {
 				s.start()
@@ -53,6 +63,18 @@ func (tables *Tables) ready(uid model.Uid) {
 	}
 	log.Println("Tables.ready", uid, "not found")
 }
+
+func (tables *Tables) action(act *Action) {
+	for _, s := range tables.sessions {
+		if _, ok := s.findUser(act.Uid); ok {
+			s.action(act)
+			return
+		}
+	}
+	log.Println("Tables.action", act.Uid, "not found")
+}
+
+
 
 type session struct {
 	table	saki.TableSession
@@ -103,10 +125,9 @@ func (s *session) notifyLoad() {
 		msg.GirlIds[2] = msg.GirlIds[3]
 		msg.GirlIds[3] = g0
 	}
-	// TODO check client startable, (set PClient* to PTableThread)
 }
 
-func (s *session) findUid(uid model.Uid) (int, bool) {
+func (s *session) findUser(uid model.Uid) (int, bool) {
 	for i, u := range s.uids {
 		if u == uid {
 			return i, true
@@ -122,11 +143,21 @@ func (s *session) start() {
 	size := int(mails.Size())
 	for i := 0; i < size; i++ {
 		mail := Mail{s.uids[mails.Get(i).GetTo()], mails.Get(i).GetMsg()}
-		log.Println("session.start get mail", mail.To, mail.Msg)
 		s.conns.Peer <- &mail
 	}
 }
 
+func (s *session) action(act *Action) {
+	i, _ := s.findUser(act.Uid)
+	mails := s.table.Action(i, act.ActStr, act.ActArg)
+	defer saki.DeleteMailVector(mails)
+
+	size := int(mails.Size())
+	for i := 0; i < size; i++ {
+		mail := Mail{s.uids[mails.Get(i).GetTo()], mails.Get(i).GetMsg()}
+		s.conns.Peer <- &mail
+	}
+}
 
 
 

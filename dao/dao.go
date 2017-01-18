@@ -17,7 +17,7 @@ func New() *Dao {
 	db, err := sql.Open("mysql",
 		"sakilogy:@k052a9@tcp(127.0.0.1:3306)/sakilogy")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
 	dao.db = db
 
@@ -41,7 +41,7 @@ func (dao *Dao) Login(login *model.Login) *model.User {
 		if err == sql.ErrNoRows {
 			return nil
 		}
-		log.Fatal("Dao.Login", err)
+		log.Fatalln("Dao.Login", err)
 	}
 
 	if login.Password != password {
@@ -63,7 +63,7 @@ func (dao *Dao) GetUser(uid model.Uid) *model.User {
 		if err == sql.ErrNoRows {
 			return nil
 		}
-		log.Fatal("Dao.GetUser", err)
+		log.Fatalln("Dao.GetUser", err)
 	}
 
 	return &user

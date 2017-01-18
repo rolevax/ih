@@ -21,13 +21,19 @@ client
 	{ Type: "auth", Ok: true, User: {...} }
 
 { Type: "book" }
-	four { Type: "start", Users: [...], GirlIds: [...], TempDealer: ? }
+	r { Type: "start", Users: [...], GirlIds: [...], TempDealer: ? }
 { Type: "ready" }
-	four { Type: "t-points-changed", Points: [...] }
-	peer { Type: "t-activated", Actions: [ (dice) ] }
-{ Type: "t-action", Acttion: {...} }
-	four { Type: "t-(public)", Args: [...] }
-	peer { Type: "t-activated", Action: {...}, LastDiscarder: ? }
+	r { Type: "t-points-changed", Points: [...] }
+	. { Type: "t-activated", Actions: [ (dice) ] }
+{ Type: "t-action", ActStr: "...", ActArg: "..." }
+	r { Type: "t-first-dealer-choosen", InitDealer: ? }
+	r { Type: "t-round-started", Round: ?, ExtraRound, ?, ... }
+	r { Type: "t-points-changed", Points: [...] }
+	b { Type: "t-cleaned" }
+	b { Type: "t-diced" }
+	r { Type: "t-dealt", Init: [ {...}, ... ] }
+	b { Type: "t-flipped", NewIndic: {...} }
+	r { Type: "t-drawn", ... }
 
 
 

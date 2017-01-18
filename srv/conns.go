@@ -5,6 +5,7 @@ import (
 	"net"
 	"bufio"
 	"io"
+	"strings"
 	"encoding/json"
 	"bitbucket.org/rolevax/sakilogy-server/model"
 	"bitbucket.org/rolevax/sakilogy-server/dao"
@@ -96,25 +97,31 @@ func (conns *Conns) readLoop(uid model.Uid) {
 			return
 		}
 
-		log.Print(uid, "--->", string(breq))
-
-		var req struct {
-			Type		string
-		}
-
+		log.Print(uid, " ---> ", string(breq))
+		var req struct {Type string}
 		if err := json.Unmarshal(breq, &req); err != nil {
 			log.Fatal("E Conns.readLoop", err)
 			return
 		}
+		conns.switchRead(uid, req.Type, breq)
+	}
+}
 
-		switch req.Type {
-		case "book":
-			conns.books.Book <- uid
-		case "unbook":
-			conns.books.Unbook <- uid
-        case "ready":
-            conns.tables.Ready <- uid
+func (conns *Conns) switchRead(uid model.Uid, t string, breq []byte) {
+	switch {
+	case t == "book":
+		conns.books.Book <- uid
+	case t == "unbook":
+		conns.books.Unbook <- uid
+	case t == "ready":
+		conns.tables.Ready <- uid
+	case strings.HasPrefix(t, "t-"):
+		act := Action{Uid: uid}
+		if err := json.Unmarshal(breq, &act); err != nil {
+			log.Println("E Conns.switchRead", err)
+			return
 		}
+		conns.tables.Action <- &act
 	}
 }
 
@@ -139,7 +146,7 @@ func (conns *Conns) send(uid model.Uid, msg interface{}) {
 	if _, err := conn.Write(append(jsonb, '\n')); err != nil {
 		log.Println("Conns.send", err)
 	} else {
-		log.Println(uid, " <--- ", string(jsonb))
+		log.Println(uid, "<---", string(jsonb))
 	}
 }
 

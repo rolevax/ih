@@ -13,8 +13,11 @@ class TableSession
 public:
 	TableSession();
 	~TableSession();
+
+	using str = std::string;
+
 	std::vector<Mail> Start();
-	std::vector<Mail> Action(int who, int encodedAct);
+	std::vector<Mail> Action(int who, const str &actStr, const str &actArg);
 
 private:
 	TableOpOb *mOpOb;

@@ -3,23 +3,25 @@
 
 TableSession::TableSession()
 {
-	mOpOb = new TableOpOb();
+    mOpOb = new TableOpOb();
 }
 
 TableSession::~TableSession()
 {
-	delete mOpOb;
+    delete mOpOb;
 }
 
 std::vector<Mail> TableSession::Start() 
 {
-	mOpOb->start();
-	return mOpOb->popMails();
+    mOpOb->start();
+    return mOpOb->popMails();
 }
 
-std::vector<Mail> TableSession::Action(int who, int encodedAct) 
+std::vector<Mail> TableSession::Action(int who, 
+                                       const std::string &actStr,
+                                       const std::string &actArg) 
 {
-	mOpOb->action(who, encodedAct);
-	return mOpOb->popMails();
+    mOpOb->action(who, actStr, actArg);
+    return mOpOb->popMails();
 }
 

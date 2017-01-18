@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-std=c++11 -c -DNDEBUG -fPIC -O2
+CXXFLAGS=-std=c++11 -c -fPIC -O2
 CXXSRC=../libsaki/*.cpp
 BUILD_DIR=./build
 
