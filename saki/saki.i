@@ -1,7 +1,7 @@
 %module saki
 %{
     #include "mail.h"
-    #include "tablesession.h"
+    #include "table_session.h"
 %}
 
 %include <typemaps.i>
@@ -13,5 +13,5 @@ namespace std {
 }
 
 %include "mail.h"
-%include "tablesession.h"
+%include "table_session.h"
 

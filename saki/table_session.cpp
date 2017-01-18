@@ -1,5 +1,5 @@
-#include "tablesession.h"
-#include "tableopob.h"
+#include "table_session.h"
+#include "table_opob.h"
 
 TableSession::TableSession()
 {
