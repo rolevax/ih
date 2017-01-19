@@ -44,7 +44,18 @@ public:
 	void onDealt(const Table &table) override;
 	void onFlipped(const Table &talbe) override;
 	void onDrawn(const Table &table, Who who) override;
+	void onDiscarded(const Table &table, bool spin) override;
+	void onRiichiCalled(Who who) override;
+	void onRiichiEstablished(Who who) override;
+	void onBarked(const Table &table, Who who, 
+                  const M37 &bark, bool spin) override;
+	void onRoundEnded(const Table &table, RoundResult result,
+                      const std::vector<Who> &openers, Who gunner,
+					  const std::vector<Form> &forms) override;
 	void onPointsChanged(const Table &table) override;
+	void onTableEnded(const std::array<Who, 4> &rank,
+			          const std::array<int, 4> &scores) override;
+	// void onPoppedUp(...) override
 
 	std::vector<Mail> popMails();
 

@@ -79,10 +79,42 @@ json createTile(const T37 &t, bool lay = false)
 
 json createTiles(const std::vector<T37> &ts)
 {
-	json res;
+	json res = json::array();
 	for (const T37 &t : ts)
 		res.emplace_back(createTile(t, false));
 	return res;
+}
+
+json createBark(const M37 &m)
+{
+	json res;
+	using T = M37::Type;
+	T type = m.type();
+	res["type"] = (type == T::CHII ? 1 : (type == T::PON ? 3 : 4));
+	int open = m.layIndex();
+	if (type != T::ANKAN)
+		res["open"] = open;
+
+	res["0"] = createTile(m[0], open == 0);
+	res["1"] = createTile(m[1], open == 1);
+	res["2"] = createTile(m[2], open == 2);
+
+	if (m.isKan()) {
+		res["3"] = createTile(m[3], type == T::KAKAN);
+		res["isDaiminkan"] = (type == T::DAIMINKAN);
+		res["isAnkan"] = (type == T::ANKAN);
+		res["isKakan"] = (type == T::KAKAN);
+	}
+
+	return res;
+}
+
+json createBarks(const std::vector<M37> &ms)
+{
+	json list = json::array();
+	for (const M37 &m : ms)
+		list.emplace_back(createBark(m));
+	return list;
 }
 
 template<typename T>
@@ -261,6 +293,109 @@ void TableOpOb::onDrawn(const Table &table, Who who)
 	}
 }
 
+void TableOpOb::onDiscarded(const Table &table, bool spin)
+{
+	Who discarder = table.getFocus().who();
+	const T37 &out = table.getFocusTile();
+	bool lay = table.lastDiscardLay();
+
+	json msg;
+	msg["Type"] = "t-discarded";
+	msg["Tile"] = createTile(out, lay);
+	msg["Spin"] = spin;
+	for (int w = 0; w < 4; w++) {
+		msg["Who"] = discarder.turnFrom(Who(w));
+		peer(w, msg);
+	}
+}
+
+void TableOpOb::onRiichiCalled(Who who)
+{
+	json msg;
+	msg["Type"] = "t-riichi-called";
+	for (int w = 0; w < 4; w++) {
+		msg["Who"] = who.turnFrom(Who(w));
+		peer(w, msg);
+	}
+}
+
+void TableOpOb::onRiichiEstablished(Who who)
+{
+	json msg;
+	msg["Type"] = "t-riichi-established";
+	for (int w = 0; w < 4; w++) {
+		msg["Who"] = who.turnFrom(Who(w));
+		peer(w, msg);
+	}
+}
+
+void TableOpOb::onBarked(const Table &table, Who who, 
+                         const M37 &bark, bool spin)
+{
+	Who from = bark.isCpdmk() ? table.getFocus().who() : Who();
+
+	json msg;
+	msg["Type"] = "t-barked";
+	msg["ActStr"] = stringOf(bark.type());
+	msg["Bark"] = createBark(bark);
+	msg["Spin"] = spin;
+	for (int w = 0; w < 4; w++) {
+		msg["Who"] = who.turnFrom(Who(w));
+		msg["FromWhem"] = from.somebody() ? from.turnFrom(Who(w)) : -1;
+		peer(w, msg);
+	}
+}
+
+void TableOpOb::onRoundEnded(const Table &table, RoundResult result,
+		                     const std::vector<Who> &openers, Who gunner,
+		                     const std::vector<Form> &forms)
+{
+	using RR = RoundResult;
+
+	// form and hand lists have same order as openers
+	// but they don't need to be rotated since openers
+	// are not rotated but changed by value
+	json formsList = json::array();
+	json handsList = json::array();
+
+	for (Who who : openers) {
+		const Hand &hand = table.getHand(who);
+
+		json handMap;
+		handMap["closed"] = createTiles(hand.closed().t37s(true));
+		handMap["barks"] = createBarks(hand.barks());
+
+		if (result == RR::TSUMO)
+			handMap["pick"] = createTile(hand.drawn(), true);
+		else if (result == RR::RON || result == RR::SCHR)
+			handMap["pick"] = createTile(table.getFocusTile(), true);
+
+		handsList.emplace_back(handMap);
+	}
+
+	for (size_t i = 0; i < forms.size(); i++) {
+		const Form &form = forms[i];
+		json formMap;
+		formMap["spell"] = form.spell();
+		formMap["charge"] = form.charge();
+		formsList.emplace_back(formMap);
+	}
+
+	json msg;
+	msg["Type"] = "t-round-ended";
+	msg["Result"] = stringOf(result);
+	msg["Hands"] = handsList;
+	msg["Forms"] = formsList;
+	msg["Urids"] = createTiles(table.getMount().getUrids());
+	for (int w = 0; w < 4; w++) {
+		msg["Openers"] = json();
+		for (Who who : openers)
+			msg["Openers"].push_back(who.turnFrom(Who(w)));
+		msg["Gunner"] = gunner.somebody() ? gunner.turnFrom(Who(w)) : -1;
+		peer(w, msg);
+	}
+}
+
 void TableOpOb::onPointsChanged(const Table &table)
 {
 	json msg;
@@ -269,6 +404,22 @@ void TableOpOb::onPointsChanged(const Table &table)
 	for (int w = 0; w < 4; w++) {
 		peer(w, msg);
 		rotate(msg["Points"]);
+	}
+}
+
+void TableOpOb::onTableEnded(const std::array<Who, 4> &rank,
+		                     const std::array<int, 4> &scores)
+{
+	json msg;
+	msg["Type"] = "t-table-ended";
+	msg["Scores"] = scores;
+	for (int w = 0; w < 4; w++) {
+		json rankList;
+		for (Who who : rank)
+			rankList.push_back(who.turnFrom(Who(w)));
+		msg["Rank"] = rankList;
+		peer(w, msg);
+		rotate(msg["Scores"]);
 	}
 }
 

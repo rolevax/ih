@@ -28,12 +28,19 @@ client
 { Type: "t-action", ActStr: "...", ActArg: "..." }
 	r { Type: "t-first-dealer-choosen", InitDealer: ? }
 	r { Type: "t-round-started", Round: ?, ExtraRound, ?, ... }
-	r { Type: "t-points-changed", Points: [...] }
 	b { Type: "t-cleaned" }
 	b { Type: "t-diced" }
 	r { Type: "t-dealt", Init: [ {...}, ... ] }
 	b { Type: "t-flipped", NewIndic: {...} }
 	r { Type: "t-drawn", ... }
+	r { Type: "t-discarded", ... }
+	r { Type: "t-riichi-called", Who: ? }
+	r { Type: "t-riichi-established", Who: ? }
+	r { Type: "t-barked", Who: ?, FromWhom: ?, ... }
+	r { Type: "t-round-ended", ... }
+	r { Type: "t-points-changed", Points: [...] }
+	r { Type: "t-table-ended", ... }
+	r { Type: "t-popped-up", ... }
 
 
 
