@@ -18,6 +18,7 @@ public:
 
 	std::vector<Mail> Start();
 	std::vector<Mail> Action(int who, const str &actStr, const str &actArg);
+	bool GameOver() const;
 
 private:
 	TableOpOb *mOpOb;

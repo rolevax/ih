@@ -25,3 +25,8 @@ std::vector<Mail> TableSession::Action(int who,
     return mOpOb->popMails();
 }
 
+bool TableSession::GameOver() const
+{
+	return mOpOb->gameOver();
+}
+

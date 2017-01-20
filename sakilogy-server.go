@@ -56,19 +56,6 @@ func handle(conn net.Conn, conns *srv.Conns) {
 	}
 
 	switch req.Type {
-	case "fetch-ann":
-		reply := struct {
-			Type	string
-			Ann		string
-			Login	bool
-		} { "fetch-ann", "[公告]服务器正在测试", true }
-		jsonb, _ := json.Marshal(reply)
-		if _, err := conn.Write(append(jsonb, '\n')); err != nil {
-			log.Println("E main:handle write ann", err)
-		} else {
-			log.Println(conn.RemoteAddr(), "<--- announcement")
-		}
-		conn.Close()
 	case "login":
 		login := model.Login{req.Username, req.Password, conn}
 		conns.Login <- &login

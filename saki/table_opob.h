@@ -58,7 +58,7 @@ public:
 	// void onPoppedUp(...) override
 
 	std::vector<Mail> popMails();
-
+	bool gameOver() const;
 
 	void start();
 	void action(int who, const string &actStr, const string &actArg);
@@ -71,6 +71,7 @@ private:
 	std::vector<Mail> mMails;
 	std::unique_ptr<Table> mTable;
 	std::array<TableOp, 4> mOps;
+	bool mEnd = false;
 };
 
 

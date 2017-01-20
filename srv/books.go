@@ -35,6 +35,10 @@ func (books *Books) Loop() {
 	}
 }
 
+func (books *Books) BookCount() int {
+	return books.wait;
+}
+
 func (books *Books) book(uid model.Uid) {
 	log.Println("book", uid)
 	books.waits[books.wait] = uid;

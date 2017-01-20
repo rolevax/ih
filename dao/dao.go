@@ -19,6 +19,11 @@ func New() *Dao {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	if db.Ping() != nil {
+		log.Fatalln("ping DB failed", err)
+	}
+
 	dao.db = db
 
 	return &dao
@@ -33,9 +38,9 @@ func (dao *Dao) Login(login *model.Login) *model.User {
 	var password string
 
 	err := dao.db.QueryRow(
-		`select id, username, nickname, password
+		`select id, username, password
 		from users where username = ?`, login.Username).
-		Scan(&user.Id, &user.Username, &user.Nickname, &password)
+		Scan(&user.Id, &user.Username, &password)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -55,9 +60,9 @@ func (dao *Dao) GetUser(uid model.Uid) *model.User {
 	var user model.User
 
 	err := dao.db.QueryRow(
-		`select id, username, nickname 
+		`select id, username 
 		from users where id = ?`, uid).
-		Scan(&user.Id, &user.Username, &user.Nickname)
+		Scan(&user.Id, &user.Username)
 
 	if err != nil {
 		if err == sql.ErrNoRows {

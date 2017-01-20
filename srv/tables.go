@@ -45,6 +45,10 @@ func (tables *Tables) Loop() {
 	}
 }
 
+func (tables *Tables) SessionCount() int {
+	return len(tables.sessions)
+}
+
 func (tables *Tables) add(uids [4]model.Uid) {
 	s := newSession(tables.conns, uids)
 	tables.sessions = append(tables.sessions, s)
@@ -65,9 +69,17 @@ func (tables *Tables) ready(uid model.Uid) {
 }
 
 func (tables *Tables) action(act *Action) {
-	for _, s := range tables.sessions {
+	for i, s := range tables.sessions {
 		if _, ok := s.findUser(act.Uid); ok {
 			s.action(act)
+			if s.gameOver() {
+				s.destroy()
+				// overwrite by back and pop back
+				last := len(tables.sessions) - 1;
+				tables.sessions[i] = tables.sessions[last]
+				tables.sessions[last] = nil
+				tables.sessions = tables.sessions[:last]
+			}
 			return
 		}
 	}
@@ -157,6 +169,14 @@ func (s *session) action(act *Action) {
 		mail := Mail{s.uids[mails.Get(i).GetTo()], mails.Get(i).GetMsg()}
 		s.conns.Peer <- &mail
 	}
+}
+
+func (s *session) gameOver() bool {
+	return s.table.GameOver()
+}
+
+func (s *session) destroy()  {
+	saki.DeleteTableSession(s.table)
 }
 
 

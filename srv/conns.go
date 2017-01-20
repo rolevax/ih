@@ -51,7 +51,8 @@ func (conns *Conns) Loop() {
 			if user != nil {
 				conns.add(user, login.Conn)
 			} else {
-				conns.reject(login.Conn, msgLoginFail)
+				str := "用户名或密码错误"
+				conns.reject(login.Conn, newLoginFailMsg(str))
 			}
 		case uid := <-conns.Logout:
 			conns.logout(uid)
@@ -64,7 +65,13 @@ func (conns *Conns) Loop() {
 }
 
 func (conns *Conns) add(user *model.User, conn net.Conn) {
-	// all existing session kicked
+	// prevent dup login
+	if _, ok := conns.users[user.Id]; ok {
+		str := "该用户已登录"
+		conns.reject(conn, newLoginFailMsg(str));
+		return
+	}
+
 	conns.users[user.Id] = user
 	conns.conns[user.Id] = conn
 	conns.send(user.Id, newLoginOkMsg(user))
@@ -109,6 +116,8 @@ func (conns *Conns) readLoop(uid model.Uid) {
 
 func (conns *Conns) switchRead(uid model.Uid, t string, breq []byte) {
 	switch {
+	case t == "look-around":
+		conns.sendLookAround(uid)
 	case t == "book":
 		conns.books.Book <- uid
 	case t == "unbook":
@@ -139,7 +148,7 @@ func (conns *Conns) send(uid model.Uid, msg interface{}) {
         var err error
         jsonb, err = json.Marshal(msg)
         if err != nil {
-            log.Fatal("Conns.send", err)
+            log.Fatalln("Conns.send", err)
         }
     }
 
@@ -165,15 +174,33 @@ func (conns *Conns) reject(conn net.Conn, msg interface{}) {
 	conn.Close()
 }
 
+func (conns *Conns) sendLookAround(uid model.Uid) {
+	connCt := len(conns.conns)
+	playCt := 4 * conns.tables.SessionCount();
+	idleCt := connCt - playCt;
+	bookCt := conns.books.BookCount()
+
+	msg := struct {
+		Type	string
+		Conn	int
+		Idle	int
+		Book	int
+		Play	int
+	}{"look-around", connCt, idleCt, bookCt, playCt}
+	conns.send(uid, msg)
+}
+
 
 
 /// messages
 
-var msgLoginFail = struct {
-	Type	string
-	Ok		bool
-	Reason	string
-}{"auth", false, "用户名或密码错误"}
+func newLoginFailMsg(str string) interface{} {
+	return struct {
+		Type	string
+		Ok		bool
+		Reason	string
+	}{"auth", false, str}
+}
 
 func newLoginOkMsg(user *model.User) interface{} {
 	return struct {

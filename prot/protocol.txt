@@ -4,7 +4,8 @@ everything is json
 
 init msg always by client
 
-conn always closed by server
+conn always closed by client in normal cases
+conn always closed by server in exceptional cases
 
 server can always return an { Error: string },
 only for exceptional internal errors, not for business logic
@@ -12,13 +13,13 @@ only for exceptional internal errors, not for business logic
 client
 	server
 
-{ Type: "fetch-ann" }
-	{ Type: "entry", Ann: "...", Login: bool } close
-	
 { Type: "login", Username: "...", Password: "..." }
-{ Type: "signup", Username: "...", Password: "...", Nickname: "..." }
+{ Type: "signup", Username: "...", Password: "..." }
 	{ Type: "auth", Ok: false, Reason: "..." } close
 	{ Type: "auth", Ok: true, User: {...} }
+
+{ Type: "look-around" }
+	{ Type: "look-around", Conn: ?, Idle: ? }
 
 { Type: "book" }
 	r { Type: "start", Users: [...], GirlIds: [...], TempDealer: ? }

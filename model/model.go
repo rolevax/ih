@@ -15,6 +15,5 @@ type Uid int
 type User struct {
 	Id			Uid
 	Username	string
-	Nickname	string
 }
 

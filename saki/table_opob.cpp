@@ -410,6 +410,8 @@ void TableOpOb::onPointsChanged(const Table &table)
 void TableOpOb::onTableEnded(const std::array<Who, 4> &rank,
 		                     const std::array<int, 4> &scores)
 {
+	mEnd = true;
+
 	json msg;
 	msg["Type"] = "t-table-ended";
 	msg["Scores"] = scores;
@@ -430,11 +432,17 @@ std::vector<Mail> TableOpOb::popMails()
 	return res;
 }
 
+bool TableOpOb::gameOver() const
+{
+	return mEnd;
+}
+
 void TableOpOb::start()
 {
 	std::array<int, 4> girlIds { 0, 0, 0, 0 };
 	RuleInfo rule;
-	std::array<int, 4> points { 25001, 25000, 25000, 25000 };
+	rule.roundLimit = 1;
+	std::array<int, 4> points { 25000, 25000, 25000, 25000 };
 	std::array<TableOperator*, 4> ops {
 		&mOps[0], &mOps[1], &mOps[2], &mOps[3]
 	};
