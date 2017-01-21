@@ -172,16 +172,22 @@ void TableOpOb::onActivated(Who who, Table &table)
 	if (tifo.can(AC::KAKAN))
 		map[stringOf(AC::KAKAN)] = tifo.kakanables();
 
-	/* FUCK ,
-	if (view.iCan(AC::IRS_CHECK)) {
-		const Girl &girl = table.getGirl(mSelf);
+	if (tifo.can(AC::IRS_CHECK)) {
+		const Girl &girl = table.getGirl(who);
 		int prediceCount = girl.irsCheckCount();
-		QVariantList list;
-		for (int i = 0; i < prediceCount; i++)
-			list << createIrsCheckRowVar(girl.irsCheckRow(i));
-		map.insert(stringOf(AC::IRS_CHECK), QVariant::fromValue(list));
+		json list = json::array();
+		for (int i = 0; i < prediceCount; i++) {
+			const IrsCheckRow &row = girl.irsCheckRow(i);
+			json rmap;
+			rmap["modelMono"] = row.mono;
+			rmap["modelIndent"] = row.indent;
+			rmap["modelText"] = row.name;
+			rmap["modelAble"] = row.able;
+			rmap["modelOn"] = row.on;
+			list.emplace_back(rmap);
+		}
+		map[stringOf(AC::IRS_CHECK)] = list;
 	}
-	*/
 
 	if (tifo.can(AC::IRS_RIVAL)) {
 		const Girl &girl = table.getGirl(who);
