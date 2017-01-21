@@ -6,7 +6,10 @@ BUILD_DIR=./build
 AR=ar
 ARFLAGS=crf
 
-SED_REGEX='s/\*\//\#cgo LDFLAGS: \$${SRCDIR}\/build\/libsaki.a\n\*\//g'
+SED_REGEX='s/\*\//\
+		  \#cgo LDFLAGS: \$${SRCDIR}\/build\/libsaki.a\n\
+		  \#cgo CXXFLAGS: -std=c++11\n\
+		  \*\//g'
 
 all: libsaki swig
 

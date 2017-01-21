@@ -14,10 +14,9 @@ public:
 	TableSession();
 	~TableSession();
 
-	using str = std::string;
-
 	std::vector<Mail> Start();
-	std::vector<Mail> Action(int who, const str &actStr, const str &actArg);
+	std::vector<Mail> Action(int who, const std::string &actStr, 
+                             const std::string &actArg);
 	bool GameOver() const;
 
 private:
