@@ -4,7 +4,7 @@ CXXSRC=../libsaki/*.cpp
 BUILD_DIR=./build
 
 AR=ar
-ARFLAGS=crf
+ARFLAGS=cr
 
 SED_REGEX='s/\*\//\
 		  \#cgo LDFLAGS: \$${SRCDIR}\/build\/libsaki.a\n\
