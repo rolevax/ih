@@ -6,10 +6,12 @@ BUILD_DIR=./build
 AR=ar
 ARFLAGS=cr
 
-SED_REGEX='s/\*\//\
-		  \#cgo LDFLAGS: \$${SRCDIR}\/build\/libsaki.a\n\
-		  \#cgo CXXFLAGS: -std=c++11\n\
-		  \*\//g'
+# inject the CGO preamble before the '*/' end-of-commend
+CGO_INJ=cgo_preamble.inject
+SED_MAGIC=sed -n -e '/*\//r ${CGO_INJ}'\
+		  -e 1x -e '2,$${x;p}' -e '$${x;p}'\
+		  saki.go > tmp\
+		  && mv tmp saki.go
 
 all: libsaki swig
 
@@ -23,7 +25,7 @@ libsaki: ${BUILD_DIR}
 swig:
 	@echo -n 'generating swig outputs...'
 	@swig -go -cgo -c++ -intgosize 64 saki.i
-	@sed -i ${SED_REGEX} -- saki.go
+	@${SED_MAGIC}
 	@echo -e '\e[OK\r[DONE] saki.go saki_wrap.cxx'
 
 ${BUILD_DIR}:
