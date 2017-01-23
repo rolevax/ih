@@ -35,22 +35,18 @@ func (dao *Dao) Close() {
 
 func (dao *Dao) Login(login *model.Login) *model.User {
 	var user model.User
-	var password string
 
 	err := dao.db.QueryRow(
-		`select id, username, password
-		from users where username = ?`, login.Username).
-		Scan(&user.Id, &user.Username, &password)
+		`select user_id, username
+		from users where username=? && password=?`,
+		login.Username, login.Password).
+		Scan(&user.Id, &user.Username)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil
 		}
 		log.Fatalln("Dao.Login", err)
-	}
-
-	if login.Password != password {
-		return nil
 	}
 
 	return &user
@@ -85,8 +81,8 @@ func (dao *Dao) GetUser(uid model.Uid) *model.User {
 	var user model.User
 
 	err := dao.db.QueryRow(
-		`select id, username 
-		from users where id = ?`, uid).
+		`select user_id, username 
+		from users where user_id=?`, uid).
 		Scan(&user.Id, &user.Username)
 
 	if err != nil {

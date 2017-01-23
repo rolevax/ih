@@ -10,7 +10,7 @@ type Login struct {
 	Conn		net.Conn
 }
 
-type Uid int
+type Uid uint
 
 type User struct {
 	Id			Uid
