@@ -13,6 +13,7 @@ import (
 
 type Conns struct {
 	Login	chan *model.Login
+	SignUp	chan *model.Login
 	Logout	chan model.Uid
 	Start	chan [4]model.Uid
     Peer    chan *Mail
@@ -27,6 +28,7 @@ func NewConns(dao *dao.Dao) *Conns {
 	var conns Conns
 
 	conns.Login = make(chan *model.Login)
+	conns.SignUp = make(chan *model.Login)
 	conns.Logout = make(chan model.Uid)
 	conns.Start = make(chan [4]model.Uid)
 	conns.Peer = make(chan *Mail)
@@ -53,6 +55,14 @@ func (conns *Conns) Loop() {
 			} else {
 				str := "用户名或密码错误"
 				conns.reject(login.Conn, newLoginFailMsg(str))
+			}
+		case sign := <-conns.SignUp:
+			user := conns.dao.SignUp(sign)
+			if user != nil {
+				conns.add(user, sign.Conn)
+			} else {
+				str := "用户名已存在"
+				conns.reject(sign.Conn, newLoginFailMsg(str))
 			}
 		case uid := <-conns.Logout:
 			conns.logout(uid)

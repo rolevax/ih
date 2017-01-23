@@ -59,6 +59,9 @@ func handle(conn net.Conn, conns *srv.Conns) {
 	case "login":
 		login := model.Login{req.Username, req.Password, conn}
 		conns.Login <- &login
+	case "sign-up":
+		sign := model.Login{req.Username, req.Password, conn}
+		conns.SignUp <- &sign
 	default:
 		log.Println("E main.handle unkown request", req.Type)
 		conn.Close()

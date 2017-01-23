@@ -56,6 +56,31 @@ func (dao *Dao) Login(login *model.Login) *model.User {
 	return &user
 }
 
+func (dao *Dao) SignUp(sign *model.Login) *model.User {
+	var exist bool
+	err := dao.db.QueryRow(
+		"select exists(select 1 from users where username=?)",
+		sign.Username).Scan(&exist)
+
+	if err != nil {
+		log.Fatalln("Dao.SignUp", err)
+	}
+
+	if exist {
+		return nil
+	}
+
+	_, err = dao.db.Exec(
+		"insert into users (username, password) values (?,?)",
+		sign.Username, sign.Password)
+
+	if err != nil {
+		log.Fatalln("Dao.SignUp", err)
+	}
+
+	return dao.Login(sign)
+}
+
 func (dao *Dao) GetUser(uid model.Uid) *model.User {
 	var user model.User
 

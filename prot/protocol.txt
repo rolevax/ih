@@ -14,7 +14,7 @@ client
 	server
 
 { Type: "login", Username: "...", Password: "..." }
-{ Type: "signup", Username: "...", Password: "..." }
+{ Type: "sign-up", Username: "...", Password: "..." }
 	{ Type: "auth", Ok: false, Reason: "..." } close
 	{ Type: "auth", Ok: true, User: {...} }
 
