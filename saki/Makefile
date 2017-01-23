@@ -9,7 +9,7 @@ ARFLAGS=cr
 # inject the CGO preamble before the '*/' end-of-commend
 CGO_INJ=cgo_preamble.inject
 SED_MAGIC=sed -n -e '/*\//r ${CGO_INJ}'\
-		  -e 1x -e '2,$${x;p}' -e '$${x;p}'\
+		  -e 1x -e '2,$$x' -e '2,$$p' -e '$$x' -e '$$p'\
 		  saki.go > tmp\
 		  && mv tmp saki.go
 
