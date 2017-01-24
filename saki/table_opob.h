@@ -55,7 +55,7 @@ public:
 	void onPointsChanged(const Table &table) override;
 	void onTableEnded(const std::array<Who, 4> &rank,
 			          const std::array<int, 4> &scores) override;
-	// void onPoppedUp(...) override
+	void onPoppedUp(const Table &table, Who who) override;
 
 	std::vector<Mail> popMails();
 	bool gameOver() const;

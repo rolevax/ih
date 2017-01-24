@@ -431,6 +431,14 @@ void TableOpOb::onTableEnded(const std::array<Who, 4> &rank,
 	}
 }
 
+void TableOpOb::onPoppedUp(const Table &table, Who who)
+{
+	json msg;
+	msg["Type"] = "t-popped-up";
+	msg["Str"] = table.getGirl(who).popUpStr();
+	peer(who.index(), msg);
+}
+
 std::vector<Mail> TableOpOb::popMails()
 {
 	std::vector<Mail> res(mMails); // copy
