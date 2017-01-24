@@ -2,6 +2,7 @@ package srv
 
 import (
 	"log"
+	"time"
 	"bitbucket.org/rolevax/sakilogy-server/model"
 	"bitbucket.org/rolevax/sakilogy-server/saki"
 )
@@ -50,7 +51,7 @@ func (tables *Tables) SessionCount() int {
 }
 
 func (tables *Tables) add(uids [4]model.Uid) {
-	s := newSession(tables.conns, uids)
+	s := newSession(tables, uids)
 	tables.sessions = append(tables.sessions, s)
 	s.notifyLoad()
 }
@@ -92,15 +93,15 @@ type session struct {
 	table	saki.TableSession
 	uids	[4]model.Uid
 	readys	[4]bool
-	conns	*Conns
+	tables	*Tables
 }
 
-func newSession(conns *Conns, uids [4]model.Uid) *session {
+func newSession(tables *Tables, uids [4]model.Uid) *session {
 	var s session
 
 	s.table = saki.NewTableSession()
 	s.uids = uids
-	s.conns = conns;
+	s.tables = tables;
 
 	return &s
 }
@@ -108,7 +109,7 @@ func newSession(conns *Conns, uids [4]model.Uid) *session {
 func (s *session) notifyLoad() {
 	var users [4]*model.User
 	for i := range users {
-		users[i] = s.conns.dao.GetUser(s.uids[i])
+		users[i] = s.tables.conns.dao.GetUser(s.uids[i])
 		if users[i] == nil {
 			log.Fatal("session.nofityLoad:", s.uids[i], "not in DB")
 		}
@@ -123,7 +124,7 @@ func (s *session) notifyLoad() {
 
 	for i, uid := range s.uids {
 		msg.TempDealer = (4 - i) % 4
-		s.conns.Peer <- &Mail{uid, msg}
+		s.tables.conns.Peer <- &Mail{uid, msg}
 		// rotate perspectives
 		u0 := msg.Users[0]
 		msg.Users[0] = msg.Users[1]
@@ -155,7 +156,7 @@ func (s *session) start() {
 	size := int(mails.Size())
 	for i := 0; i < size; i++ {
 		mail := Mail{s.uids[mails.Get(i).GetTo()], mails.Get(i).GetMsg()}
-		s.conns.Peer <- &mail
+		s.tables.conns.Peer <- &mail
 	}
 }
 
@@ -166,8 +167,18 @@ func (s *session) action(act *Action) {
 
 	size := int(mails.Size())
 	for i := 0; i < size; i++ {
-		mail := Mail{s.uids[mails.Get(i).GetTo()], mails.Get(i).GetMsg()}
-		s.conns.Peer <- &mail
+		toWhom := mails.Get(i).GetTo()
+		msg := mails.Get(i).GetMsg()
+		if msg == "auto" { // special mark
+			go func() {
+				time.Sleep(300 * time.Millisecond)
+				act := Action{s.uids[toWhom], "SPIN_OUT", "-1"}
+				s.tables.Action <- &act
+			}()
+		} else {
+			mail := Mail{s.uids[toWhom], msg}
+			s.tables.conns.Peer <- &mail
+		}
 	}
 }
 

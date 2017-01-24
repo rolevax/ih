@@ -145,6 +145,13 @@ void TableOpOb::onActivated(Who who, Table &table)
     using AC = ActCode;
     const TicketFolder &tifo = table.getTicketFolder(who);
 
+	if (table.riichiEstablished(who) && tifo.spinOnly()) {
+		// speciall msg to tell tables.go to make an auto action
+		// use go since c++ async timer is hard
+		mMails.emplace_back(who.index(), "auto");
+		return;
+	}
+
 	int focusWho;
 	if (tifo.can(AC::CHII_AS_LEFT)
 			|| tifo.can(AC::CHII_AS_MIDDLE)
