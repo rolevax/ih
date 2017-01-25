@@ -12,14 +12,17 @@ only for exceptional internal errors, not for business logic
 
 client
 	server
+	. peer
+	b broadcast, same msg for all
+	r broadcast, rotate perspective
 
 { Type: "login", Username: "...", Password: "..." }
 { Type: "sign-up", Username: "...", Password: "..." }
-	{ Type: "auth", Ok: false, Reason: "..." } close
-	{ Type: "auth", Ok: true, User: {...} }
+	. { Type: "auth", Ok: false, Reason: "..." } close
+	. { Type: "auth", Ok: true, User: {...} }
 
 { Type: "look-around" }
-	{ Type: "look-around", Conn: ?, Idle: ? }
+	. { Type: "look-around", Conn: ?, Idle: ? }
 
 { Type: "book" }
 	r { Type: "start", Users: [...], GirlIds: [...], TempDealer: ? }

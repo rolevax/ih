@@ -7,92 +7,90 @@ import (
 	"io"
 	"strings"
 	"encoding/json"
-	"bitbucket.org/rolevax/sakilogy-server/model"
-	"bitbucket.org/rolevax/sakilogy-server/dao"
 )
 
-type Conns struct {
-	Login	chan *model.Login
-	SignUp	chan *model.Login
-	Logout	chan model.Uid
-	Start	chan [4]model.Uid
-    Peer    chan *Mail
-	dao		*dao.Dao
-	users	map[model.Uid]*model.User
-	conns	map[model.Uid]net.Conn
-	books	*Books
-	tables	*Tables
+type conns struct {
+	login	chan *login
+	signUp	chan *login
+	logout	chan uid
+	start	chan [4]uid
+    peer    chan *Mail
+	dao		*dao
+	users	map[uid]*user
+	conns	map[uid]net.Conn
+	books	*books
+	tables	*tables
 }
 
-func NewConns(dao *dao.Dao) *Conns {
-	var conns Conns
+func newConns(dao *dao) *conns {
+	conns := new(conns)
 
-	conns.Login = make(chan *model.Login)
-	conns.SignUp = make(chan *model.Login)
-	conns.Logout = make(chan model.Uid)
-	conns.Start = make(chan [4]model.Uid)
-	conns.Peer = make(chan *Mail)
+	conns.login = make(chan *login)
+	conns.signUp = make(chan *login)
+	conns.logout = make(chan uid)
+	conns.start = make(chan [4]uid)
+	conns.peer = make(chan *Mail)
 
 	conns.dao = dao
-	conns.users = make(map[model.Uid]*model.User)
-	conns.conns = make(map[model.Uid]net.Conn)
-	conns.books = NewBooks(&conns)
-	conns.tables = NewTables(&conns)
+	conns.users = make(map[uid]*user)
+	conns.conns = make(map[uid]net.Conn)
+	conns.books = newBooks(conns)
+	conns.tables = newTables(conns)
 
-	return &conns
+	return conns
 }
 
-func (conns *Conns) Loop() {
-	go conns.books.Loop()
-	go conns.tables.Loop()
+func (conns *conns) loop() {
+	go conns.books.loop()
+	go conns.tables.loop()
 
 	for {
 		select {
-		case login := <-conns.Login:
-			user := conns.dao.Login(login)
+		case login := <-conns.login:
+			user := conns.dao.login(login)
 			if user != nil {
-				conns.add(user, login.Conn)
+				conns.add(user, login.conn)
 			} else {
 				str := "用户名或密码错误"
-				conns.reject(login.Conn, newLoginFailMsg(str))
+				conns.reject(login.conn, newRespAuthFail(str))
 			}
-		case sign := <-conns.SignUp:
-			user := conns.dao.SignUp(sign)
+		case sign := <-conns.signUp:
+			user := conns.dao.signUp(sign)
 			if user != nil {
-				conns.add(user, sign.Conn)
+				conns.add(user, sign.conn)
 			} else {
 				str := "用户名已存在"
-				conns.reject(sign.Conn, newLoginFailMsg(str))
+				conns.reject(sign.conn, newRespAuthFail(str))
 			}
-		case uid := <-conns.Logout:
-			conns.logout(uid)
-		case uids := <-conns.Start:
-			conns.tables.Create <- uids
-		case mail := <-conns.Peer:
+		case uid := <-conns.logout:
+			conns.sub(uid)
+		case uids := <-conns.start:
+			conns.tables.create <- uids
+		case mail := <-conns.peer:
             conns.send(mail.To, mail.Msg)
 		}
 	}
 }
 
-func (conns *Conns) add(user *model.User, conn net.Conn) {
+func (conns *conns) add(user *user, conn net.Conn) {
 	// prevent dup login
 	if _, ok := conns.users[user.Id]; ok {
 		str := "该用户已登录"
-		conns.reject(conn, newLoginFailMsg(str));
+		conns.reject(conn, newRespAuthFail(str));
 		return
 	}
 
 	conns.users[user.Id] = user
 	conns.conns[user.Id] = conn
-	conns.send(user.Id, newLoginOkMsg(user))
+	conns.send(user.Id, newRespAuthOk(user))
 
 	go conns.readLoop(user.Id)
 }
 
-func (conns *Conns) logout(uid model.Uid) {
+func (conns *conns) sub(uid uid) {
 	conn, found := conns.conns[uid]
 	if found {
-		conns.books.Unbook <- uid
+		conns.books.unbook <- uid
 		log.Println(uid, "----")
 		conn.Close()
 	}
@@ -101,53 +99,53 @@ func (conns *Conns) logout(uid model.Uid) {
 	delete(conns.users, uid)
 }
 
-func (conns *Conns) readLoop(uid model.Uid) {
+func (conns *conns) readLoop(uid uid) {
 	conn := conns.conns[uid]
 	for {
 		breq, err := bufio.NewReader(conn).ReadBytes('\n')
 		if err != nil {
 			if err == io.EOF {
-				conns.Logout <- uid
+				conns.logout <- uid
 			} else {
-				log.Println("E Conns.readLoop", err)
+				log.Println("E conns.readLoop", err)
 			}
 			return
 		}
 
 		log.Print(uid, " ---> ", string(breq))
-		var req struct {Type string}
+		var req reqTypeOnly
 		if err := json.Unmarshal(breq, &req); err != nil {
-			log.Fatal("E Conns.readLoop", err)
+			log.Fatal("E conns.readLoop", err)
 			return
 		}
 		conns.switchRead(uid, req.Type, breq)
 	}
 }
 
-func (conns *Conns) switchRead(uid model.Uid, t string, breq []byte) {
+func (conns *conns) switchRead(uid uid, t string, breq []byte) {
 	switch {
 	case t == "look-around":
 		conns.sendLookAround(uid)
 	case t == "book":
-		conns.books.Book <- uid
+		conns.books.book <- uid
 	case t == "unbook":
-		conns.books.Unbook <- uid
+		conns.books.unbook <- uid
 	case t == "ready":
-		conns.tables.Ready <- uid
+		conns.tables.ready <- uid
 	case strings.HasPrefix(t, "t-"):
-		act := Action{Uid: uid}
+		act := reqAction{uid: uid}
 		if err := json.Unmarshal(breq, &act); err != nil {
-			log.Println("E Conns.switchRead", err)
+			log.Println("E conns.switchRead", err)
 			return
 		}
-		conns.tables.Action <- &act
+		conns.tables.action <- &act
 	}
 }
 
-func (conns *Conns) send(uid model.Uid, msg interface{}) {
+func (conns *conns) send(uid uid, msg interface{}) {
 	conn, found := conns.conns[uid]
 	if !found {
-		log.Println("E Conns.send user", uid, "not found")
+		log.Println("E conns.send user", uid, "not found")
 		return
 	}
 
@@ -158,25 +156,25 @@ func (conns *Conns) send(uid model.Uid, msg interface{}) {
         var err error
         jsonb, err = json.Marshal(msg)
         if err != nil {
-            log.Fatalln("Conns.send", err)
+            log.Fatalln("conns.send", err)
         }
     }
 
 	if _, err := conn.Write(append(jsonb, '\n')); err != nil {
-		log.Println("Conns.send", err)
+		log.Println("conns.send", err)
 	} else {
 		log.Println(uid, "<---", string(jsonb))
 	}
 }
 
-func (conns *Conns) reject(conn net.Conn, msg interface{}) {
+func (conns *conns) reject(conn net.Conn, msg interface{}) {
 	jsonb, err := json.Marshal(msg)
 	if err != nil {
-		log.Fatal("Conns.reject", err)
+		log.Fatal("conns.reject", err)
 	}
 
 	if _, err := conn.Write(append(jsonb, '\n')); err != nil {
-		log.Println("Conns.reject", err)
+		log.Println("conns.reject", err)
 	} else {
 		log.Println(conn.RemoteAddr(), "<---", string(jsonb))
 	}
@@ -184,39 +182,15 @@ func (conns *Conns) reject(conn net.Conn, msg interface{}) {
 	conn.Close()
 }
 
-func (conns *Conns) sendLookAround(uid model.Uid) {
+func (conns *conns) sendLookAround(uid uid) {
 	connCt := len(conns.conns)
-	playCt := 4 * conns.tables.SessionCount();
+	playCt := 4 * len(conns.tables.sessions)
 	idleCt := connCt - playCt;
-	bookCt := conns.books.BookCount()
-
-	msg := struct {
-		Type	string
-		Conn	int
-		Idle	int
-		Book	int
-		Play	int
-	}{"look-around", connCt, idleCt, bookCt, playCt}
-	conns.send(uid, msg)
+	bookCt := conns.books.wait
+	conns.send(uid, newRespLookAround(connCt, idleCt, bookCt, playCt))
 }
 
 
 
 /// messages
-
-func newLoginFailMsg(str string) interface{} {
-	return struct {
-		Type	string
-		Ok		bool
-		Reason	string
-	}{"auth", false, str}
-}
-
-func newLoginOkMsg(user *model.User) interface{} {
-	return struct {
-		Type	string
-		Ok		bool
-		User	*model.User
-	}{"auth", true, user}
-}
 

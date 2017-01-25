@@ -2,54 +2,49 @@ package srv
 
 import (
 	"log"
-	"bitbucket.org/rolevax/sakilogy-server/model"
 )
 
-type Books struct {
-	Book	chan model.Uid
-	Unbook	chan model.Uid
-	conns	*Conns
-	waits	[4]model.Uid
+type books struct {
+	book	chan uid
+	unbook	chan uid
+	conns	*conns
+	waits	[4]uid
 	wait	int
 }
 
-func NewBooks(conns *Conns) *Books {
-	var books Books
+func newBooks(conns *conns) *books {
+	books := new(books)
 
-	books.Book = make(chan model.Uid)
-	books.Unbook = make(chan model.Uid)
+	books.book = make(chan uid)
+	books.unbook = make(chan uid)
 	books.conns = conns
 	books.wait = 0
 
-	return &books;
+	return books;
 }
 
-func (books *Books) Loop() {
+func (books *books) loop() {
 	for {
 		select {
-		case uid := <-books.Book:
-			books.book(uid)
-		case uid := <-books.Unbook:
-			books.unbook(uid)
+		case uid := <-books.book:
+			books.add(uid)
+		case uid := <-books.unbook:
+			books.sub(uid)
 		}
 	}
 }
 
-func (books *Books) BookCount() int {
-	return books.wait;
-}
-
-func (books *Books) book(uid model.Uid) {
+func (books *books) add(uid uid) {
 	log.Println("book", uid)
 	books.waits[books.wait] = uid;
 	books.wait++
 	if books.wait == 4 {
-		books.conns.Start <- books.waits
+		books.conns.start <- books.waits
 		books.wait = 0
 	}
 }
 
-func (books *Books) unbook(uid model.Uid) {
+func (books *books) sub(uid uid) {
 	log.Println("unbook", uid)
 	i := 0
 	for i < books.wait && books.waits[i] != uid {

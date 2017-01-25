@@ -1,18 +1,17 @@
-package dao
+package srv
 
 import (
 	"log"
 	"database/sql"
 	_"github.com/go-sql-driver/mysql"
-	"bitbucket.org/rolevax/sakilogy-server/model"
 )
 
-type Dao struct {
+type dao struct {
 	db		*sql.DB
 }
 
-func New() *Dao {
-	var dao Dao
+func newDao() *dao {
+	dao := new(dao)
 
 	db, err := sql.Open("mysql",
 		"sakilogy:@k052a9@tcp(127.0.0.1:3306)/sakilogy")
@@ -26,15 +25,15 @@ func New() *Dao {
 
 	dao.db = db
 
-	return &dao
+	return dao
 }
 
-func (dao *Dao) Close() {
+func (dao *dao) close() {
 	dao.db.Close()
 }
 
-func (dao *Dao) Login(login *model.Login) *model.User {
-	var user model.User
+func (dao *dao) login(login *login) *user {
+	var user user
 
 	err := dao.db.QueryRow(
 		`select user_id, username
@@ -46,20 +45,20 @@ func (dao *Dao) Login(login *model.Login) *model.User {
 		if err == sql.ErrNoRows {
 			return nil
 		}
-		log.Fatalln("Dao.Login", err)
+		log.Fatalln("dao.login", err)
 	}
 
 	return &user
 }
 
-func (dao *Dao) SignUp(sign *model.Login) *model.User {
+func (dao *dao) signUp(sign *login) *user {
 	var exist bool
 	err := dao.db.QueryRow(
 		"select exists(select 1 from users where username=?)",
 		sign.Username).Scan(&exist)
 
 	if err != nil {
-		log.Fatalln("Dao.SignUp", err)
+		log.Fatalln("dao.SignUp", err)
 	}
 
 	if exist {
@@ -71,14 +70,14 @@ func (dao *Dao) SignUp(sign *model.Login) *model.User {
 		sign.Username, sign.Password)
 
 	if err != nil {
-		log.Fatalln("Dao.SignUp", err)
+		log.Fatalln("dao.SignUp", err)
 	}
 
-	return dao.Login(sign)
+	return dao.login(sign)
 }
 
-func (dao *Dao) GetUser(uid model.Uid) *model.User {
-	var user model.User
+func (dao *dao) getUser(uid uid) *user {
+	var user user
 
 	err := dao.db.QueryRow(
 		`select user_id, username 
@@ -89,10 +88,9 @@ func (dao *Dao) GetUser(uid model.Uid) *model.User {
 		if err == sql.ErrNoRows {
 			return nil
 		}
-		log.Fatalln("Dao.GetUser", err)
+		log.Fatalln("dao.GetUser", err)
 	}
 
 	return &user
 }
-
 
