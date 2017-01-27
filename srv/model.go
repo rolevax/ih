@@ -28,15 +28,16 @@ type reqAuth struct {
 }
 
 type reqAction struct {
-	uid		uid
-	ActStr	string
-	ActArg	string
+	uid			uid
+	Nonce		int
+	ActStr		string
+	ActArg		string
 }
 
 type respAuthFail struct {
-	Type	string
-	Ok		bool
-	Reason	string
+	Type		string
+	Ok			bool
+	Reason		string
 }
 
 func newRespAuthFail(str string) interface{} {
