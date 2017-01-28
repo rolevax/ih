@@ -482,6 +482,40 @@ void TableOpOb::action(int who, const string &actStr, const string &actArg)
 	mTable->action(Who(who), action);
 }
 
+void TableOpOb::sweep()
+{
+	std::array<Action, 4> actions;
+	using AC = ActCode;
+	for (int w = 0; w < 4; w++) {
+		const auto &tifo = mTable->getTicketFolder(Who(w));
+		if (!tifo.any())
+			continue;
+
+		std::vector<AC> just {
+			AC::NEXT_ROUND, AC::END_TABLE, AC::DICE,
+			AC::SPIN_OUT, AC::PASS
+		};
+		for (AC act : just) {
+			if (tifo.can(act)) {
+				actions[w] = Action(act);
+				break;
+			}
+		}
+
+		if (actions[w].act() != AC::NOTHING)
+			continue;
+
+		if (tifo.can(AC::SWAP_OUT))
+			actions[w] = Action(AC::SWAP_OUT, tifo.swappables()[0]);
+		// TODO consider irs, etc. 
+		//      should be recoverable from any state
+	}
+
+	for (int w = 0; w < 4; w++)
+		if (actions[w].act() != AC::NOTHING)
+			mTable->action(Who(w), actions[w]);
+}
+
 void TableOpOb::peer(int w, const json &msg)
 {
 	mMails.emplace_back(w, msg.dump());

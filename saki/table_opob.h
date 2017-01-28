@@ -62,6 +62,7 @@ public:
 
 	void start();
 	void action(int who, const string &actStr, const string &actArg);
+	void sweep();
 
 private:
 	void peer(int w, const json &msg);

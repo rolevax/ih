@@ -14,6 +14,7 @@ type session struct {
 	readys	[4]bool
 	tables	*tables
 	nonce	int
+	timer	*time.Timer
 }
 
 func newSession(tables *tables, uids [4]uid) *session {
@@ -24,6 +25,13 @@ func newSession(tables *tables, uids [4]uid) *session {
 	s.uids = uids
 	s.tables = tables
 	s.nonce = 0
+	s.timer = time.NewTimer(1 * time.Second)
+	if !s.timer.Stop() {
+		select {
+		case <-s.timer.C:
+		default:
+		}
+	}
 
 	return s
 }
@@ -46,6 +54,8 @@ func (s *session) Loop() {
 			}
 		case act:= <-s.action:
 			s.doAction(table, act)
+		case <-s.timer.C:
+			s.sweep(table)
 		}
 	}
 
@@ -106,12 +116,7 @@ func (s *session) FindUser(uid uid) (int, bool) {
 func (s *session) start(table saki.TableSession) {
 	mails := table.Start()
 	defer saki.DeleteMailVector(mails)
-
-	size := int(mails.Size())
-	for i := 0; i < size; i++ {
-		mail := Mail{s.uids[mails.Get(i).GetTo()], mails.Get(i).GetMsg()}
-		s.tables.conns.peer <- &mail
-	}
+	s.sendMail(mails, table)
 }
 
 func (s *session) doAction(table saki.TableSession, act *reqAction) {
@@ -123,10 +128,26 @@ func (s *session) doAction(table saki.TableSession, act *reqAction) {
 	i, _ := s.FindUser(act.uid)
 	mails := table.Action(i, act.ActStr, act.ActArg)
 	defer saki.DeleteMailVector(mails)
+	s.sendMail(mails, table)
+}
 
+func (s *session) sweep(table saki.TableSession) {
+	mails := table.Sweep()
+	defer saki.DeleteMailVector(mails)
+	s.sendMail(mails, table)
+}
+
+func (s *session) sendMail(mails saki.MailVector, table saki.TableSession) {
 	size := int(mails.Size())
 	if size > 0 {
 		s.nonce++
+		if !s.timer.Stop() {
+			select {
+			case <-s.timer.C:
+			default:
+			}
+		}
+		s.timer.Reset(7 * time.Second)
 	}
 
 	for i := 0; i < size; i++ {
