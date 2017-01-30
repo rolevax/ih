@@ -130,7 +130,7 @@ void rotate(T &arr)
 
 
 
-TableOpOb::TableOpOb()
+TableOpOb::TableOpOb(const std::array<int, 4> &girlIds)
 	: mOps {
 		TableOp(*this, Who(0)),
 		TableOp(*this, Who(1)),
@@ -138,6 +138,18 @@ TableOpOb::TableOpOb()
 		TableOp(*this, Who(3))
 	}
 {
+	RuleInfo rule;
+	rule.roundLimit = 8;
+	std::array<int, 4> points { 25000, 25000, 25000, 25000 };
+	std::array<TableOperator*, 4> ops {
+		&mOps[0], &mOps[1], &mOps[2], &mOps[3]
+	};
+	std::vector<TableObserver*> obs { this };
+	Who td(0);
+
+	mTable.reset(new Table(points, girlIds, ops, obs, rule, td));
+
+    mTable->start();
 }
 
 void TableOpOb::onActivated(Who who, Table &table)
@@ -458,26 +470,8 @@ bool TableOpOb::gameOver() const
 	return mEnd;
 }
 
-void TableOpOb::start()
-{
-	std::array<int, 4> girlIds { 0, 0, 0, 0 };
-	RuleInfo rule;
-	rule.roundLimit = 1;
-	std::array<int, 4> points { 25000, 25000, 25000, 25000 };
-	std::array<TableOperator*, 4> ops {
-		&mOps[0], &mOps[1], &mOps[2], &mOps[3]
-	};
-	std::vector<TableObserver*> obs { this };
-	Who td(0);
-
-	mTable.reset(new Table(points, girlIds, ops, obs, rule, td));
-
-    mTable->start();
-}
-
 void TableOpOb::action(int who, const string &actStr, const string &actArg)
 {
-	util::p("===TableOpOb get act", actStr, actArg);
 	Action action = makeAction(actStr, actArg);
 	mTable->action(Who(who), action);
 }

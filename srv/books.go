@@ -23,7 +23,7 @@ func newBooks(conns *conns) *books {
 	return books;
 }
 
-func (books *books) loop() {
+func (books *books) Loop() {
 	for {
 		select {
 		case uid := <-books.book:
@@ -34,7 +34,22 @@ func (books *books) loop() {
 	}
 }
 
+func (books *books) Book() chan<- uid {
+	return books.book
+}
+
+func (books *books) Unbook() chan<- uid {
+	return books.unbook
+}
+
 func (books *books) add(uid uid) {
+	for i := 0; i < books.wait; i++ {
+		if books.waits[i] == uid {
+			log.Println("book refuse dup", uid)
+			return
+		}
+	}
+
 	log.Println("book", uid)
 	books.waits[books.wait] = uid;
 	books.wait++

@@ -40,9 +40,9 @@ func newConns(dao *dao) *conns {
 	return conns
 }
 
-func (conns *conns) loop() {
-	go conns.books.loop()
-	go conns.tables.loop()
+func (conns *conns) Loop() {
+	go conns.books.Loop()
+	go conns.tables.Loop()
 
 	for {
 		select {
@@ -65,11 +65,31 @@ func (conns *conns) loop() {
 		case uid := <-conns.logout:
 			conns.sub(uid)
 		case uids := <-conns.start:
-			conns.tables.create <- uids
+			conns.tables.Create() <- uids
 		case mail := <-conns.peer:
             conns.send(mail.To, mail.Msg)
 		}
 	}
+}
+
+func (conns *conns) Login() chan<- *login {
+	return conns.login
+}
+
+func (conns *conns) SignUp() chan<- *login {
+	return conns.signUp
+}
+
+func (conns *conns) Logout() chan<- uid {
+	return conns.logout
+}
+
+func (conns *conns) Start() chan<- [4]uid {
+	return conns.start
+}
+
+func (conns *conns) Peer() chan<- *Mail {
+	return conns.peer
 }
 
 func (conns *conns) add(user *user, conn net.Conn) {
@@ -90,7 +110,7 @@ func (conns *conns) add(user *user, conn net.Conn) {
 func (conns *conns) sub(uid uid) {
 	conn, found := conns.conns[uid]
 	if found {
-		conns.books.unbook <- uid
+		conns.books.Unbook() <- uid
 		log.Println(uid, "----")
 		conn.Close()
 	}
@@ -127,18 +147,18 @@ func (conns *conns) switchRead(uid uid, t string, breq []byte) {
 	case t == "look-around":
 		conns.sendLookAround(uid)
 	case t == "book":
-		conns.books.book <- uid
+		conns.books.Book() <- uid
 	case t == "unbook":
-		conns.books.unbook <- uid
+		conns.books.Unbook() <- uid
 	case t == "ready":
-		conns.tables.ready <- uid
+		conns.tables.Ready() <- uid
 	case strings.HasPrefix(t, "t-"):
 		act := reqAction{uid: uid}
 		if err := json.Unmarshal(breq, &act); err != nil {
 			log.Println("E conns.switchRead", err)
 			return
 		}
-		conns.tables.action <- &act
+		conns.tables.Action() <- &act
 	}
 }
 

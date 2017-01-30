@@ -1,9 +1,10 @@
 #include "table_session.h"
 #include "table_opob.h"
 
-TableSession::TableSession()
+TableSession::TableSession(int id0, int id1, int id2, int id3)
 {
-    mOpOb = new TableOpOb();
+	std::array<int, 4> girlIds { id0, id1, id2, id3 };
+    mOpOb = new TableOpOb(girlIds);
 }
 
 TableSession::~TableSession()
@@ -13,7 +14,6 @@ TableSession::~TableSession()
 
 std::vector<Mail> TableSession::Start() 
 {
-    mOpOb->start();
     return mOpOb->popMails();
 }
 

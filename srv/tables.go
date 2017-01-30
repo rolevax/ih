@@ -26,7 +26,7 @@ func newTables(conns *conns) *tables {
 	return tables
 }
 
-func (tables *tables) loop() {
+func (tables *tables) Loop() {
 	for {
 		select {
 		case uids := <-tables.create:
@@ -39,6 +39,18 @@ func (tables *tables) loop() {
 			tables.sub(s)
 		}
 	}
+}
+
+func (tables *tables) Create() chan<- [4]uid {
+	return tables.create
+}
+
+func (tables *tables) Ready() chan<- uid {
+	return tables.ready
+}
+
+func (tables *tables) Action() chan<- *reqAction {
+	return tables.action
 }
 
 func (tables *tables) EndSession() chan<- *session {

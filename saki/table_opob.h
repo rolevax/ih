@@ -31,7 +31,7 @@ private:
 class TableOpOb : public TableObserver
 {
 public:
-	TableOpOb();
+	TableOpOb(const std::array<int, 4> &girlIds);
 	virtual ~TableOpOb() = default;
 
 	void onActivated(Who who, Table &table);
@@ -60,7 +60,6 @@ public:
 	std::vector<Mail> popMails();
 	bool gameOver() const;
 
-	void start();
 	void action(int who, const string &actStr, const string &actArg);
 	void sweep();
 

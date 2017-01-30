@@ -12,7 +12,7 @@ func Serve() {
 	defer dao.close()
 
 	conns := newConns(dao)
-	go conns.loop()
+	go conns.Loop()
 
 	ln, err := net.Listen("tcp", ":6171")
 	if err != nil {
@@ -51,10 +51,10 @@ func handle(conn net.Conn, conns *conns) {
 	switch req.Type {
 	case "login":
 		login := login{req.Username, req.Password, conn}
-		conns.login <- &login
+		conns.Login() <- &login
 	case "sign-up":
 		sign := login{req.Username, req.Password, conn}
-		conns.signUp <- &sign
+		conns.SignUp() <- &sign
 	default:
 		log.Println("E main.handle unkown request", req.Type)
 		conn.Close()

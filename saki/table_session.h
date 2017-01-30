@@ -11,7 +11,7 @@ class TableOpOb;
 class TableSession
 {
 public:
-	TableSession();
+	TableSession(int id0, int id1, int id2, int id3);
 	~TableSession();
 
 	std::vector<Mail> Start();

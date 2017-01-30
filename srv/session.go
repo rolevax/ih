@@ -4,8 +4,13 @@ import (
 	"log"
 	"time"
 	"strconv"
+	"math/rand"
 	"bitbucket.org/rolevax/sakilogy-server/saki"
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 type session struct {
 	ready	chan int
@@ -37,9 +42,11 @@ func newSession(tables *tables, uids [4]uid) *session {
 }
 
 func (s *session) Loop() {
-	s.notifyLoad()
+	girlIds := genIds()
+	s.notifyLoad(&girlIds)
 
-	table := saki.NewTableSession()
+	table := saki.NewTableSession(
+		girlIds[0], girlIds[1], girlIds[2], girlIds[3])
 	defer saki.DeleteTableSession(table)
 
 	for !table.GameOver() {
@@ -70,7 +77,7 @@ func (s *session) Action() chan<- *reqAction {
 	return s.action
 }
 
-func (s *session) notifyLoad() {
+func (s *session) notifyLoad(girlIds *[4]int) {
 	var users [4]*user
 	for i := range users {
 		users[i] = s.tables.conns.dao.getUser(s.uids[i])
@@ -84,11 +91,11 @@ func (s *session) notifyLoad() {
 		Users		[4]*user
 		GirlIds		[4]int
 		TempDealer	int
-	}{"start", users, [4]int{0,0,0,0}, 0}
+	}{"start", users, *girlIds, 0}
 
 	for i, uid := range s.uids {
 		msg.TempDealer = (4 - i) % 4
-		s.tables.conns.peer <- &Mail{uid, msg}
+		s.tables.conns.Peer() <- &Mail{uid, msg}
 		// rotate perspectives
 		u0 := msg.Users[0]
 		msg.Users[0] = msg.Users[1]
@@ -160,8 +167,38 @@ func (s *session) sendMail(mails saki.MailVector, table saki.TableSession) {
 		} else {
 			msg = `{"Nonce":` + strconv.Itoa(s.nonce) + "," + msg[1:]
 			mail := Mail{s.uids[toWhom], msg}
-			s.tables.conns.peer <- &mail
+			s.tables.conns.Peer() <- &mail
 		}
+	}
+}
+
+func genIds() [4]int {
+	avails := []int{
+		710113, 710114, 710115,
+		712411, 712412,
+		712611,
+		712714, 712715,
+		712915,
+		713311, 713314,
+		713811, 713815,
+		714915,
+		713301,
+		990001, 990002}
+	for {
+		i0 := rand.Intn(len(avails))
+		i1 := rand.Intn(len(avails))
+		if i1 == i0 {
+			continue
+		}
+		i2 := rand.Intn(len(avails))
+		if i2 == i0 || i2 == i1 {
+			continue
+		}
+		i3 := rand.Intn(len(avails))
+		if i3 == i0 || i3 == i1 || i3 == i2 {
+			continue
+		}
+		return [4]int{avails[i0], avails[i1], avails[i2], avails[i3]}
 	}
 }
 
