@@ -4,7 +4,6 @@ import (
 	"log"
 	"net"
 	"bufio"
-	"io"
 	"strings"
 	"encoding/json"
 )
@@ -67,7 +66,7 @@ func (conns *conns) Loop() {
 		case uids := <-conns.start:
 			conns.tables.Create() <- uids
 		case mail := <-conns.peer:
-            conns.send(mail.To, mail.Msg)
+			conns.send(mail.To, mail.Msg)
 		}
 	}
 }
@@ -124,11 +123,7 @@ func (conns *conns) readLoop(uid uid) {
 	for {
 		breq, err := bufio.NewReader(conn).ReadBytes('\n')
 		if err != nil {
-			if err == io.EOF {
-				conns.logout <- uid
-			} else {
-				log.Println("E conns.readLoop", err)
-			}
+			conns.logout <- uid
 			return
 		}
 

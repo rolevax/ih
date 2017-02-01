@@ -18,6 +18,7 @@ public:
 	std::vector<Mail> Action(int who, const std::string &actStr, 
                              const std::string &actArg);
 	std::vector<Mail> Sweep();
+	std::vector<Mail> SweepOne(int who);
 	bool GameOver() const;
 
 private:

@@ -257,6 +257,11 @@ void TableOpOb::onRoundStarted(int r, int e, Who d,
 {
 	util::p("onRoundStarted", r, e, d.index(), 
             "al", al, "depo", dp, "seed", s);
+	if (r > 100) { // prevent infinite offline-spin-out loop
+		mEnd = true;
+		return;
+	}
+
 	json msg;
 	msg["Type"] = "t-round-started";
 	msg["Round"] = r;
@@ -366,7 +371,7 @@ void TableOpOb::onBarked(const Table &table, Who who,
 	msg["Spin"] = spin;
 	for (int w = 0; w < 4; w++) {
 		msg["Who"] = who.turnFrom(Who(w));
-		msg["FromWhem"] = from.somebody() ? from.turnFrom(Who(w)) : -1;
+		msg["FromWhom"] = from.somebody() ? from.turnFrom(Who(w)) : -1;
 		peer(w, msg);
 	}
 }
@@ -474,6 +479,32 @@ void TableOpOb::action(int who, const string &actStr, const string &actArg)
 {
 	Action action = makeAction(actStr, actArg);
 	mTable->action(Who(who), action);
+}
+
+void TableOpOb::sweepOne(int w)
+{
+	Who who(w);
+	using AC = ActCode;
+	const auto &tifo = mTable->getTicketFolder(who);
+	if (!tifo.any())
+		return;
+
+	std::vector<AC> just {
+		AC::NEXT_ROUND, AC::END_TABLE, AC::DICE,
+			AC::SPIN_OUT, AC::PASS
+	};
+	for (AC act : just) {
+		if (tifo.can(act)) {
+			mTable->action(who, Action(act));
+			return;
+		}
+	}
+
+	if (tifo.can(AC::SWAP_OUT)) {
+		mTable->action(who, Action(AC::SWAP_OUT, tifo.swappables()[0]));
+		// TODO consider irs, etc. 
+		//      should be recoverable from any state
+	}
 }
 
 void TableOpOb::sweep()

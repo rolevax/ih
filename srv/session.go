@@ -4,6 +4,7 @@ import (
 	"log"
 	"time"
 	"strconv"
+	"strings"
 	"math/rand"
 	"bitbucket.org/rolevax/sakilogy-server/saki"
 )
@@ -13,13 +14,13 @@ func init() {
 }
 
 type session struct {
-	ready	chan int
-	action	chan *reqAction
-	uids	[4]uid
-	readys	[4]bool
-	tables	*tables
-	nonce	int
-	timer	*time.Timer
+	ready		chan int
+	action		chan *reqAction
+	uids		[4]uid
+	readys		[4]bool
+	tables		*tables
+	nonce		int
+	timer		*time.Timer
 }
 
 func newSession(tables *tables, uids [4]uid) *session {
@@ -45,6 +46,8 @@ func (s *session) Loop() {
 	girlIds := genIds()
 	s.notifyLoad(&girlIds)
 
+	readyTimer := time.NewTimer(7 * time.Second)
+
 	table := saki.NewTableSession(
 		girlIds[0], girlIds[1], girlIds[2], girlIds[3])
 	defer saki.DeleteTableSession(table)
@@ -56,13 +59,20 @@ func (s *session) Loop() {
 				log.Fatalln("session.loop() i", i)
 			}
 			s.readys[i] = true;
-			if s.readys[0] && s.readys[1] && s.readys[2] && s.readys[3] {
+			if s.allReady() {
 				s.start(table)
 			}
 		case act:= <-s.action:
 			s.doAction(table, act)
 		case <-s.timer.C:
 			s.sweep(table)
+		case <-readyTimer.C:
+			if !s.allReady() {
+				for i := 0; i < 4; i++ {
+					s.readys[i] = true
+				}
+				s.start(table)
+			}
 		}
 	}
 
@@ -75,6 +85,10 @@ func (s *session) Ready() chan<- int {
 
 func (s *session) Action() chan<- *reqAction {
 	return s.action
+}
+
+func (s *session) allReady() bool {
+	return s.readys[0] && s.readys[1] && s.readys[2] && s.readys[3]
 }
 
 func (s *session) notifyLoad(girlIds *[4]int) {
@@ -138,6 +152,12 @@ func (s *session) doAction(table saki.TableSession, act *reqAction) {
 	s.sendMail(mails, table)
 }
 
+func (s *session) sweepOne(table saki.TableSession, i int) {
+	mails := table.SweepOne(i)
+	defer saki.DeleteMailVector(mails)
+	s.sendMail(mails, table)
+}
+
 func (s *session) sweep(table saki.TableSession) {
 	mails := table.Sweep()
 	defer saki.DeleteMailVector(mails)
@@ -165,9 +185,17 @@ func (s *session) sendMail(mails saki.MailVector, table saki.TableSession) {
 			act := reqAction{s.uids[toWhom], s.nonce, "SPIN_OUT", "-1"}
 			s.doAction(table, &act)
 		} else {
-			msg = `{"Nonce":` + strconv.Itoa(s.nonce) + "," + msg[1:]
-			mail := Mail{s.uids[toWhom], msg}
-			s.tables.conns.Peer() <- &mail
+			if _, ok := s.tables.conns.conns[s.uids[toWhom]]; !ok {
+				if strings.Contains(msg, "t-activated") {
+					if !table.GameOver() {
+						s.sweepOne(table, toWhom)
+					}
+				}
+			} else {
+				msg = `{"Nonce":` + strconv.Itoa(s.nonce) + "," + msg[1:]
+				mail := Mail{s.uids[toWhom], msg}
+				s.tables.conns.Peer() <- &mail
+			}
 		}
 	}
 }

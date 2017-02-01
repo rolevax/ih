@@ -31,6 +31,12 @@ std::vector<Mail> TableSession::Sweep()
     return mOpOb->popMails();
 }
 
+std::vector<Mail> TableSession::SweepOne(int who)
+{
+    mOpOb->sweepOne(who);
+    return mOpOb->popMails();
+}
+
 bool TableSession::GameOver() const
 {
 	return mOpOb->gameOver();
