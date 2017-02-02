@@ -52,6 +52,7 @@ func (s *session) Loop() {
 	s.notifyLoad(&girlIds)
 
 	readyTimer := time.NewTimer(7 * time.Second)
+	hardTimer := time.NewTimer(2 * time.Hour)
 
 	table := saki.NewTableSession(
 		girlIds[0], girlIds[1], girlIds[2], girlIds[3])
@@ -78,6 +79,8 @@ func (s *session) Loop() {
 				}
 				s.start(table)
 			}
+		case <-hardTimer.C:
+			break
 		}
 	}
 
@@ -191,7 +194,7 @@ func (s *session) sendMail(mails saki.MailVector, table saki.TableSession) {
 		toWhom := mails.Get(i).GetTo()
 		msg := mails.Get(i).GetMsg()
 		if msg == "auto" { // special mark
-			time.Sleep(300 * time.Millisecond)
+			time.Sleep(500 * time.Millisecond)
 			act := reqAction{s.uids[toWhom], s.nonce, "SPIN_OUT", "-1"}
 			s.doAction(table, &act)
 		} else {

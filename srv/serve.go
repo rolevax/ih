@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 )
 
+const Version = "0.6.5"
+
 func Serve() {
 	dao := newDao()
 	defer dao.close()

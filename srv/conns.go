@@ -46,31 +46,9 @@ func (conns *conns) Loop() {
 	for {
 		select {
 		case login := <-conns.login:
-			if login.Version != "0.6.5" {
-				str := "客户端版本过旧"
-				conns.reject(login.conn, newRespAuthFail(str))
-			} else {
-				user := conns.dao.login(login)
-				if user != nil {
-					conns.add(user, login.conn)
-				} else {
-					str := "用户名或密码错误"
-					conns.reject(login.conn, newRespAuthFail(str))
-				}
-			}
+			conns.recvLogin(login)
 		case sign := <-conns.signUp:
-			if sign.Version != "0.6.5" {
-				str := "客户端版本过旧"
-				conns.reject(sign.conn, newRespAuthFail(str))
-			} else {
-				user := conns.dao.signUp(sign)
-				if user != nil {
-					conns.add(user, sign.conn)
-				} else {
-					str := "用户名已存在"
-					conns.reject(sign.conn, newRespAuthFail(str))
-				}
-			}
+			conns.recvSignUp(sign)
 		case uid := <-conns.logout:
 			conns.sub(uid)
 		case uids := <-conns.start:
@@ -99,6 +77,36 @@ func (conns *conns) Start() chan<- [4]uid {
 
 func (conns *conns) Peer() chan<- *Mail {
 	return conns.peer
+}
+
+func (conns *conns) recvLogin(login *login) {
+	if login.Version != Version {
+		str := "客户端版本过旧"
+		conns.reject(login.conn, newRespAuthFail(str))
+	} else {
+		user := conns.dao.login(login)
+		if user != nil {
+			conns.add(user, login.conn)
+		} else {
+			str := "用户名或密码错误"
+			conns.reject(login.conn, newRespAuthFail(str))
+		}
+	}
+}
+
+func (conns *conns) recvSignUp(sign *login) {
+	if sign.Version != Version {
+		str := "客户端版本过旧"
+		conns.reject(sign.conn, newRespAuthFail(str))
+	} else {
+		user := conns.dao.signUp(sign)
+		if user != nil {
+			conns.add(user, sign.conn)
+		} else {
+			str := "用户名已存在"
+			conns.reject(sign.conn, newRespAuthFail(str))
+		}
+	}
 }
 
 func (conns *conns) add(user *user, conn net.Conn) {
@@ -140,7 +148,7 @@ func (conns *conns) readLoop(uid uid) {
 		log.Print(uid, " ---> ", string(breq))
 		var req reqTypeOnly
 		if err := json.Unmarshal(breq, &req); err != nil {
-			log.Fatal("E conns.readLoop", err)
+			log.Fatalln("E conns.readLoop", err)
 			return
 		}
 		conns.switchRead(uid, req.Type, breq)
@@ -214,8 +222,4 @@ func (conns *conns) sendLookAround(uid uid) {
 	bookCt := conns.books.wait
 	conns.send(uid, newRespLookAround(bookable, connCt, bookCt, playCt))
 }
-
-
-
-/// messages
 
