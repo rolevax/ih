@@ -160,7 +160,9 @@ func (conns *conns) switchRead(uid uid, t string, breq []byte) {
 	case t == "look-around":
 		conns.sendLookAround(uid)
 	case t == "book":
-		conns.books.Book() <- uid
+		if !conns.tables.HasUser(uid) {
+			conns.books.Book() <- uid
+		}
 	case t == "unbook":
 		conns.books.Unbook() <- uid
 	case t == "ready":

@@ -23,6 +23,7 @@ type session struct {
 	tables		*tables
 	nonce		int
 	timer		*time.Timer
+	timeOutCts	[4]int
 }
 
 func newSession(tables *tables, uids [4]uid) *session {
@@ -160,6 +161,7 @@ func (s *session) doAction(table saki.TableSession, act *reqAction) {
 	}
 
 	i, _ := s.FindUser(act.uid)
+	s.timeOutCts[i] = 0
 	mails := table.Action(i, act.ActStr, act.ActArg)
 	defer saki.DeleteMailVector(mails)
 	s.sendMail(mails, table)
@@ -172,7 +174,17 @@ func (s *session) sweepOne(table saki.TableSession, i int) {
 }
 
 func (s *session) sweepAll(table saki.TableSession) {
-	mails := table.SweepAll()
+	var targets int
+	mails := table.SweepAll(&targets)
+	for w := uint(0); w < 4; w++ {
+		if (targets & (1 << w)) != 0 {
+			s.timeOutCts[w]++
+			if s.timeOutCts[w] >= 3 {
+				s.onlines[w] = false
+				s.tables.conns.Logout() <- s.uids[w]
+			}
+		}
+	}
 	defer saki.DeleteMailVector(mails)
 	s.sendMail(mails, table)
 }

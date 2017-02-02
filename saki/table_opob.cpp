@@ -491,7 +491,7 @@ void TableOpOb::sweepOne(int w)
 	mTable->action(who, act);
 }
 
-void TableOpOb::sweepAll()
+std::vector<int> TableOpOb::sweepAll()
 {
 	std::array<Action, 4> actions;
 	using AC = ActCode;
@@ -500,9 +500,14 @@ void TableOpOb::sweepAll()
 		actions[w] = tifo.sweep();
 	}
 
-	for (int w = 0; w < 4; w++)
-		if (actions[w].act() != AC::NOTHING)
+	std::vector<int> res;
+	for (int w = 0; w < 4; w++) {
+		if (actions[w].act() != AC::NOTHING) {
+			res.push_back(w);
 			mTable->action(Who(w), actions[w]);
+		}
+	}
+	return res;
 }
 
 void TableOpOb::peer(int w, const json &msg)

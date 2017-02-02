@@ -61,7 +61,7 @@ public:
 	bool gameOver() const;
 
 	void action(int who, const string &actStr, const string &actArg);
-	void sweepAll();
+	std::vector<int> sweepAll();
 	void sweepOne(int who);
 
 private:

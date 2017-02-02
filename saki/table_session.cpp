@@ -25,9 +25,12 @@ std::vector<Mail> TableSession::Action(int who,
     return mOpOb->popMails();
 }
 
-std::vector<Mail> TableSession::SweepAll() 
+std::vector<Mail> TableSession::SweepAll(int *targets) 
 {
-    mOpOb->sweepAll();
+	std::vector<int> whos = mOpOb->sweepAll();
+	*targets = 0;
+	for (int w : whos)
+		*targets |= (1 << w);
     return mOpOb->popMails();
 }
 
