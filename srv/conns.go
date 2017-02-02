@@ -46,20 +46,30 @@ func (conns *conns) Loop() {
 	for {
 		select {
 		case login := <-conns.login:
-			user := conns.dao.login(login)
-			if user != nil {
-				conns.add(user, login.conn)
-			} else {
-				str := "用户名或密码错误"
+			if login.Version != "0.6.5" {
+				str := "客户端版本过旧"
 				conns.reject(login.conn, newRespAuthFail(str))
+			} else {
+				user := conns.dao.login(login)
+				if user != nil {
+					conns.add(user, login.conn)
+				} else {
+					str := "用户名或密码错误"
+					conns.reject(login.conn, newRespAuthFail(str))
+				}
 			}
 		case sign := <-conns.signUp:
-			user := conns.dao.signUp(sign)
-			if user != nil {
-				conns.add(user, sign.conn)
-			} else {
-				str := "用户名已存在"
+			if sign.Version != "0.6.5" {
+				str := "客户端版本过旧"
 				conns.reject(sign.conn, newRespAuthFail(str))
+			} else {
+				user := conns.dao.signUp(sign)
+				if user != nil {
+					conns.add(user, sign.conn)
+				} else {
+					str := "用户名已存在"
+					conns.reject(sign.conn, newRespAuthFail(str))
+				}
 			}
 		case uid := <-conns.logout:
 			conns.sub(uid)
@@ -198,11 +208,11 @@ func (conns *conns) reject(conn net.Conn, msg interface{}) {
 }
 
 func (conns *conns) sendLookAround(uid uid) {
+	bookable := !conns.tables.HasUser(uid)
 	connCt := len(conns.conns)
 	playCt := 4 * len(conns.tables.sessions)
-	idleCt := connCt - playCt;
 	bookCt := conns.books.wait
-	conns.send(uid, newRespLookAround(connCt, idleCt, bookCt, playCt))
+	conns.send(uid, newRespLookAround(bookable, connCt, bookCt, playCt))
 }
 
 

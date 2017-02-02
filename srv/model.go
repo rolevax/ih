@@ -5,6 +5,7 @@ import (
 )
 
 type login struct {
+	Version		string
 	Username	string
 	Password	string
 	conn		net.Conn
@@ -23,6 +24,7 @@ type reqTypeOnly struct {
 
 type reqAuth struct {
 	Type		string
+	Version		string
 	Username	string
 	Password	string
 }
@@ -55,15 +57,15 @@ func newRespAuthOk(u *user) interface{} {
 }
 
 type respLookAround struct {
-	Type	string
-	Conn	int
-	Idle	int
-	Book	int
-	Play	int
+	Type		string
+	Bookable	bool
+	Conn		int
+	Book		int
+	Play		int
 }
 
-func newRespLookAround(connCt, idleCt, bookCt, playCt int) interface{} {
-	return respLookAround{"look-around", connCt, idleCt, bookCt, playCt}
+func newRespLookAround(bookable bool, conn, book, play int) interface{} {
+	return respLookAround{"look-around", bookable, conn, book, play}
 }
 
 

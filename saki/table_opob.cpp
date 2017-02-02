@@ -484,56 +484,20 @@ void TableOpOb::action(int who, const string &actStr, const string &actArg)
 void TableOpOb::sweepOne(int w)
 {
 	Who who(w);
-	using AC = ActCode;
 	const auto &tifo = mTable->getTicketFolder(who);
-	if (!tifo.any())
+	Action act = tifo.sweep();
+	if (act.act() == ActCode::NOTHING)
 		return;
-
-	std::vector<AC> just {
-		AC::NEXT_ROUND, AC::END_TABLE, AC::DICE,
-			AC::SPIN_OUT, AC::PASS
-	};
-	for (AC act : just) {
-		if (tifo.can(act)) {
-			mTable->action(who, Action(act));
-			return;
-		}
-	}
-
-	if (tifo.can(AC::SWAP_OUT)) {
-		mTable->action(who, Action(AC::SWAP_OUT, tifo.swappables()[0]));
-		// TODO consider irs, etc. 
-		//      should be recoverable from any state
-	}
+	mTable->action(who, act);
 }
 
-void TableOpOb::sweep()
+void TableOpOb::sweepAll()
 {
 	std::array<Action, 4> actions;
 	using AC = ActCode;
 	for (int w = 0; w < 4; w++) {
 		const auto &tifo = mTable->getTicketFolder(Who(w));
-		if (!tifo.any())
-			continue;
-
-		std::vector<AC> just {
-			AC::NEXT_ROUND, AC::END_TABLE, AC::DICE,
-			AC::SPIN_OUT, AC::PASS
-		};
-		for (AC act : just) {
-			if (tifo.can(act)) {
-				actions[w] = Action(act);
-				break;
-			}
-		}
-
-		if (actions[w].act() != AC::NOTHING)
-			continue;
-
-		if (tifo.can(AC::SWAP_OUT))
-			actions[w] = Action(AC::SWAP_OUT, tifo.swappables()[0]);
-		// TODO consider irs, etc. 
-		//      should be recoverable from any state
+		actions[w] = tifo.sweep();
 	}
 
 	for (int w = 0; w < 4; w++)

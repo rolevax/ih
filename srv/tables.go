@@ -57,6 +57,15 @@ func (tables *tables) EndSession() chan<- *session {
 	return tables.endSession
 }
 
+func (tables *tables) HasUser(uid uid) bool {
+	for _, s := range tables.sessions {
+		if _, ok := s.FindUser(uid); ok {
+			return true
+		}
+	}
+	return false
+}
+
 func (tables *tables) add(uids [4]uid) {
 	s := newSession(tables, uids)
 	tables.sessions = append(tables.sessions, s)

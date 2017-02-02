@@ -50,10 +50,10 @@ func handle(conn net.Conn, conns *conns) {
 
 	switch req.Type {
 	case "login":
-		login := login{req.Username, req.Password, conn}
+		login := login{req.Version, req.Username, req.Password, conn}
 		conns.Login() <- &login
 	case "sign-up":
-		sign := login{req.Username, req.Password, conn}
+		sign := login{req.Version, req.Username, req.Password, conn}
 		conns.SignUp() <- &sign
 	default:
 		log.Println("E main.handle unkown request", req.Type)

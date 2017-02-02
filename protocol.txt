@@ -16,13 +16,13 @@ client
 	b broadcast, same msg for all
 	r broadcast, rotate perspective
 
-{ Type: "login", Username: "...", Password: "..." }
-{ Type: "sign-up", Username: "...", Password: "..." }
+{ Type: "login", Version: "0.6.5", Username: "...", Password: "..." }
+{ Type: "sign-up", Version: "...", Username: "...", Password: "..." }
 	. { Type: "auth", Ok: false, Reason: "..." } close
 	. { Type: "auth", Ok: true, User: {...} }
 
 { Type: "look-around" }
-	. { Type: "look-around", Conn: ?, Idle: ? }
+	. { Type: "look-around", Book: bool, Conn: int, ... }
 
 { Type: "book" }
 	r { Type: "start", Users: [...], GirlIds: [...], TempDealer: ? }

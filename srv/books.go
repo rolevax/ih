@@ -1,7 +1,6 @@
 package srv
 
 import (
-	"log"
 )
 
 type books struct {
@@ -45,12 +44,10 @@ func (books *books) Unbook() chan<- uid {
 func (books *books) add(uid uid) {
 	for i := 0; i < books.wait; i++ {
 		if books.waits[i] == uid {
-			log.Println("book refuse dup", uid)
 			return
 		}
 	}
 
-	log.Println("book", uid)
 	books.waits[books.wait] = uid;
 	books.wait++
 	if books.wait == 4 {
@@ -60,14 +57,12 @@ func (books *books) add(uid uid) {
 }
 
 func (books *books) sub(uid uid) {
-	log.Println("unbook", uid)
 	i := 0
 	for i < books.wait && books.waits[i] != uid {
 		i++
 	}
 
 	if i == books.wait {
-		log.Println("unbook", uid, "not found")
 		return
 	}
 

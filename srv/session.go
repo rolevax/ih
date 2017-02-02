@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"math/rand"
+	"errors"
 	"bitbucket.org/rolevax/sakilogy-server/saki"
 )
 
@@ -18,6 +19,7 @@ type session struct {
 	action		chan *reqAction
 	uids		[4]uid
 	readys		[4]bool
+	onlines		[4]bool
 	tables		*tables
 	nonce		int
 	timer		*time.Timer
@@ -38,6 +40,9 @@ func newSession(tables *tables, uids [4]uid) *session {
 		default:
 		}
 	}
+	for i := 0; i < 4; i++ {
+		s.onlines[i] = true // regard as good by default
+	}
 
 	return s
 }
@@ -52,7 +57,7 @@ func (s *session) Loop() {
 		girlIds[0], girlIds[1], girlIds[2], girlIds[3])
 	defer saki.DeleteTableSession(table)
 
-	for !table.GameOver() {
+	for s.anyOnline() && !table.GameOver() {
 		select {
 		case i := <-s.ready:
 			if !(0 <= i && i < 4) {
@@ -65,7 +70,7 @@ func (s *session) Loop() {
 		case act:= <-s.action:
 			s.doAction(table, act)
 		case <-s.timer.C:
-			s.sweep(table)
+			s.sweepAll(table)
 		case <-readyTimer.C:
 			if !s.allReady() {
 				for i := 0; i < 4; i++ {
@@ -91,6 +96,11 @@ func (s *session) allReady() bool {
 	return s.readys[0] && s.readys[1] && s.readys[2] && s.readys[3]
 }
 
+func (s *session) anyOnline() bool {
+	ol := &s.onlines
+	return ol[0] || ol[1] || ol[2] || ol[3]
+}
+
 func (s *session) notifyLoad(girlIds *[4]int) {
 	var users [4]*user
 	for i := range users {
@@ -109,7 +119,7 @@ func (s *session) notifyLoad(girlIds *[4]int) {
 
 	for i, uid := range s.uids {
 		msg.TempDealer = (4 - i) % 4
-		s.tables.conns.Peer() <- &Mail{uid, msg}
+		s.sendPeer(i, &Mail{uid, msg})
 		// rotate perspectives
 		u0 := msg.Users[0]
 		msg.Users[0] = msg.Users[1]
@@ -158,8 +168,8 @@ func (s *session) sweepOne(table saki.TableSession, i int) {
 	s.sendMail(mails, table)
 }
 
-func (s *session) sweep(table saki.TableSession) {
-	mails := table.Sweep()
+func (s *session) sweepAll(table saki.TableSession) {
+	mails := table.SweepAll()
 	defer saki.DeleteMailVector(mails)
 	s.sendMail(mails, table)
 }
@@ -185,19 +195,27 @@ func (s *session) sendMail(mails saki.MailVector, table saki.TableSession) {
 			act := reqAction{s.uids[toWhom], s.nonce, "SPIN_OUT", "-1"}
 			s.doAction(table, &act)
 		} else {
-			if _, ok := s.tables.conns.conns[s.uids[toWhom]]; !ok {
-				if strings.Contains(msg, "t-activated") {
-					if !table.GameOver() {
-						s.sweepOne(table, toWhom)
-					}
+			msg = `{"Nonce":` + strconv.Itoa(s.nonce) + "," + msg[1:]
+			mail := Mail{s.uids[toWhom], msg}
+			err := s.sendPeer(toWhom, &mail)
+			if err != nil && strings.Contains(msg, "t-activated") {
+				if s.anyOnline() && !table.GameOver() {
+					s.sweepOne(table, toWhom)
 				}
-			} else {
-				msg = `{"Nonce":` + strconv.Itoa(s.nonce) + "," + msg[1:]
-				mail := Mail{s.uids[toWhom], msg}
-				s.tables.conns.Peer() <- &mail
 			}
 		}
 	}
+}
+
+func (s *session) sendPeer(i int, mail *Mail) error {
+	if s.onlines[i] {
+		if _, ok := s.tables.conns.conns[mail.To]; ok {
+			s.tables.conns.Peer() <- mail
+			return nil
+		}
+		s.onlines[i] = false;
+	}
+	return errors.New("peer not in session")
 }
 
 func genIds() [4]int {

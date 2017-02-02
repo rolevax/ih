@@ -61,7 +61,7 @@ public:
 	bool gameOver() const;
 
 	void action(int who, const string &actStr, const string &actArg);
-	void sweep();
+	void sweepAll();
 	void sweepOne(int who);
 
 private:
