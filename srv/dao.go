@@ -3,6 +3,7 @@ package srv
 import (
 	"log"
 	"database/sql"
+	"errors"
 	_"github.com/go-sql-driver/mysql"
 )
 
@@ -28,56 +29,56 @@ func newDao() *dao {
 	return dao
 }
 
-func (dao *dao) close() {
+func (dao *dao) Close() {
 	dao.db.Close()
 }
 
-func (dao *dao) login(login *login) *user {
-	var user user
+func (dao *dao) Login(username, password string) (*ussn, error) {
+	ussn := new(ussn)
 
 	err := dao.db.QueryRow(
 		`select user_id, username
 		from users where username=? && password=?`,
-		login.Username, login.Password).
-		Scan(&user.Id, &user.Username)
+		username, password).
+		Scan(&ussn.user.Id, &ussn.user.Username)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil
+			return nil, errors.New("用户名或密码错误")
 		}
 		log.Fatalln("dao.login", err)
 	}
 
-	return &user
+	return ussn, nil
 }
 
-func (dao *dao) signUp(sign *login) *user {
+func (dao *dao) SignUp(username, password string) (*ussn, error) {
 	var exist bool
 	err := dao.db.QueryRow(
 		"select exists(select 1 from users where username=?)",
-		sign.Username).Scan(&exist)
+		username).Scan(&exist)
 
 	if err != nil {
 		log.Fatalln("dao.SignUp", err)
 	}
 
 	if exist {
-		return nil
+		return nil, errors.New("用户名已存在")
 	}
 
 	_, err = dao.db.Exec(
 		"insert into users (username, password) values (?,?)",
-		sign.Username, sign.Password)
+		username, password)
 
 	if err != nil {
 		log.Fatalln("dao.SignUp", err)
 	}
 
-	return dao.login(sign)
+	return dao.Login(username, password)
 }
 
-func (dao *dao) getUser(uid uid) *user {
-	var user user
+func (dao *dao) GetUser(uid uid) *user {
+	user := new(user)
 
 	err := dao.db.QueryRow(
 		`select user_id, username 
@@ -91,6 +92,6 @@ func (dao *dao) getUser(uid uid) *user {
 		log.Fatalln("dao.GetUser", err)
 	}
 
-	return &user
+	return user
 }
 

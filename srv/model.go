@@ -1,15 +1,7 @@
 package srv
 
 import (
-	"net"
 )
-
-type login struct {
-	Version		string
-	Username	string
-	Password	string
-	conn		net.Conn
-}
 
 type uid uint
 
@@ -30,7 +22,6 @@ type reqAuth struct {
 }
 
 type reqAction struct {
-	uid			uid
 	Nonce		int
 	ActStr		string
 	ActArg		string
