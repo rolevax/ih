@@ -10,6 +10,8 @@ import (
 	"bitbucket.org/rolevax/sakilogy-server/saki"
 )
 
+const actTimeOut = 10 * time.Second
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
@@ -17,16 +19,18 @@ func init() {
 type tssn struct {
 	ready		chan uid
 	action		chan *msgTssnAction
+	done		chan struct{}
 	uids		[4]uid
 	readys		[4]bool
 	onlines		[4]bool
 	nonce		int
-	timer		*time.Timer
+	actTimer	*time.Timer
 	timeOutCts	[4]int
 }
 
 func loopTssn(uids [4]uid) {
 	tssn := startTssn(uids)
+	defer close(tssn.done)
 	sing.TssnMgr.Reg(tssn)
 	defer sing.TssnMgr.Unreg(tssn)
 
@@ -39,6 +43,7 @@ func loopTssn(uids [4]uid) {
 
 	readyTimer := time.NewTimer(7 * time.Second)
 	hardTimer := time.NewTimer(2 * time.Hour)
+	defer hardTimer.Stop()
 
 	for tssn.anyOnline() && !table.GameOver() {
 		select {
@@ -46,7 +51,7 @@ func loopTssn(uids [4]uid) {
 			tssn.handleReady(uid, table)
 		case mta := <-tssn.action:
 			tssn.handleAction(mta.uid, mta.act, table)
-		case <-tssn.timer.C:
+		case <-tssn.actTimer.C:
 			tssn.sweepAll(table)
 		case <-readyTimer.C:
 			if !tssn.allReady() {
@@ -62,28 +67,32 @@ func loopTssn(uids [4]uid) {
 }
 
 func startTssn(uids [4]uid) *tssn {
-	s := new(tssn)
+	tssn := new(tssn)
 
-	s.ready = make(chan uid)
-	s.action = make(chan *msgTssnAction)
-	s.uids = uids
-	s.nonce = 0
-	s.timer = time.NewTimer(1 * time.Second)
-	if !s.timer.Stop() {
+	tssn.ready = make(chan uid)
+	tssn.action = make(chan *msgTssnAction)
+	tssn.done = make(chan struct{})
+	tssn.uids = uids
+	tssn.nonce = 0
+	tssn.actTimer = time.NewTimer(actTimeOut)
+	if !tssn.actTimer.Stop() {
 		select {
-		case <-s.timer.C:
+		case <-tssn.actTimer.C:
 		default:
 		}
 	}
 	for i := 0; i < 4; i++ {
-		s.onlines[i] = true // regard as good by default
+		tssn.onlines[i] = true // regard as good by default
 	}
 
-	return s
+	return tssn
 }
 
 func (tssn *tssn) Ready(uid uid) {
-	tssn.ready <- uid
+	select {
+	case tssn.ready <- uid:
+	case <-tssn.done:
+	}
 }
 
 type msgTssnAction struct {
@@ -92,7 +101,10 @@ type msgTssnAction struct {
 }
 
 func (tssn *tssn) Action(uid uid, act *reqAction) {
-	tssn.action <- &msgTssnAction{uid, act}
+	select {
+	case tssn.action <- &msgTssnAction{uid, act}:
+	case <-tssn.done:
+	}
 }
 
 func (tssn *tssn) handleReady(uid uid, table saki.TableSession) {
@@ -197,7 +209,8 @@ func (tssn *tssn) sweepAll(table saki.TableSession) {
 	for w := uint(0); w < 4; w++ {
 		if (targets & (1 << w)) != 0 {
 			tssn.timeOutCts[w]++
-			if tssn.timeOutCts[w] >= 3 {
+			if tssn.timeOutCts[w] == 3 {
+				tssn.timeOutCts[w] = 0
 				tssn.onlines[w] = false
 				sing.UssnMgr.Logout(tssn.uids[w])
 			}
@@ -212,13 +225,7 @@ func (tssn *tssn) sendMails(mails saki.MailVector,
 	size := int(mails.Size())
 	if size > 0 {
 		tssn.nonce++
-		if !tssn.timer.Stop() {
-			select {
-			case <-tssn.timer.C:
-			default:
-			}
-		}
-		tssn.timer.Reset(7 * time.Second)
+		tssn.resetActTimer()
 	}
 
 	for i := 0; i < size; i++ {
@@ -249,6 +256,16 @@ func (tssn *tssn) sendPeer(i int, msg interface{}) error {
 		return err
 	}
 	return errors.New("peer not in session")
+}
+
+func (tssn *tssn) resetActTimer() {
+	if !tssn.actTimer.Stop() {
+		select {
+		case <-tssn.actTimer.C:
+		default: // prevent blocked by double-draining
+		}
+	}
+	tssn.actTimer.Reset(actTimeOut)
 }
 
 func genIds() [4]int {

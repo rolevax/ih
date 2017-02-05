@@ -6,15 +6,20 @@ import (
 	"bufio"
 	"errors"
 	"strings"
+	"time"
 	"encoding/json"
 )
 
+const idleTimeOut = 15 * time.Minute
+
 type ussn struct {
-	user	user
-	conn	net.Conn
-	read	chan []byte
-	write	chan *msgUssnWrite
-	logout	chan error
+	user		user
+	conn		net.Conn
+	read		chan []byte
+	write		chan *msgUssnWrite
+	done		chan struct{}
+	logout		chan error
+	idleTimer	*time.Timer
 }
 
 func loopUssn(conn net.Conn) {
@@ -31,12 +36,24 @@ func loopUssn(conn net.Conn) {
 
 	for {
 		select {
+		case <-ussn.done: // in prior
+			return
+		default:
+		}
+
+		select {
 		case breq := <-ussn.read:
+			ussn.resetIdleTimer()
 			ussn.switchRead(breq)
 		case muw := <-ussn.write:
-			muw.chErr <- ussn.send(muw.msg)
+			muw.chErr <-ussn.send(muw.msg)
+		case <-ussn.idleTimer.C:
+			ussn.Logout(errors.New("idle timeout"))
 		case err := <-ussn.logout:
 			log.Println(ussn.user.Id, "----", err)
+			close(ussn.done)
+			return
+		case <-ussn.done:
 			return
 		}
 	}
@@ -53,7 +70,9 @@ func startUssn(conn net.Conn) (*ussn, error) {
 
 	ussn.read = make(chan []byte)
 	ussn.write = make(chan *msgUssnWrite)
-	ussn.logout = make(chan error)
+	ussn.done = make(chan struct{})
+	ussn.logout = make(chan error, 1) // sendable from same goroutine
+	ussn.idleTimer = time.NewTimer(idleTimeOut)
 
 	go ussn.readLoop()
 
@@ -112,12 +131,22 @@ func newMsgUssnWrite(msg interface{}) *msgUssnWrite {
 
 func (ussn *ussn) Write(msg interface{}) error {
 	muw := newMsgUssnWrite(msg)
-	ussn.write <- muw
-	return <-muw.chErr
+	select {
+	case ussn.write <- muw:
+		return <-muw.chErr
+	case <-ussn.done:
+		return errors.New("ussn done")
+	}
 }
 
 func (ussn *ussn) Logout(err error) {
-	ussn.logout <- err
+	if err == nil {
+		log.Fatalln("logout with nil err")
+	}
+	select {
+	case ussn.logout <- err:
+	case <-ussn.done:
+	}
 }
 
 func (ussn *ussn) readLoop() {
@@ -128,8 +157,12 @@ func (ussn *ussn) readLoop() {
 			return
 		}
 
-		log.Print(ussn.user.Id, " ---> ", string(breq))
-		ussn.read <- breq
+		select {
+		case ussn.read <- breq:
+			log.Print(ussn.user.Id, " ---> ", string(breq))
+		case <-ussn.done:
+			return
+		}
 	}
 }
 
@@ -187,5 +220,15 @@ func (ussn *ussn) sendLookAround() {
 	playCt := sing.TssnMgr.CtUser()
 	bookCt := sing.BookMgr.CtBook()
 	ussn.send(newRespLookAround(bookable, connCt, bookCt, playCt))
+}
+
+func (ussn *ussn) resetIdleTimer() {
+	if !ussn.idleTimer.Stop() {
+		select {
+		case <-ussn.idleTimer.C:
+		default: // prevent blocked by double-draining
+		}
+	}
+	ussn.idleTimer.Reset(idleTimeOut)
 }
 
