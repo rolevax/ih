@@ -17,11 +17,12 @@ void TableOp::onActivated(Table &table)
 
 
 
-Action makeAction(const string &actStr, const string &actArg)
+Action makeAction(const string &actStr, const string &actArg, int who)
 {
 	using AC = ActCode;
 
 	AC act = actCodeOf(actStr.c_str());
+	int turn;
 	switch (act) {
 		case AC::SWAP_OUT:
 		case AC::ANKAN:
@@ -32,8 +33,10 @@ Action makeAction(const string &actStr, const string &actArg)
 		case AC::PON:
 		case AC::KAKAN:
 		case AC::IRS_CHECK:
-		case AC::IRS_RIVAL:
 			return Action(act, std::stoi(actArg));
+		case AC::IRS_RIVAL:
+			turn = std::stoi(actArg);
+			return Action(act, Who(who).byTurn(turn).index());
 		default:
 			return Action(act);
 	}
@@ -233,6 +236,7 @@ void TableOpOb::onActivated(Who who, Table &table)
     msg["Type"] = "t-activated";
     msg["Action"] = map;
     msg["LastDiscarder"] = focusWho;
+	msg["Green"] = tifo.forwardAll();
 	peer(who.index(), msg);
 }
 
@@ -477,7 +481,7 @@ bool TableOpOb::gameOver() const
 
 void TableOpOb::action(int who, const string &actStr, const string &actArg)
 {
-	Action action = makeAction(actStr, actArg);
+	Action action = makeAction(actStr, actArg, who);
 	mTable->action(Who(who), action);
 }
 
