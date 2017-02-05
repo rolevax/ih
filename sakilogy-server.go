@@ -1,8 +1,15 @@
 package main
 
-import "bitbucket.org/rolevax/sakilogy-server/srv"
+import (
+	"os"
+	"bitbucket.org/rolevax/sakilogy-server/srv"
+)
 
 func main() {
-	srv.Serve()
+	port := "6171"
+	if len(os.Args) >= 2 {
+		port = os.Args[1]
+	}
+	srv.Serve(port)
 }
 

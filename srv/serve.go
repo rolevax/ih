@@ -14,7 +14,7 @@ var sing struct {
 	TssnMgr		*tssnMgr
 }
 
-func Serve() {
+func Serve(port string) {
 	sing.Dao = newDao()
 	sing.UssnMgr = newUssnMgr()
 	sing.BookMgr = newBookMgr()
@@ -24,11 +24,11 @@ func Serve() {
 	go sing.BookMgr.Loop()
 	go sing.TssnMgr.Loop()
 
-	ln, err := net.Listen("tcp", ":6171")
+	ln, err := net.Listen("tcp", ":" + port)
 	if err != nil {
 		log.Fatalln(err)
 	} else {
-		log.Println("sakilogy-server", Version, "listen 6171")
+		log.Println("sakilogy-server", Version, "listen", port)
 	}
 
 	for {
