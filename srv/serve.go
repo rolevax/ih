@@ -5,7 +5,12 @@ import (
 	"net"
 )
 
-const Version = "0.6.6"
+const Version = "0.6.7"
+
+func versionCheck(v string) bool {
+	// still support for 0.6.6 by now...
+	return v == Version || v == "0.6.6"
+}
 
 var sing struct {
 	Dao			*dao

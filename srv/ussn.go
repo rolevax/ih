@@ -90,7 +90,7 @@ func authUssn(conn net.Conn) (*ussn, error) {
 		return nil, err
 	}
 
-	if req.Version != Version {
+	if !versionCheck(req.Version) {
 		return nil, errors.New("客户端版本过旧")
 	}
 

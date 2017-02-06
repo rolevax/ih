@@ -41,7 +41,7 @@ func loopTssn(uids [4]uid) {
 
 	tssn.notifyLoad(&girlIds, table)
 
-	readyTimer := time.NewTimer(7 * time.Second)
+	readyTimer := time.NewTimer(15 * time.Second)
 	hardTimer := time.NewTimer(2 * time.Hour)
 	defer hardTimer.Stop()
 
