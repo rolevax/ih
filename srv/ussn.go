@@ -193,18 +193,13 @@ func (ussn *ussn) switchRead(breq []byte) {
 }
 
 func (ussn *ussn) send(msg interface{}) error {
-    var jsonb []byte
-    if str, ok := msg.(string); ok {
-        jsonb = []byte(str)
-    } else {
-        var err error
-        jsonb, err = json.Marshal(msg)
-        if err != nil {
-            log.Fatalln("ussn.send", err)
-        }
-    }
+	jsonb, err := json.Marshal(msg)
+	if err != nil {
+		log.Fatalln("ussn.send marshal", err)
+		return err
+	}
 
-	_, err := ussn.conn.Write(append(jsonb, '\n'))
+	_, err = ussn.conn.Write(append(jsonb, '\n'))
 	if err != nil {
 		ussn.Logout(err)
 	} else {

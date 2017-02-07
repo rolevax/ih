@@ -2,11 +2,10 @@ package srv
 
 import (
 	"log"
-	"strconv"
-	"strings"
 	"time"
-	"math/rand"
 	"errors"
+	"encoding/json"
+	"math/rand"
 	"bitbucket.org/rolevax/sakilogy-server/saki"
 )
 
@@ -230,21 +229,30 @@ func (tssn *tssn) sendMails(mails saki.MailVector,
 
 	for i := 0; i < size; i++ {
 		toWhom := mails.Get(i).GetTo()
-		msg := mails.Get(i).GetMsg()
-		if msg == "auto" { // special mark
+		str := mails.Get(i).GetMsg()
+		if str == "auto" { // special mark
 			time.Sleep(500 * time.Millisecond)
 			act := reqAction{tssn.nonce, "SPIN_OUT", "-1"}
 			tssn.handleAction(tssn.uids[toWhom], &act, table)
 		} else {
-			msg = `{"Nonce":` + strconv.Itoa(tssn.nonce) + "," + msg[1:]
+			msg := tssn.dealMsg(str)
 			err := tssn.sendPeer(toWhom, msg)
-			if err != nil && strings.Contains(msg, "t-activated") {
+			if err != nil && msg["Type"] == "t-activated" {
 				if tssn.anyOnline() && !table.GameOver() {
 					tssn.sweepOne(table, toWhom)
 				}
 			}
 		}
 	}
+}
+
+func (tssn *tssn) dealMsg(msg string) map[string]interface{} {
+	var res map[string]interface{}
+	if err := json.Unmarshal([]byte(msg), &res); err != nil {
+		log.Fatalln("unmarshal c++ msg", err)
+	}
+	res["Nonce"] = tssn.nonce
+	return res
 }
 
 func (tssn *tssn) sendPeer(i int, msg interface{}) error {
