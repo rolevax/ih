@@ -44,15 +44,13 @@ func loopUssn(conn net.Conn) {
 		select {
 		case breq := <-ussn.read:
 			ussn.resetIdleTimer()
-			ussn.switchRead(breq)
+			ussn.handleRead(breq)
 		case muw := <-ussn.write:
-			muw.chErr <-ussn.send(muw.msg)
+			muw.chErr <-ussn.handleWrite(muw.msg)
 		case <-ussn.idleTimer.C:
-			ussn.Logout(errors.New("idle timeout"))
+			ussn.handleLogout(errors.New("idle timeout"))
 		case err := <-ussn.logout:
-			log.Println(ussn.user.Id, "----", err)
-			close(ussn.done)
-			return
+			ussn.handleLogout(err)
 		case <-ussn.done:
 			return
 		}
@@ -66,12 +64,12 @@ func startUssn(conn net.Conn) (*ussn, error) {
 	}
 
 	ussn.conn = conn
-	ussn.send(newRespAuthOk(&ussn.user))
+	ussn.handleWrite(newRespAuthOk(&ussn.user))
 
 	ussn.read = make(chan []byte)
 	ussn.write = make(chan *msgUssnWrite)
 	ussn.done = make(chan struct{})
-	ussn.logout = make(chan error, 1) // sendable from same goroutine
+	ussn.logout = make(chan error)
 	ussn.idleTimer = time.NewTimer(idleTimeOut)
 
 	go ussn.readLoop()
@@ -153,7 +151,7 @@ func (ussn *ussn) readLoop() {
 	for {
 		breq, err := bufio.NewReader(ussn.conn).ReadBytes('\n')
 		if err != nil {
-			ussn.Logout(err)
+			ussn.Logout(err) // ok, not in ussn main goroutine
 			return
 		}
 
@@ -166,7 +164,7 @@ func (ussn *ussn) readLoop() {
 	}
 }
 
-func (ussn *ussn) switchRead(breq []byte) {
+func (ussn *ussn) handleRead(breq []byte) {
 	var req reqTypeOnly
 	if err := json.Unmarshal(breq, &req); err != nil {
 		log.Fatalln("ussn.readLoop", err)
@@ -175,7 +173,7 @@ func (ussn *ussn) switchRead(breq []byte) {
 
 	switch {
 	case t == "look-around":
-		ussn.sendLookAround()
+		ussn.handleLookAround()
 	case t == "book":
 		sing.BookMgr.Book(ussn.user.Id)
 	case t == "unbook":
@@ -185,35 +183,41 @@ func (ussn *ussn) switchRead(breq []byte) {
 	case strings.HasPrefix(t, "t-"):
 		var act reqAction
 		if err := json.Unmarshal(breq, &act); err != nil {
-			ussn.Logout(err)
+			ussn.handleLogout(err)
 			return
 		}
 		sing.TssnMgr.Action(ussn.user.Id, &act)
 	}
 }
 
-func (ussn *ussn) send(msg interface{}) error {
+func (ussn *ussn) handleWrite(msg interface{}) error {
 	jsonb, err := json.Marshal(msg)
 	if err != nil {
-		log.Fatalln("ussn.send marshal", err)
+		log.Fatalln("ussn.handleWrite marshal", err)
 		return err
 	}
 
 	_, err = ussn.conn.Write(append(jsonb, '\n'))
 	if err != nil {
-		ussn.Logout(err)
+		ussn.handleLogout(err)
+
 	} else {
 		log.Println(ussn.user.Id, "<---", string(jsonb))
 	}
 	return err
 }
 
-func (ussn *ussn) sendLookAround() {
+func (ussn *ussn) handleLogout(err error) {
+	log.Println(ussn.user.Id, "----", err)
+	close(ussn.done)
+}
+
+func (ussn *ussn) handleLookAround() {
 	bookable := !sing.TssnMgr.HasUser(ussn.user.Id)
 	connCt := sing.UssnMgr.CtUser()
 	playCt := sing.TssnMgr.CtUser()
 	bookCt := sing.BookMgr.CtBook()
-	ussn.send(newRespLookAround(bookable, connCt, bookCt, playCt))
+	ussn.handleWrite(newRespLookAround(bookable, connCt, bookCt, playCt))
 }
 
 func (ussn *ussn) resetIdleTimer() {
