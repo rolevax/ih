@@ -2,8 +2,6 @@ use tcp
 
 everything is json
 
-init msg always by client
-
 conn always closed by client in normal cases
 conn always closed by server in exceptional cases
 
@@ -45,6 +43,10 @@ client
 	r { Type: "t-points-changed", Points: [...] }
 	r { Type: "t-table-ended", ... }
 	r { Type: "t-popped-up", ... }
+
+server
+	client
+{ Type: update-user, User: {...} }
 
 
 

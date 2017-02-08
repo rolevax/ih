@@ -66,11 +66,24 @@ type respLookAround struct {
 func newRespLookAround(bookable bool, conn, book, play int) interface{} {
 	resp := new(respLookAround)
 	resp.Type = "look-around"
+	resp.Conn = conn
 	resp.Books = make(map[string]bookEntry)
 	resp.Books["DS71"] = bookEntry{bookable, book, play}
 	resp.Books["CS71"] = bookEntry{false,0,0}
 	resp.Books["BS71"] = bookEntry{false,0,0}
 	resp.Books["AS71"] = bookEntry{false,0,0}
+	return resp
+}
+
+type respUpdateUser struct {
+	Type		string
+	User		*user
+}
+
+func newRespUpdateUser(user *user) *respUpdateUser {
+	resp := new(respUpdateUser)
+	resp.Type = "update-user"
+	resp.User = user
 	return resp
 }
 

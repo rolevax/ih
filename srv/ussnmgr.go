@@ -9,6 +9,7 @@ type ussnMgr struct {
 	reg		chan *ussn
 	unreg	chan *ussn
     peer    chan *msgUssnMgrPeer
+	update	chan *user
 	logout	chan uid
 }
 
@@ -19,6 +20,7 @@ func newUssnMgr() *ussnMgr {
 	um.reg = make(chan *ussn)
 	um.unreg = make(chan *ussn)
     um.peer = make(chan *msgUssnMgrPeer)
+	um.update = make(chan *user)
 	um.logout = make(chan uid)
 
 	return um
@@ -47,6 +49,8 @@ func (um *ussnMgr) Loop() {
 			um.handleUnreg(ussn)
 		case mump := <-um.peer:
 			um.handlePeer(mump)
+		case user := <-um.update:
+			um.handleUpdate(user)
 		case uid := <-um.logout:
 			um.handleLogout(uid)
 		}
@@ -65,6 +69,10 @@ func (um *ussnMgr) Peer(uid uid, msg interface{}) error {
 	mp := newMsgUssnMgrPeer(uid, msg)
 	um.peer <- mp
 	return <-mp.chErr
+}
+
+func (um *ussnMgr) UpdateInfo(user *user) {
+	um.update <- user
 }
 
 func (um *ussnMgr) Logout(uid uid) {
@@ -93,6 +101,12 @@ func (um *ussnMgr) handlePeer(mump *msgUssnMgrPeer) {
 		mump.chErr <- ussn.Write(mump.msg)
 	} else {
 		mump.chErr <- errors.New("ussn not in rec")
+	}
+}
+
+func (um *ussnMgr) handleUpdate(user *user) {
+	if ussn, ok := um.rec[user.Id]; ok {
+		ussn.UpdateInfo(user)
 	}
 }
 

@@ -17,6 +17,7 @@ type ussn struct {
 	conn		net.Conn
 	read		chan []byte
 	write		chan *msgUssnWrite
+	update		chan *user
 	done		chan struct{}
 	logout		chan error
 	idleTimer	*time.Timer
@@ -47,6 +48,8 @@ func loopUssn(conn net.Conn) {
 			ussn.handleRead(breq)
 		case muw := <-ussn.write:
 			muw.chErr <-ussn.handleWrite(muw.msg)
+		case user:= <-ussn.update:
+			ussn.handleUpdateInfo(user)
 		case <-ussn.idleTimer.C:
 			ussn.handleLogout(errors.New("idle timeout"))
 		case err := <-ussn.logout:
@@ -68,6 +71,7 @@ func startUssn(conn net.Conn) (*ussn, error) {
 
 	ussn.read = make(chan []byte)
 	ussn.write = make(chan *msgUssnWrite)
+	ussn.update = make(chan *user)
 	ussn.done = make(chan struct{})
 	ussn.logout = make(chan error)
 	ussn.idleTimer = time.NewTimer(idleTimeOut)
@@ -134,6 +138,13 @@ func (ussn *ussn) Write(msg interface{}) error {
 		return <-muw.chErr
 	case <-ussn.done:
 		return errors.New("ussn done")
+	}
+}
+
+func (ussn *ussn) UpdateInfo(user *user) {
+	select {
+	case ussn.update <- user:
+	case <-ussn.done:
 	}
 }
 
@@ -218,6 +229,11 @@ func (ussn *ussn) handleLookAround() {
 	playCt := sing.TssnMgr.CtUser()
 	bookCt := sing.BookMgr.CtBook()
 	ussn.handleWrite(newRespLookAround(bookable, connCt, bookCt, playCt))
+}
+
+func (ussn *ussn) handleUpdateInfo(user *user) {
+	ussn.user = *user
+	ussn.handleWrite(newRespUpdateUser(user))
 }
 
 func (ussn *ussn) resetIdleTimer() {

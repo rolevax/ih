@@ -37,10 +37,14 @@ func (dao *dao) Login(username, password string) (*ussn, error) {
 	ussn := new(ussn)
 
 	err := dao.db.QueryRow(
-		`select user_id, username
+		`select user_id, username, level, pt, rating,
+		rank1, rank2, rank3, rank4
 		from users where username=? && password=?`,
 		username, password).
-		Scan(&ussn.user.Id, &ussn.user.Username)
+		Scan(&ussn.user.Id, &ussn.user.Username, &ussn.user.Level,
+			 &ussn.user.Pt, &ussn.user.Rating,
+			 &ussn.user.Ranks[0], &ussn.user.Ranks[1],
+			 &ussn.user.Ranks[2], &ussn.user.Ranks[3])
 
 	if err != nil {
 		if err == sql.ErrNoRows {

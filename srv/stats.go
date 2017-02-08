@@ -37,6 +37,9 @@ func statRank(ordered *[4]uid) {
 	}
 
 	sing.Dao.SetUsersRank(&users)
+	for w := 0; w < 4; w++ {
+		sing.UssnMgr.UpdateInfo(users[w])
+	}
 }
 
 func average(d *[4]float64) float64 {
