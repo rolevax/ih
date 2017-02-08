@@ -8,6 +8,10 @@ type uid uint
 type user struct {
 	Id			uid
 	Username	string
+	Level		int
+	Pt			int
+	Rating		float64
+	Ranks		[4]int
 }
 
 type reqTypeOnly struct {
@@ -47,16 +51,27 @@ func newRespAuthOk(u *user) interface{} {
 	return respAuthOk{"auth", true, u}
 }
 
-type respLookAround struct {
-	Type		string
+type bookEntry struct {
 	Bookable	bool
-	Conn		int
 	Book		int
 	Play		int
 }
 
+type respLookAround struct {
+	Type		string
+	Conn		int
+	Books		map[string]bookEntry
+}
+
 func newRespLookAround(bookable bool, conn, book, play int) interface{} {
-	return respLookAround{"look-around", bookable, conn, book, play}
+	resp := new(respLookAround)
+	resp.Type = "look-around"
+	resp.Books = make(map[string]bookEntry)
+	resp.Books["DS71"] = bookEntry{bookable, book, play}
+	resp.Books["CS71"] = bookEntry{false,0,0}
+	resp.Books["BS71"] = bookEntry{false,0,0}
+	resp.Books["AS71"] = bookEntry{false,0,0}
+	return resp
 }
 
 

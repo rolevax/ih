@@ -130,10 +130,9 @@ func (tssn *tssn) anyOnline() bool {
 }
 
 func (tssn *tssn) notifyLoad(girlIds *[4]int, table saki.TableSession) {
-	var users [4]*user
-	for i := range users {
-		users[i] = sing.Dao.GetUser(tssn.uids[i])
-		if users[i] == nil {
+	users := sing.Dao.GetUsers(&tssn.uids)
+	for i, user := range users {
+		if user == nil {
 			log.Fatalln("tssn.nofityLoad:", tssn.uids[i], "not in DB")
 		}
 	}
@@ -235,24 +234,26 @@ func (tssn *tssn) sendMails(mails saki.MailVector,
 			act := reqAction{tssn.nonce, "SPIN_OUT", "-1"}
 			tssn.handleAction(tssn.uids[toWhom], &act, table)
 		} else {
-			msg := tssn.dealMsg(str)
-			err := tssn.sendPeer(toWhom, msg)
-			if err != nil && msg["Type"] == "t-activated" {
-				if tssn.anyOnline() && !table.GameOver() {
-					tssn.sweepOne(table, toWhom)
-				}
-			}
+			tssn.sendRealMail(toWhom, str, table)
 		}
 	}
 }
 
-func (tssn *tssn) dealMsg(msg string) map[string]interface{} {
-	var res map[string]interface{}
-	if err := json.Unmarshal([]byte(msg), &res); err != nil {
-		log.Fatalln("unmarshal c++ msg", err)
+func (tssn *tssn) sendRealMail(who int, str string,
+							   table saki.TableSession) {
+	var msg map[string]interface{}
+	if err := json.Unmarshal([]byte(str), &msg); err != nil {
+		log.Fatalln("unmarshal c++ str", err)
 	}
-	res["Nonce"] = tssn.nonce
-	return res
+	msg["Nonce"] = tssn.nonce
+	tssn.observe(who, msg)
+
+	err := tssn.sendPeer(who, msg)
+	if err != nil && msg["Type"] == "t-activated" {
+		if tssn.anyOnline() && !table.GameOver() {
+			tssn.sweepOne(table, who)
+		}
+	}
 }
 
 func (tssn *tssn) sendPeer(i int, msg interface{}) error {
@@ -274,6 +275,20 @@ func (tssn *tssn) resetActTimer() {
 		}
 	}
 	tssn.actTimer.Reset(actTimeOut)
+}
+
+func (tssn *tssn) observe(who int, msg map[string]interface{}) {
+	switch (msg["Type"]) {
+	case "t-table-ended":
+		if (who == 0) { // observe once, w/o rotation
+			var ordered [4]uid
+			ranks := msg["Rank"].([]interface{})
+			for r := 0; r < 4; r++ {
+				ordered[r] = tssn.uids[int(ranks[r].(float64))]
+			}
+			statRank(&ordered)
+		}
+	}
 }
 
 func genIds() [4]int {

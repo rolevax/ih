@@ -59,7 +59,6 @@ func (um *ussnMgr) Reg(ussn *ussn) {
 
 func (um *ussnMgr) Unreg(ussn *ussn) {
 	um.unreg <- ussn
-
 }
 
 func (um *ussnMgr) Peer(uid uid, msg interface{}) error {

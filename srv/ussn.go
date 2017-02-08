@@ -211,7 +211,6 @@ func (ussn *ussn) send(msg interface{}) error {
 func (ussn *ussn) sendLookAround() {
 	bookable := !sing.TssnMgr.HasUser(ussn.user.Id)
 	connCt := sing.UssnMgr.CtUser()
-
 	playCt := sing.TssnMgr.CtUser()
 	bookCt := sing.BookMgr.CtBook()
 	ussn.send(newRespLookAround(bookable, connCt, bookCt, playCt))
