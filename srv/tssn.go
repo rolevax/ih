@@ -9,7 +9,8 @@ import (
 	"bitbucket.org/rolevax/sakilogy-server/saki"
 )
 
-const actTimeOut = 10 * time.Second
+const actTimeOut = 12 * time.Second
+const readyTimeOut = 20 * time.Second
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
@@ -40,7 +41,7 @@ func loopTssn(uids [4]uid) {
 
 	tssn.notifyLoad(&girlIds, table)
 
-	readyTimer := time.NewTimer(15 * time.Second)
+	readyTimer := time.NewTimer(readyTimeOut)
 	hardTimer := time.NewTimer(2 * time.Hour)
 	defer hardTimer.Stop()
 

@@ -5,11 +5,11 @@ import (
 	"net"
 )
 
-const Version = "0.6.7"
+const Version = "0.6.8"
 
 func versionCheck(v string) bool {
-	// still support for 0.6.6 by now...
-	return v == Version || v == "0.6.6"
+	// also support some old version
+	return v == Version || v == "0.6.7"
 }
 
 var sing struct {
