@@ -36,7 +36,7 @@ Action makeAction(const string &actStr, const string &actArg, int who)
 			return Action(act, std::stoi(actArg));
 		case AC::IRS_RIVAL:
 			turn = std::stoi(actArg);
-			return Action(act, Who(who).byTurn(turn).index());
+			return Action(act, Who(who).byTurn(turn));
 		default:
 			return Action(act);
 	}
