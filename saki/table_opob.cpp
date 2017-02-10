@@ -399,7 +399,7 @@ void TableOpOb::onRoundEnded(const Table &table, RoundResult result,
 		handMap["closed"] = createTiles(hand.closed().t37s(true));
 		handMap["barks"] = createBarks(hand.barks());
 
-		if (result == RR::TSUMO)
+		if (result == RR::TSUMO || result == RR::KSKP)
 			handMap["pick"] = createTile(hand.drawn(), true);
 		else if (result == RR::RON || result == RR::SCHR)
 			handMap["pick"] = createTile(table.getFocusTile(), true);
