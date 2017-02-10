@@ -23,7 +23,7 @@ type tssn struct {
 	uids		[4]uid
 	readys		[4]bool
 	onlines		[4]bool
-	nonce		int
+	nonces		[4]int
 	actTimer	*time.Timer
 	timeOutCts	[4]int
 }
@@ -73,7 +73,6 @@ func startTssn(uids [4]uid) *tssn {
 	tssn.action = make(chan *msgTssnAction)
 	tssn.done = make(chan struct{})
 	tssn.uids = uids
-	tssn.nonce = 0
 	tssn.actTimer = time.NewTimer(actTimeOut)
 	if !tssn.actTimer.Stop() {
 		select {
@@ -184,12 +183,11 @@ func (tssn *tssn) start(table saki.TableSession) {
 
 func (tssn *tssn) handleAction(uid uid, act *reqAction,
 							   table saki.TableSession, ) {
-	if act.Nonce != tssn.nonce {
+	i, _ := tssn.findUser(uid)
+	if act.Nonce != tssn.nonces[i] {
 		log.Println("expired nonce", act.Nonce, "by", uid);
 		return
 	}
-
-	i, _ := tssn.findUser(uid)
 	tssn.timeOutCts[i] = 0
 	mails := table.Action(i, act.ActStr, act.ActArg)
 	defer saki.DeleteMailVector(mails)
@@ -223,7 +221,14 @@ func (tssn *tssn) sendMails(mails saki.MailVector,
 							table saki.TableSession) {
 	size := int(mails.Size())
 	if size > 0 {
-		tssn.nonce++
+		var nonceInced [4]bool
+		for i := 0; i < size; i++ {
+			w := mails.Get(i).GetTo()
+			if !nonceInced[w] {
+				tssn.nonces[w]++
+				nonceInced[w] = true
+			}
+		}
 		tssn.resetActTimer()
 	}
 
@@ -232,7 +237,7 @@ func (tssn *tssn) sendMails(mails saki.MailVector,
 		str := mails.Get(i).GetMsg()
 		if str == "auto" { // special mark
 			time.Sleep(500 * time.Millisecond)
-			act := reqAction{tssn.nonce, "SPIN_OUT", "-1"}
+			act := reqAction{tssn.nonces[toWhom], "SPIN_OUT", "-1"}
 			tssn.handleAction(tssn.uids[toWhom], &act, table)
 		} else {
 			tssn.sendRealMail(toWhom, str, table)
@@ -246,7 +251,7 @@ func (tssn *tssn) sendRealMail(who int, str string,
 	if err := json.Unmarshal([]byte(str), &msg); err != nil {
 		log.Fatalln("unmarshal c++ str", err)
 	}
-	msg["Nonce"] = tssn.nonce
+	msg["Nonce"] = tssn.nonces[who]
 	tssn.observe(who, msg)
 
 	err := tssn.sendPeer(who, msg)
