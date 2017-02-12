@@ -10,7 +10,9 @@ import (
 	"encoding/json"
 )
 
+const readAuthTimeOut = 10 * time.Second
 const idleTimeOut = 15 * time.Minute
+const writeTimeOut = 10 * time.Second
 
 type ussn struct {
 	user		user
@@ -20,7 +22,6 @@ type ussn struct {
 	update		chan *user
 	done		chan struct{}
 	logout		chan error
-	idleTimer	*time.Timer
 }
 
 func loopUssn(conn net.Conn) {
@@ -44,14 +45,11 @@ func loopUssn(conn net.Conn) {
 
 		select {
 		case breq := <-ussn.read:
-			ussn.resetIdleTimer()
 			ussn.handleRead(breq)
 		case muw := <-ussn.write:
 			muw.chErr <-ussn.handleWrite(muw.msg)
 		case user:= <-ussn.update:
 			ussn.handleUpdateInfo(user)
-		case <-ussn.idleTimer.C:
-			ussn.handleLogout(errors.New("idle timeout"))
 		case err := <-ussn.logout:
 			ussn.handleLogout(err)
 		case <-ussn.done:
@@ -74,7 +72,6 @@ func startUssn(conn net.Conn) (*ussn, error) {
 	ussn.update = make(chan *user)
 	ussn.done = make(chan struct{})
 	ussn.logout = make(chan error)
-	ussn.idleTimer = time.NewTimer(idleTimeOut)
 
 	go ussn.readLoop()
 
@@ -82,6 +79,7 @@ func startUssn(conn net.Conn) (*ussn, error) {
 }
 
 func authUssn(conn net.Conn) (*ussn, error) {
+	conn.SetReadDeadline(time.Now().Add(readAuthTimeOut))
 	breq, err := bufio.NewReader(conn).ReadBytes('\n')
 	if err != nil {
 		return nil, err
@@ -112,6 +110,7 @@ func reject(conn net.Conn, msg interface{}) {
 		log.Fatalln("auth reject", err)
 	}
 
+	conn.SetWriteDeadline(time.Now().Add(writeTimeOut))
 	if _, err := conn.Write(append(jsonb, '\n')); err != nil {
 		log.Println("auth reject", err)
 	} else {
@@ -160,6 +159,7 @@ func (ussn *ussn) Logout(err error) {
 
 func (ussn *ussn) readLoop() {
 	for {
+		ussn.conn.SetReadDeadline(time.Now().Add(idleTimeOut))
 		breq, err := bufio.NewReader(ussn.conn).ReadBytes('\n')
 		if err != nil {
 			ussn.Logout(err) // ok, not in ussn main goroutine
@@ -208,6 +208,7 @@ func (ussn *ussn) handleWrite(msg interface{}) error {
 		return err
 	}
 
+	ussn.conn.SetWriteDeadline(time.Now().Add(writeTimeOut))
 	_, err = ussn.conn.Write(append(jsonb, '\n'))
 	if err != nil {
 		ussn.handleLogout(err)
@@ -234,15 +235,5 @@ func (ussn *ussn) handleLookAround() {
 func (ussn *ussn) handleUpdateInfo(user *user) {
 	ussn.user = *user
 	ussn.handleWrite(newRespUpdateUser(user))
-}
-
-func (ussn *ussn) resetIdleTimer() {
-	if !ussn.idleTimer.Stop() {
-		select {
-		case <-ussn.idleTimer.C:
-		default: // prevent blocked by double-draining
-		}
-	}
-	ussn.idleTimer.Reset(idleTimeOut)
 }
 
