@@ -158,9 +158,9 @@ TableOpOb::TableOpOb(const std::array<int, 4> &girlIds)
 void TableOpOb::onActivated(Who who, Table &table)
 {
     using AC = ActCode;
-    const TicketFolder &tifo = table.getTicketFolder(who);
+    TableView view = table.getView(who);
 
-	if (table.riichiEstablished(who) && tifo.spinOnly()) {
+	if (table.riichiEstablished(who) && view.iCanOnlySpin()) {
 		// speciall msg to tell tables.go to make an auto action
 		// use go since c++ async timer is hard
 		mMails.emplace_back(who.index(), "auto");
@@ -168,12 +168,12 @@ void TableOpOb::onActivated(Who who, Table &table)
 	}
 
 	int focusWho;
-	if (tifo.can(AC::CHII_AS_LEFT)
-			|| tifo.can(AC::CHII_AS_MIDDLE)
-			|| tifo.can(AC::CHII_AS_RIGHT)
-			|| tifo.can(AC::PON)
-			|| tifo.can(AC::DAIMINKAN)
-			|| tifo.can(AC::RON)) {
+	if (view.iCan(AC::CHII_AS_LEFT)
+			|| view.iCan(AC::CHII_AS_MIDDLE)
+			|| view.iCan(AC::CHII_AS_RIGHT)
+			|| view.iCan(AC::PON)
+			|| view.iCan(AC::DAIMINKAN)
+			|| view.iCan(AC::RON)) {
 		focusWho = table.getFocus().who().turnFrom(who);
 	} else {
 		focusWho = -1;
@@ -181,20 +181,20 @@ void TableOpOb::onActivated(Who who, Table &table)
 
     json map;
 
-	if (tifo.can(AC::SWAP_OUT)) {
+	if (view.iCan(AC::SWAP_OUT)) {
 		json mask;
 		const TileCount &closed = table.getHand(who).closed();
-		const auto &choices = tifo.swappables();
+		const auto &choices = view.mySwappables();
 		map[stringOf(AC::SWAP_OUT)] = createSwapMask(closed, choices);
 	}
 
-	if (tifo.can(AC::ANKAN))
-		map[stringOf(AC::ANKAN)] = createTileStrs(tifo.ankanables());
+	if (view.iCan(AC::ANKAN))
+		map[stringOf(AC::ANKAN)] = createTileStrs(view.myAnkanables());
 
-	if (tifo.can(AC::KAKAN))
-		map[stringOf(AC::KAKAN)] = tifo.kakanables();
+	if (view.iCan(AC::KAKAN))
+		map[stringOf(AC::KAKAN)] = view.myKakanables();
 
-	if (tifo.can(AC::IRS_CHECK)) {
+	if (view.iCan(AC::IRS_CHECK)) {
 		const Girl &girl = table.getGirl(who);
 		int prediceCount = girl.irsCheckCount();
 		json list = json::array();
@@ -211,7 +211,7 @@ void TableOpOb::onActivated(Who who, Table &table)
 		map[stringOf(AC::IRS_CHECK)] = list;
 	}
 
-	if (tifo.can(AC::IRS_RIVAL)) {
+	if (view.iCan(AC::IRS_RIVAL)) {
 		const Girl &girl = table.getGirl(who);
 		std::vector<int> tars;
 		for (int i = 0; i < 4; i++)
@@ -229,14 +229,14 @@ void TableOpOb::onActivated(Who who, Table &table)
 	};
 
     for (AC code : just)
-        if (tifo.can(code))
+        if (view.iCan(code))
             map[stringOf(code)] = true;
 
     json msg;
     msg["Type"] = "t-activated";
     msg["Action"] = map;
     msg["LastDiscarder"] = focusWho;
-	msg["Green"] = tifo.forwardAll();
+	msg["Green"] = view.iForwardAll();
 	peer(who.index(), msg);
 }
 
