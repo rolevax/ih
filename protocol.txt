@@ -14,7 +14,7 @@ client
 	b broadcast, same msg for all
 	r broadcast, rotate perspective
 
-{ Type: "login", Version: "0.6.5", Username: "...", Password: "..." }
+{ Type: "login", Version: "0.7.0", Username: "...", Password: "..." }
 { Type: "sign-up", Version: "...", Username: "...", Password: "..." }
 	. { Type: "auth", Ok: false, Reason: "..." } close
 	. { Type: "auth", Ok: true, User: {...} }
@@ -25,24 +25,10 @@ client
 { Type: "book" }
 	r { Type: "start", Users: [...], GirlIds: [...], TempDealer: ? }
 { Type: "ready" }
-	r { Type: "t-points-changed", Points: [...] }
-	. { Type: "t-activated", Actions: [ (dice) ] }
 { Type: "t-action", ActStr: "...", ActArg: "..." }
-	r { Type: "t-first-dealer-choosen", InitDealer: ? }
-	r { Type: "t-round-started", Round: ?, ExtraRound, ?, ... }
-	b { Type: "t-cleaned" }
-	b { Type: "t-diced" }
-	r { Type: "t-dealt", Init: [ {...}, ... ] }
-	b { Type: "t-flipped", NewIndic: {...} }
-	r { Type: "t-drawn", ... }
-	r { Type: "t-discarded", ... }
-	r { Type: "t-riichi-called", Who: ? }
-	r { Type: "t-riichi-established", Who: ? }
-	r { Type: "t-barked", Who: ?, FromWhom: ?, ... }
-	r { Type: "t-round-ended", ... }
-	r { Type: "t-points-changed", Points: [...] }
-	r { Type: "t-table-ended", ... }
-	r { Type: "t-popped-up", ... }
+	. { Type: "table", Event: "...", Args: {...} }
+	r { Type: "table", Event: "...", Args: {...} }
+	b { Type: "table", Event: "...", Args: {...} }
 
 server
 	client

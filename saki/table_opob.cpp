@@ -3,6 +3,9 @@
 #include "libsaki/string_enum.h"
 #include "libsaki/util.h"
 
+#include <bitset>
+
+
 
 TableOp::TableOp(TableOpOb &opOb, Who self) 
 	: TableOperator(self)
@@ -42,11 +45,12 @@ Action makeAction(const string &actStr, const string &actArg, int who)
 	}
 }
 
-std::vector<bool> createSwapMask(const TileCount &closed,
-                                 const std::vector<T37> &choices)
+unsigned createSwapMask(const TileCount &closed,
+                        const std::vector<T37> &choices)
 {
 	// assume 'choices' is 34-sorted
-	std::vector<bool> res;
+	std::bitset<13> mask;
+	int i = 0;
 
 	auto it = choices.begin();
 	for (const T37 &t : tiles37::ORDER37) {
@@ -56,12 +60,12 @@ std::vector<bool> createSwapMask(const TileCount &closed,
 		if (ct > 0) {
 			bool val = t.looksSame(*it);
 			while (ct --> 0)
-				res.push_back(val);
+				mask[i++] = val;
 			it += val; // consume choice if matched
 		}
 	}
 
-	return res;
+	return mask.to_ulong();
 }
 
 std::vector<string> createTileStrs(const std::vector<T34> &ts)
@@ -72,11 +76,11 @@ std::vector<string> createTileStrs(const std::vector<T34> &ts)
 	return res;
 }
 
-json createTile(const T37 &t, bool lay = false)
+std::string createTile(const T37 &t, bool lay = false)
 {
-	json res;
-	res["modelTileStr"] = t.str();
-	res["modelLay"] = lay;
+	std::string res(t.str());
+	if (lay)
+		res += ' ';
 	return res;
 }
 
@@ -161,9 +165,9 @@ void TableOpOb::onActivated(Who who, Table &table)
     TableView view = table.getView(who);
 
 	if (table.riichiEstablished(who) && view.iCanOnlySpin()) {
-		// speciall msg to tell tables.go to make an auto action
-		// use go since c++ async timer is hard
-		mMails.emplace_back(who.index(), "auto");
+		json args;
+		args["Who"] = who.index();
+		system("riichi-auto", args);
 		return;
 	}
 
@@ -232,12 +236,12 @@ void TableOpOb::onActivated(Who who, Table &table)
         if (view.iCan(code))
             map[stringOf(code)] = true;
 
-    json msg;
-    msg["Type"] = "t-activated";
-    msg["Action"] = map;
-    msg["LastDiscarder"] = focusWho;
-	msg["Green"] = view.iForwardAll();
-	peer(who.index(), msg);
+    json args;
+    args["action"] = map;
+    args["lastDiscarder"] = focusWho;
+	if (view.iForwardAll())
+		args["green"] = true;
+	peer(who.index(), "activated", args);
 }
 
 void TableOpOb::onTableStarted(const Table &table, uint32_t seed)
@@ -248,11 +252,10 @@ void TableOpOb::onTableStarted(const Table &table, uint32_t seed)
 
 void TableOpOb::onFirstDealerChoosen(Who initDealer)
 {
-	json msg;
-	msg["Type"] = "t-first-dealer-choosen";
+	json args;
 	for (int w = 0; w < 4; w++) {
-		msg["InitDealer"] = initDealer.turnFrom(Who(w));
-		peer(w, msg);
+		args["dealer"] = initDealer.turnFrom(Who(w));
+		peer(w, "first-dealer-choosen", args);
 	}
 }
 
@@ -266,64 +269,58 @@ void TableOpOb::onRoundStarted(int r, int e, Who d,
 		return;
 	}
 
-	json msg;
-	msg["Type"] = "t-round-started";
-	msg["Round"] = r;
-	msg["ExtraRound"] = e;
-	msg["AllLast"] = al;
-	msg["Deposit"] = dp;
+	json args;
+	args["round"] = r;
+	args["extra"] = e;
+	args["allLast"] = al;
+	args["deposit"] = dp;
 	for (int w = 0; w < 4; w++) {
-		msg["Dealer"] = d.turnFrom(Who(w));
-		peer(w, msg);
+		args["dealer"] = d.turnFrom(Who(w));
+		peer(w, "round-started", args);
 	}
 }
 
 void TableOpOb::onCleaned()
 {
-	json msg;
-	msg["Type"] = "t-cleaned";
-	broad(msg);
+	broad("cleaned", json());
 }
 
 void TableOpOb::onDiced(const Table &table, int die1, int die2)
 {
-	json msg;
-	msg["Type"] = "t-diced";
-	msg["Die1"] = die1;
-	msg["Die2"] = die2;
-	broad(msg);
+	json args;
+	args["die1"] = die1;
+	args["die2"] = die2;
+	broad("diced", args);
 }
 
 void TableOpOb::onDealt(const Table &table)
 {
-	json msg;
-	msg["Type"] = "t-dealt";
 	for (int w = 0; w < 4; w++) {
 		const auto &init = table.getHand(Who(w)).closed().t37s(true);
-		msg["Init"] = createTiles(init);
-		peer(w, msg);
+		json args;
+		args["init"] = createTiles(init);
+		peer(w, "dealt", args);
 	}
 }
 
 void TableOpOb::onFlipped(const Table &table)
 {
-	json msg;
-	msg["Type"] = "t-flipped";
-	msg["NewIndic"] = createTile(table.getMount().getDrids().back());
-	broad(msg);
+	json args;
+	args["newIndic"] = createTile(table.getMount().getDrids().back());
+	broad("flipped", args);
 }
 
 void TableOpOb::onDrawn(const Table &table, Who who)
 {
 	const T37 &in = table.getHand(who).drawn();
 	for (int w = 0; w < 4; w++) {
-		json msg;
-		msg["Type"] = "t-drawn";
-		msg["Who"] = who.turnFrom(Who(w));
-		msg["Rinshan"] = table.duringKan();
+		json args;
+		args["who"] = who.turnFrom(Who(w));
+		if (table.duringKan())
+			args["rinshan"] = true;
 		if (w == who.index())
-			msg["Tile"] = createTile(in);
-		peer(w, msg);
+			args["tile"] = createTile(in);
+		peer(w, "drawn", args);
 	}
 }
 
@@ -333,33 +330,30 @@ void TableOpOb::onDiscarded(const Table &table, bool spin)
 	const T37 &out = table.getFocusTile();
 	bool lay = table.lastDiscardLay();
 
-	json msg;
-	msg["Type"] = "t-discarded";
-	msg["Tile"] = createTile(out, lay);
-	msg["Spin"] = spin;
+	json args;
+	args["tile"] = createTile(out, lay);
+	args["spin"] = spin;
 	for (int w = 0; w < 4; w++) {
-		msg["Who"] = discarder.turnFrom(Who(w));
-		peer(w, msg);
+		args["who"] = discarder.turnFrom(Who(w));
+		peer(w, "discarded", args);
 	}
 }
 
 void TableOpOb::onRiichiCalled(Who who)
 {
-	json msg;
-	msg["Type"] = "t-riichi-called";
 	for (int w = 0; w < 4; w++) {
-		msg["Who"] = who.turnFrom(Who(w));
-		peer(w, msg);
+		json args;
+		args["who"] = who.turnFrom(Who(w));
+		peer(w, "riichi-called", args);
 	}
 }
 
 void TableOpOb::onRiichiEstablished(Who who)
 {
-	json msg;
-	msg["Type"] = "t-riichi-established";
 	for (int w = 0; w < 4; w++) {
-		msg["Who"] = who.turnFrom(Who(w));
-		peer(w, msg);
+		json args;
+		args["who"] = who.turnFrom(Who(w));
+		peer(w, "riichi-established", args);
 	}
 }
 
@@ -368,15 +362,14 @@ void TableOpOb::onBarked(const Table &table, Who who,
 {
 	Who from = bark.isCpdmk() ? table.getFocus().who() : Who();
 
-	json msg;
-	msg["Type"] = "t-barked";
-	msg["ActStr"] = stringOf(bark.type());
-	msg["Bark"] = createBark(bark);
-	msg["Spin"] = spin;
+	json args;
+	args["actStr"] = stringOf(bark.type());
+	args["bark"] = createBark(bark);
+	args["spin"] = spin;
 	for (int w = 0; w < 4; w++) {
-		msg["Who"] = who.turnFrom(Who(w));
-		msg["FromWhom"] = from.somebody() ? from.turnFrom(Who(w)) : -1;
-		peer(w, msg);
+		args["who"] = who.turnFrom(Who(w));
+		args["fromWhom"] = from.somebody() ? from.turnFrom(Who(w)) : -1;
+		peer(w, "barked", args);
 	}
 }
 
@@ -415,29 +408,27 @@ void TableOpOb::onRoundEnded(const Table &table, RoundResult result,
 		formsList.emplace_back(formMap);
 	}
 
-	json msg;
-	msg["Type"] = "t-round-ended";
-	msg["Result"] = stringOf(result);
-	msg["Hands"] = handsList;
-	msg["Forms"] = formsList;
-	msg["Urids"] = createTiles(table.getMount().getUrids());
+	json args;
+	args["result"] = stringOf(result);
+	args["hands"] = handsList;
+	args["forms"] = formsList;
+	args["urids"] = createTiles(table.getMount().getUrids());
 	for (int w = 0; w < 4; w++) {
-		msg["Openers"] = json();
+		args["openers"] = json();
 		for (Who who : openers)
-			msg["Openers"].push_back(who.turnFrom(Who(w)));
-		msg["Gunner"] = gunner.somebody() ? gunner.turnFrom(Who(w)) : -1;
-		peer(w, msg);
+			args["openers"].push_back(who.turnFrom(Who(w)));
+		args["gunner"] = gunner.somebody() ? gunner.turnFrom(Who(w)) : -1;
+		peer(w, "round-ended", args);
 	}
 }
 
 void TableOpOb::onPointsChanged(const Table &table)
 {
-	json msg;
-	msg["Type"] = "t-points-changed";
-	msg["Points"] = table.getPoints();
+	json args;
+	args["points"] = table.getPoints();
 	for (int w = 0; w < 4; w++) {
-		peer(w, msg);
-		rotate(msg["Points"]);
+		peer(w, "points-changed", args);
+		rotate(args["points"]);
 	}
 }
 
@@ -446,25 +437,23 @@ void TableOpOb::onTableEnded(const std::array<Who, 4> &rank,
 {
 	mEnd = true;
 
-	json msg;
-	msg["Type"] = "t-table-ended";
-	msg["Scores"] = scores;
+	json args;
+	args["scores"] = scores;
 	for (int w = 0; w < 4; w++) {
 		json rankList;
 		for (Who who : rank)
 			rankList.push_back(who.turnFrom(Who(w)));
-		msg["Rank"] = rankList;
-		peer(w, msg);
-		rotate(msg["Scores"]);
+		args["rank"] = rankList;
+		peer(w, "table-ended", args);
+		rotate(args["scores"]);
 	}
 }
 
 void TableOpOb::onPoppedUp(const Table &table, Who who)
 {
-	json msg;
-	msg["Type"] = "t-popped-up";
-	msg["Str"] = table.getGirl(who).popUpStr();
-	peer(who.index(), msg);
+	json args;
+	args["str"] = table.getGirl(who).popUpStr();
+	peer(who.index(), "popped-up", args);
 }
 
 std::vector<Mail> TableOpOb::popMails()
@@ -514,16 +503,44 @@ std::vector<int> TableOpOb::sweepAll()
 	return res;
 }
 
-void TableOpOb::peer(int w, const json &msg)
+void TableOpOb::tableEndStat(const std::array<Who, 4> &rank)
 {
+	json rankList;
+	for (Who who : rank)
+		rankList.push_back(who.index());
+
+	json args;
+	args["Rank"] = rankList;
+
+	system("table-end-stat", args);
+}
+
+void TableOpOb::peer(int w, const char *event, const json &args)
+{
+	json msg;
+	msg["Type"] = "table";
+	msg["Event"] = event;
+	msg["Args"] = args;
 	mMails.emplace_back(w, msg.dump());
 }
 
-void TableOpOb::broad(const json &msg)
+void TableOpOb::broad(const char *event, const json &args)
 {
+	json msg;
+	msg["Type"] = "table";
+	msg["Event"] = event;
+	msg["Args"] = args;
 	const auto &s = msg.dump();
 	for (int w = 0; w < 4; w++)
 		mMails.emplace_back(w, s);
+}
+
+void TableOpOb::system(const char *type, const json &args)
+{
+	json msg = args;
+	msg["Type"] = type;
+	const auto &s = msg.dump();
+	mMails.emplace_back(-1, s);
 }
 
 

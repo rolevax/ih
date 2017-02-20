@@ -65,8 +65,10 @@ public:
 	void sweepOne(int who);
 
 private:
-	void peer(int w, const json &msg);
-	void broad(const json &msg);
+	void peer(int w, const char *event, const json &args);
+	void broad(const char *event, const json &msg);
+	void system(const char *type, const json &args);
+	void tableEndStat(const std::array<Who, 4> &rank);
 
 private:
 	std::vector<Mail> mMails;

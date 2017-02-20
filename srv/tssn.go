@@ -235,27 +235,24 @@ func (tssn *tssn) sendMails(mails saki.MailVector,
 	for i := 0; i < size; i++ {
 		toWhom := mails.Get(i).GetTo()
 		str := mails.Get(i).GetMsg()
-		if str == "auto" { // special mark
-			time.Sleep(500 * time.Millisecond)
-			act := reqAction{tssn.nonces[toWhom], "SPIN_OUT", "-1"}
-			tssn.handleAction(tssn.uids[toWhom], &act, table)
-		} else {
-			tssn.sendRealMail(toWhom, str, table)
+		var msg map[string]interface{}
+		if err := json.Unmarshal([]byte(str), &msg); err != nil {
+			log.Fatalln("unmarshal c++ str", err)
+		}
+		if toWhom == -1 { // system message
+			tssn.observe(msg, table)
+		} else { // user message
+			tssn.sendRealMail(toWhom, msg, table)
 		}
 	}
 }
 
-func (tssn *tssn) sendRealMail(who int, str string,
+func (tssn *tssn) sendRealMail(who int, msg map[string]interface{},
 							   table saki.TableSession) {
-	var msg map[string]interface{}
-	if err := json.Unmarshal([]byte(str), &msg); err != nil {
-		log.Fatalln("unmarshal c++ str", err)
-	}
 	msg["Nonce"] = tssn.nonces[who]
-	tssn.observe(who, msg)
 
 	err := tssn.sendPeer(who, msg)
-	if err != nil && msg["Type"] == "t-activated" {
+	if err != nil && msg["Event"] == "activated" {
 		if tssn.anyOnline() && !table.GameOver() {
 			tssn.sweepOne(table, who)
 		}
@@ -283,17 +280,22 @@ func (tssn *tssn) resetActTimer() {
 	tssn.actTimer.Reset(actTimeOut)
 }
 
-func (tssn *tssn) observe(who int, msg map[string]interface{}) {
+func (tssn *tssn) observe(msg map[string]interface{},
+						  table saki.TableSession) {
 	switch (msg["Type"]) {
-	case "t-table-ended":
-		if (who == 0) { // observe once, w/o rotation
-			var ordered [4]uid
-			ranks := msg["Rank"].([]interface{})
-			for r := 0; r < 4; r++ {
-				ordered[r] = tssn.uids[int(ranks[r].(float64))]
-			}
-			statRank(&ordered)
+	case "table-end-stat":
+		var ordered [4]uid
+		// FUCK
+		ranks := msg["Rank"].([]interface{})
+		for r := 0; r < 4; r++ {
+			ordered[r] = tssn.uids[int(ranks[r].(float64))]
 		}
+		statRank(&ordered)
+	case "richii-auto":
+		time.Sleep(500 * time.Millisecond)
+		who := msg["Who"].(int)
+		act := reqAction{tssn.nonces[who], "SPIN_OUT", "-1"}
+		tssn.handleAction(tssn.uids[who], &act, table)
 	}
 }
 
