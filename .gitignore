@@ -1,4 +1,5 @@
 sakilogy-server
+bot/sakilogy-bot
 saki/saki.go
 saki/saki_wrap.cxx
 saki/build

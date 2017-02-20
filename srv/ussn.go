@@ -5,7 +5,6 @@ import (
 	"net"
 	"bufio"
 	"errors"
-	"strings"
 	"time"
 	"encoding/json"
 )
@@ -158,9 +157,10 @@ func (ussn *ussn) Logout(err error) {
 }
 
 func (ussn *ussn) readLoop() {
+	reader := bufio.NewReader(ussn.conn)
 	for {
 		ussn.conn.SetReadDeadline(time.Now().Add(idleTimeOut))
-		breq, err := bufio.NewReader(ussn.conn).ReadBytes('\n')
+		breq, err := reader.ReadBytes('\n')
 		if err != nil {
 			ussn.Logout(err) // ok, not in ussn main goroutine
 			return
@@ -191,7 +191,7 @@ func (ussn *ussn) handleRead(breq []byte) {
 		sing.BookMgr.Unbook(ussn.user.Id)
 	case t == "ready":
 		sing.TssnMgr.Ready(ussn.user.Id)
-	case strings.HasPrefix(t, "t-"):
+	case t == "t-action":
 		var act reqAction
 		if err := json.Unmarshal(breq, &act); err != nil {
 			ussn.handleLogout(err)
@@ -212,7 +212,6 @@ func (ussn *ussn) handleWrite(msg interface{}) error {
 	_, err = ussn.conn.Write(append(jsonb, '\n'))
 	if err != nil {
 		ussn.handleLogout(err)
-
 	} else {
 		log.Println(ussn.user.Id, "<---", string(jsonb))
 	}

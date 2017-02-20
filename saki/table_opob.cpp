@@ -1,6 +1,7 @@
 #include "table_opob.h"
 
 #include "libsaki/string_enum.h"
+#include "libsaki/ai.h"
 #include "libsaki/util.h"
 
 #include <bitset>
@@ -80,7 +81,7 @@ std::string createTile(const T37 &t, bool lay = false)
 {
 	std::string res(t.str());
 	if (lay)
-		res += ' ';
+		res += '_';
 	return res;
 }
 
@@ -437,6 +438,8 @@ void TableOpOb::onTableEnded(const std::array<Who, 4> &rank,
 {
 	mEnd = true;
 
+	tableEndStat(rank);
+
 	json args;
 	args["scores"] = scores;
 	for (int w = 0; w < 4; w++) {
@@ -468,10 +471,20 @@ bool TableOpOb::gameOver() const
 	return mEnd;
 }
 
-void TableOpOb::action(int who, const string &actStr, const string &actArg)
+void TableOpOb::action(int w, const string &actStr, const string &actArg)
 {
-	Action action = makeAction(actStr, actArg, who);
-	mTable->action(Who(who), action);
+	Who who(w);
+
+	if (actStr == "SWEEP") {
+		sweepOne(w);
+	} else if (actStr == "BOT") {
+		Girl::Id girlId = mTable->getGirl(who).getId();
+		std::unique_ptr<Ai> ai(Ai::create(who, girlId));
+		ai->onActivated(*mTable);
+	} else {
+		Action action = makeAction(actStr, actArg, w);
+		mTable->action(who, action);
+	}
 }
 
 void TableOpOb::sweepOne(int w)

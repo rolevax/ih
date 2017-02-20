@@ -61,7 +61,7 @@ func loopTssn(uids [4]uid) {
 				tssn.start(table)
 			}
 		case <-hardTimer.C:
-			break
+			return
 		}
 	}
 }
@@ -178,7 +178,7 @@ func (tssn *tssn) findUser(uid uid) (int, bool) {
 func (tssn *tssn) start(table saki.TableSession) {
 	mails := table.Start()
 	defer saki.DeleteMailVector(mails)
-	tssn.sendMails(mails, table)
+	tssn.handleMails(mails, table)
 }
 
 func (tssn *tssn) handleAction(uid uid, act *reqAction,
@@ -191,13 +191,13 @@ func (tssn *tssn) handleAction(uid uid, act *reqAction,
 	tssn.timeOutCts[i] = 0
 	mails := table.Action(i, act.ActStr, act.ActArg)
 	defer saki.DeleteMailVector(mails)
-	tssn.sendMails(mails, table)
+	tssn.handleMails(mails, table)
 }
 
 func (tssn *tssn) sweepOne(table saki.TableSession, i int) {
 	mails := table.SweepOne(i)
 	defer saki.DeleteMailVector(mails)
-	tssn.sendMails(mails, table)
+	tssn.handleMails(mails, table)
 }
 
 func (tssn *tssn) sweepAll(table saki.TableSession) {
@@ -214,17 +214,17 @@ func (tssn *tssn) sweepAll(table saki.TableSession) {
 		}
 	}
 	defer saki.DeleteMailVector(mails)
-	tssn.sendMails(mails, table)
+	tssn.handleMails(mails, table)
 }
 
-func (tssn *tssn) sendMails(mails saki.MailVector,
-							table saki.TableSession) {
+func (tssn *tssn) handleMails(mails saki.MailVector,
+							  table saki.TableSession) {
 	size := int(mails.Size())
 	if size > 0 {
 		var nonceInced [4]bool
 		for i := 0; i < size; i++ {
 			w := mails.Get(i).GetTo()
-			if !nonceInced[w] {
+			if w != -1 && !nonceInced[w] {
 				tssn.nonces[w]++
 				nonceInced[w] = true
 			}
@@ -239,15 +239,15 @@ func (tssn *tssn) sendMails(mails saki.MailVector,
 		if err := json.Unmarshal([]byte(str), &msg); err != nil {
 			log.Fatalln("unmarshal c++ str", err)
 		}
-		if toWhom == -1 { // system message
-			tssn.observe(msg, table)
-		} else { // user message
-			tssn.sendRealMail(toWhom, msg, table)
+		if toWhom == -1 {
+			tssn.handleSystemMail(msg, table)
+		} else {
+			tssn.sendUserMail(toWhom, msg, table)
 		}
 	}
 }
 
-func (tssn *tssn) sendRealMail(who int, msg map[string]interface{},
+func (tssn *tssn) sendUserMail(who int, msg map[string]interface{},
 							   table saki.TableSession) {
 	msg["Nonce"] = tssn.nonces[who]
 
@@ -280,22 +280,23 @@ func (tssn *tssn) resetActTimer() {
 	tssn.actTimer.Reset(actTimeOut)
 }
 
-func (tssn *tssn) observe(msg map[string]interface{},
-						  table saki.TableSession) {
+func (tssn *tssn) handleSystemMail(msg map[string]interface{},
+						           table saki.TableSession) {
 	switch (msg["Type"]) {
 	case "table-end-stat":
 		var ordered [4]uid
-		// FUCK
 		ranks := msg["Rank"].([]interface{})
 		for r := 0; r < 4; r++ {
 			ordered[r] = tssn.uids[int(ranks[r].(float64))]
 		}
 		statRank(&ordered)
-	case "richii-auto":
+	case "riichi-auto":
 		time.Sleep(500 * time.Millisecond)
-		who := msg["Who"].(int)
+		who := int(msg["Who"].(float64))
 		act := reqAction{tssn.nonces[who], "SPIN_OUT", "-1"}
 		tssn.handleAction(tssn.uids[who], &act, table)
+	default:
+		log.Fatalln("unknown system mail", msg)
 	}
 }
 
