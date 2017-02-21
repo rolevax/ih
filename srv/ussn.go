@@ -12,6 +12,7 @@ import (
 const readAuthTimeOut = 10 * time.Second
 const idleTimeOut = 15 * time.Minute
 const writeTimeOut = 10 * time.Second
+const obayTimeOut = 5 * time.Second
 
 type ussn struct {
 	user		user
@@ -168,7 +169,7 @@ func (ussn *ussn) readLoop() {
 
 		select {
 		case ussn.read <- breq:
-			log.Print(ussn.user.Id, " ---> ", string(breq))
+			//log.Print(ussn.user.Id, " ---> ", string(breq))
 		case <-ussn.done:
 			return
 		}
@@ -198,6 +199,8 @@ func (ussn *ussn) handleRead(breq []byte) {
 			return
 		}
 		sing.TssnMgr.Action(ussn.user.Id, &act)
+	default:
+		ussn.handleLogout(errors.New("invalid req: " + string(breq)))
 	}
 }
 
@@ -213,7 +216,7 @@ func (ussn *ussn) handleWrite(msg interface{}) error {
 	if err != nil {
 		ussn.handleLogout(err)
 	} else {
-		log.Println(ussn.user.Id, "<---", string(jsonb))
+		//log.Println(ussn.user.Id, "<---", string(jsonb))
 	}
 	return err
 }
@@ -224,11 +227,17 @@ func (ussn *ussn) handleLogout(err error) {
 }
 
 func (ussn *ussn) handleLookAround() {
-	bookable := !sing.TssnMgr.HasUser(ussn.user.Id)
-	connCt := sing.UssnMgr.CtUser()
-	playCt := sing.TssnMgr.CtUser()
-	bookCt := sing.BookMgr.CtBook()
-	ussn.handleWrite(newRespLookAround(bookable, connCt, bookCt, playCt))
+	if sing.TssnMgr.HasUser(ussn.user.Id) {
+		msg := respTypeOnly{"resume"}
+		ussn.handleWrite(msg)
+	} else {
+		bookable := true
+		connCt := sing.UssnMgr.CtUser()
+		playCt := sing.TssnMgr.CtUser()
+		bookCt := sing.BookMgr.CtBook()
+		msg := newRespLookAround(bookable, connCt, bookCt, playCt)
+		ussn.handleWrite(msg)
+	}
 }
 
 func (ussn *ussn) handleUpdateInfo(user *user) {

@@ -263,10 +263,9 @@ void TableOpOb::onFirstDealerChoosen(Who initDealer)
 void TableOpOb::onRoundStarted(int r, int e, Who d, 
                                bool al, int dp, uint32_t s)
 {
-	util::p("onRoundStarted", r, e, d.index(), 
-            "al", al, "depo", dp, "seed", s);
 	if (r > 100) { // prevent infinite offline-spin-out loop
 		mEnd = true;
+		util::p("C++: round over 100");
 		return;
 	}
 
@@ -279,11 +278,15 @@ void TableOpOb::onRoundStarted(int r, int e, Who d,
 		args["dealer"] = d.turnFrom(Who(w));
 		peer(w, "round-started", args);
 	}
+
+	args["dealer"] = d.index();
+	args["seed"] = s;
+	system("round-start-log", args);
 }
 
 void TableOpOb::onCleaned()
 {
-	broad("cleaned", json());
+	broad("cleaned", json::object());
 }
 
 void TableOpOb::onDiced(const Table &table, int die1, int die2)
@@ -394,9 +397,9 @@ void TableOpOb::onRoundEnded(const Table &table, RoundResult result,
 		handMap["barks"] = createBarks(hand.barks());
 
 		if (result == RR::TSUMO || result == RR::KSKP)
-			handMap["pick"] = createTile(hand.drawn(), true);
+			handMap["pick"] = createTile(hand.drawn());
 		else if (result == RR::RON || result == RR::SCHR)
-			handMap["pick"] = createTile(table.getFocusTile(), true);
+			handMap["pick"] = createTile(table.getFocusTile());
 
 		handsList.emplace_back(handMap);
 	}
@@ -415,7 +418,7 @@ void TableOpOb::onRoundEnded(const Table &table, RoundResult result,
 	args["forms"] = formsList;
 	args["urids"] = createTiles(table.getMount().getUrids());
 	for (int w = 0; w < 4; w++) {
-		args["openers"] = json();
+		args["openers"] = json::array();
 		for (Who who : openers)
 			args["openers"].push_back(who.turnFrom(Who(w)));
 		args["gunner"] = gunner.somebody() ? gunner.turnFrom(Who(w)) : -1;
@@ -481,6 +484,8 @@ void TableOpOb::action(int w, const string &actStr, const string &actArg)
 		Girl::Id girlId = mTable->getGirl(who).getId();
 		std::unique_ptr<Ai> ai(Ai::create(who, girlId));
 		ai->onActivated(*mTable);
+	} else if (actStr == "RESUME") {
+		resume(w);
 	} else {
 		Action action = makeAction(actStr, actArg, w);
 		mTable->action(who, action);
@@ -514,6 +519,60 @@ std::vector<int> TableOpOb::sweepAll()
 		}
 	}
 	return res;
+}
+
+void TableOpOb::resume(int c)
+{
+	json args;
+	Who comer(c);
+
+	args["whoDrawn"] = -1;
+	args["barkss"] = json::array();
+	args["rivers"] = json::array();
+	args["riichiBars"] = json::array();
+	args["dice"] = mTable->getDice();
+	if (mTable->getDice() > 0) {
+		for (int w = 0; w < 4; w++) {
+			const Hand &hand = mTable->getHand(Who(w));
+			int pers = Who(w).turnFrom(comer);
+			if (hand.hasDrawn()) {
+				args["whoDrawn"] = pers;
+				if (w == c)
+					args["drawn"] = createTile(hand.drawn());
+			}
+			if (w == c)
+				args["myHand"] = createTiles(hand.closed().t37s(true));
+			args["barkss"][pers] = createBarks(hand.barks());
+			args["rivers"][pers] = createTiles(mTable->getRiver(Who(w)));
+			args["riichiBars"][pers] = mTable->riichiEstablished(Who(w));
+		}
+		args["drids"] = createTiles(mTable->getMount().getDrids());
+	}
+
+	const auto &pts = mTable->getPoints();
+	args["points"] = json {
+		pts[comer.index()],
+		pts[comer.right().index()],
+		pts[comer.cross().index()],
+		pts[comer.left().index()],
+	};
+
+	args["girlIds"] = json {
+		static_cast<int>(mTable->getGirl(comer).getId()),
+		static_cast<int>(mTable->getGirl(comer.right()).getId()),
+		static_cast<int>(mTable->getGirl(comer.cross()).getId()),
+		static_cast<int>(mTable->getGirl(comer.left()).getId())
+	};
+
+	args["wallRemain"] = mTable->getMount().wallRemain();
+
+	args["round"] = mTable->getRound();
+	args["extraRound"] = mTable->getExtraRound();
+	args["dealer"] = mTable->getDealer().index();
+	args["allLast"] = mTable->isAllLast();
+	args["deposit"] = mTable->getDeposit();
+
+	peer(c, "resume", args);
 }
 
 void TableOpOb::tableEndStat(const std::array<Who, 4> &rank)

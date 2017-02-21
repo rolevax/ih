@@ -31,6 +31,10 @@ type reqAction struct {
 	ActArg		string
 }
 
+type respTypeOnly struct {
+	Type		string
+}
+
 type respAuthFail struct {
 	Type		string
 	Ok			bool

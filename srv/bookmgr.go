@@ -6,6 +6,7 @@ import (
 type bookMgr struct {
 	book	chan uid
 	unbook	chan uid
+	ctBook	chan chan int
 	waits	[4]uid
 	wait	int
 }
@@ -15,6 +16,7 @@ func newBookMgr() *bookMgr {
 
 	bm.book = make(chan uid)
 	bm.unbook = make(chan uid)
+	bm.ctBook = make(chan chan int)
 	bm.wait = 0
 
 	return bm;
@@ -27,6 +29,8 @@ func (bm *bookMgr) Loop() {
 			bm.handleBook(uid)
 		case uid := <-bm.unbook:
 			bm.handleUnbook(uid)
+		case ch := <-bm.ctBook:
+			ch <- bm.wait
 		}
 	}
 }
@@ -40,7 +44,9 @@ func (bm *bookMgr) Unbook(uid uid) {
 }
 
 func (bm *bookMgr) CtBook() int {
-	return bm.wait
+	ch := make(chan int)
+	bm.ctBook <- ch
+	return <-ch
 }
 
 func (bm *bookMgr) handleBook(uid uid) {

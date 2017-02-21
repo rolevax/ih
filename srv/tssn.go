@@ -21,6 +21,7 @@ type tssn struct {
 	action		chan *msgTssnAction
 	done		chan struct{}
 	uids		[4]uid
+	girlIds		[4]int
 	readys		[4]bool
 	onlines		[4]bool
 	nonces		[4]int
@@ -34,12 +35,12 @@ func loopTssn(uids [4]uid) {
 	sing.TssnMgr.Reg(tssn)
 	defer sing.TssnMgr.Unreg(tssn)
 
-	girlIds := genIds()
-	table := saki.NewTableSession(
-		girlIds[0], girlIds[1], girlIds[2], girlIds[3])
+	tssn.girlIds = genIds()
+	table := saki.NewTableSession(tssn.girlIds[0], tssn.girlIds[1],
+								  tssn.girlIds[2], tssn.girlIds[3])
 	defer saki.DeleteTableSession(table)
 
-	tssn.notifyLoad(&girlIds, table)
+	tssn.notifyLoad(table)
 
 	readyTimer := time.NewTimer(readyTimeOut)
 	hardTimer := time.NewTimer(2 * time.Hour)
@@ -129,7 +130,7 @@ func (tssn *tssn) anyOnline() bool {
 	return o[0] || o[1] || o[2] || o[3]
 }
 
-func (tssn *tssn) notifyLoad(girlIds *[4]int, table saki.TableSession) {
+func (tssn *tssn) notifyLoad(table saki.TableSession) {
 	users := sing.Dao.GetUsers(&tssn.uids)
 	for i, user := range users {
 		if user == nil {
@@ -142,7 +143,7 @@ func (tssn *tssn) notifyLoad(girlIds *[4]int, table saki.TableSession) {
 		Users		[4]*user
 		GirlIds		[4]int
 		TempDealer	int
-	}{"start", users, *girlIds, 0}
+	}{"start", users, tssn.girlIds, 0}
 
 	for i, uid := range tssn.uids {
 		msg.TempDealer = (4 - i) % 4
@@ -184,8 +185,10 @@ func (tssn *tssn) start(table saki.TableSession) {
 func (tssn *tssn) handleAction(uid uid, act *reqAction,
 							   table saki.TableSession, ) {
 	i, _ := tssn.findUser(uid)
-	if act.Nonce != tssn.nonces[i] {
-		log.Println("expired nonce", act.Nonce, "by", uid);
+	if act.ActStr == "RESUME" {
+		tssn.onlines[i] = true
+	} else if act.Nonce != tssn.nonces[i] {
+		log.Println(uid, "nonce", act.Nonce, "want", tssn.nonces[i]);
 		return
 	}
 	tssn.timeOutCts[i] = 0
@@ -250,6 +253,20 @@ func (tssn *tssn) handleMails(mails saki.MailVector,
 func (tssn *tssn) sendUserMail(who int, msg map[string]interface{},
 							   table saki.TableSession) {
 	msg["Nonce"] = tssn.nonces[who]
+	if msg["Event"] == "resume" {
+		users := sing.Dao.GetUsers(&tssn.uids)
+		for i, user := range users {
+			if user == nil {
+				log.Fatalln("tssn.send-resume:", tssn.uids[i], "not in DB")
+			}
+		}
+		right := (who + 1) % 4
+		cross := (who + 2) % 4
+		left := (who + 3) % 4
+		rotated := [4]*user{users[who], users[right],
+							users[cross], users[left]}
+		msg["Args"].(map[string]interface{})["users"] = rotated
+	}
 
 	err := tssn.sendPeer(who, msg)
 	if err != nil && msg["Event"] == "activated" {
@@ -264,6 +281,7 @@ func (tssn *tssn) sendPeer(i int, msg interface{}) error {
 		err := sing.UssnMgr.Peer(tssn.uids[i], msg)
 		if err != nil {
 			tssn.onlines[i] = false
+			sing.UssnMgr.Logout(tssn.uids[i])
 		}
 		return err
 	}
@@ -283,6 +301,16 @@ func (tssn *tssn) resetActTimer() {
 func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 						           table saki.TableSession) {
 	switch (msg["Type"]) {
+	case "round-start-log":
+		fmt := "[%v,%v,%v,%v]-[%v,%v,%v,%v]\n" +
+			   "\tr=%v e=%v d=%v al=%v depo=%v seed=%v"
+		log.Printf(fmt,
+				   tssn.uids[0], tssn.uids[1], tssn.uids[2], tssn.uids[3],
+				   tssn.girlIds[0], tssn.girlIds[1],
+				   tssn.girlIds[2], tssn.girlIds[3],
+				   msg["round"], msg["extra"], msg["dealer"],
+				   msg["allLast"], msg["deposit"],
+				   uint(msg["seed"].(float64)))
 	case "table-end-stat":
 		var ordered [4]uid
 		ranks := msg["Rank"].([]interface{})

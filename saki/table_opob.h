@@ -63,6 +63,7 @@ public:
 	void action(int who, const string &actStr, const string &actArg);
 	std::vector<int> sweepAll();
 	void sweepOne(int who);
+	void resume(int who);
 
 private:
 	void peer(int w, const char *event, const json &args);

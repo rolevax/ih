@@ -4,14 +4,25 @@ import (
 	"net"
 	"log"
 	"time"
+	"math/rand"
 	"bufio"
 	"encoding/json"
 	"crypto/sha256"
 )
 
-var startGap = 5 * time.Second
-var lookAroundGap = 5 * time.Second
-var thinkGap = 10 * time.Millisecond
+var startGap = 3 * time.Second
+var lookAroundGap = 100 * time.Second
+
+func thinkGap(pass bool) time.Duration {
+	if pass {
+		return time.Duration(500 + rand.Intn(500)) * time.Millisecond
+	} else {
+		r1 := rand.Intn(300)
+		r2 := rand.Intn(300)
+		r3 := rand.Intn(300)
+		return time.Duration(1000 + r1 + r2 + r3) * time.Millisecond
+	}
+}
 
 type reqLogin struct {
 	Type		string
@@ -42,8 +53,10 @@ func main() {
 		"aa7", "ZzZzZ", "0--0--0", "X.X",
 		"HasName", "喵打", "term", "职业菜鸡"}
 
-	for _, b := range bots {
-		go loopBot(b, "iamarobot")
+	perm := rand.Perm(len(bots))
+
+	for _, p := range perm {
+		go loopBot(bots[p], "iamarobot")
 		time.Sleep(startGap)
 	}
 
@@ -131,11 +144,15 @@ func (bot *bot) readSwitch(msg map[string]interface{}) {
 	case "table":
 		if msg["Event"] == "activated" {
 			nonce := int(msg["Nonce"].(float64))
+			args := msg["Args"].(map[string]interface{})
+			action := args["action"].(map[string]interface{})
+			_, pass := action["PASS"]
 			msg := reqAction{"t-action","BOT","-1",nonce}
-			time.Sleep(thinkGap)
+			time.Sleep(thinkGap(pass))
 			bot.write(msg)
 		}
 	case "update-user":
+	case "resume":
 		// do nothing
 	default:
 		log.Fatalln("unknown reply type:", msg["Type"])
@@ -147,8 +164,10 @@ func (bot *bot) handleLookAround(msg map[string]interface{}) {
 	ds71 := books["DS71"].(map[string]interface{})
 	bookable := ds71["Bookable"].(bool)
 	if bookable {
-		req := reqBook{"book", "DS71"}
-		bot.write(req)
+		if rand.Intn(3) == 0 { // 1/3 prob to book
+			req := reqBook{"book", "DS71"}
+			bot.write(req)
+		}
 	}
 }
 
