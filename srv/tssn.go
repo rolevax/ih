@@ -21,7 +21,7 @@ type tssn struct {
 	action		chan *msgTssnAction
 	done		chan struct{}
 	uids		[4]uid
-	girlIds		[4]int
+	girlIds		[4]gid
 	readys		[4]bool
 	onlines		[4]bool
 	nonces		[4]int
@@ -36,8 +36,9 @@ func loopTssn(uids [4]uid) {
 	defer sing.TssnMgr.Unreg(tssn)
 
 	tssn.girlIds = genIds()
-	table := saki.NewTableSession(tssn.girlIds[0], tssn.girlIds[1],
-								  tssn.girlIds[2], tssn.girlIds[3])
+	table := saki.NewTableSession(
+		int(tssn.girlIds[0]),int(tssn.girlIds[1]),
+		int(tssn.girlIds[2]), int(tssn.girlIds[3]))
 	defer saki.DeleteTableSession(table)
 
 	tssn.notifyLoad(table)
@@ -141,7 +142,7 @@ func (tssn *tssn) notifyLoad(table saki.TableSession) {
 	msg := struct {
 		Type		string
 		Users		[4]*user
-		GirlIds		[4]int
+		GirlIds		[4]gid
 		TempDealer	int
 	}{"start", users, tssn.girlIds, 0}
 
@@ -312,12 +313,15 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 				   msg["allLast"], msg["deposit"],
 				   uint(msg["seed"].(float64)))
 	case "table-end-stat":
-		var ordered [4]uid
+		var ordUids [4]uid
+		var ordGids [4]gid
 		ranks := msg["Rank"].([]interface{})
 		for r := 0; r < 4; r++ {
-			ordered[r] = tssn.uids[int(ranks[r].(float64))]
+			ordUids[r] = tssn.uids[int(ranks[r].(float64))]
+			ordGids[r] = tssn.girlIds[int(ranks[r].(float64))]
 		}
-		statRank(&ordered)
+		statUserRank(&ordUids)
+		go statGirlRank(&ordGids)
 	case "riichi-auto":
 		time.Sleep(500 * time.Millisecond)
 		who := int(msg["Who"].(float64))
@@ -328,11 +332,11 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 	}
 }
 
-func genIds() [4]int {
-	avails := []int{
+func genIds() [4]gid {
+	avails := []gid{
 		710113, 710114, 710115,
-		712411, 712412,
-		712611,
+		712411, 712412, 712413,
+		712611, 712613,
 		712714, 712715,
 		712915,
 		713311, 713314,
@@ -355,7 +359,7 @@ func genIds() [4]int {
 		if i3 == i0 || i3 == i1 || i3 == i2 {
 			continue
 		}
-		return [4]int{avails[i0], avails[i1], avails[i2], avails[i3]}
+		return [4]gid{avails[i0], avails[i1], avails[i2], avails[i3]}
 	}
 }
 

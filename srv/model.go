@@ -3,11 +3,23 @@ package srv
 import (
 )
 
+// user id
 type uid uint
+
+// girl id, signed-int for compatibility to libsaki
+type gid int
 
 type user struct {
 	Id			uid
 	Username	string
+	Level		int
+	Pt			int
+	Rating		float64
+	Ranks		[4]int
+}
+
+type girl struct {
+	Id			gid
 	Level		int
 	Pt			int
 	Rating		float64

@@ -140,6 +140,42 @@ func (dao *dao) GetUsers(uids *[4]uid) [4]*user {
 	return users
 }
 
+func (dao *dao) GetGirls(gids *[4]gid) [4]*girl {
+	var girls [4]*girl
+
+	rows, err := dao.db.Query(
+		`select girl_id, level, pt, rating,
+		rank1, rank2, rank3, rank4
+		from girls where girl_id in (?,?,?,?)`,
+		gids[0], gids[1], gids[2], gids[3])
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		girl := new(girl)
+		err := rows.Scan(&girl.Id,
+			&girl.Level, &girl.Pt, &girl.Rating,
+			&girl.Ranks[0], &girl.Ranks[1],
+			&girl.Ranks[2], &girl.Ranks[3])
+		if err != nil {
+			log.Fatalln(err)
+		}
+		for w := 0; w < 4; w++ {
+			if gids[w] == girl.Id {
+				girls[w] = girl
+			}
+		}
+	}
+
+	err = rows.Err()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	return girls
+}
+
 func (dao *dao) SetUsersRank(users *[4]*user) {
 	for _, user := range users {
 		if user == nil {
@@ -170,4 +206,37 @@ func (dao *dao) SetUsersRank(users *[4]*user) {
 
 	tx.Commit()
 }
+
+func (dao *dao) SetGirlsRank(girls *[4]*girl) {
+	for _, girl := range girls {
+		if girl == nil {
+			log.Fatalln("dao.SetGirlRank: nil girl")
+		}
+	}
+
+	tx, err := dao.db.Begin()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	stmt := `update girls
+		set level=?, pt=?, rating=?, rank1=?, rank2=?, rank3=?, rank4=?
+		where girl_id=?`
+	for w := 0; w < 4; w++ {
+		g := girls[w]
+		_, err = dao.db.Exec(stmt, g.Level, g.Pt, g.Rating,
+			g.Ranks[0], g.Ranks[1], g.Ranks[2], g.Ranks[3],
+			g.Id)
+
+		if err != nil {
+			log.Println("dao.SetGirlsRank", err)
+			tx.Rollback()
+			return
+		}
+	}
+
+	tx.Commit()
+}
+
+
 
