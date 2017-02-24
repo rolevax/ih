@@ -26,6 +26,17 @@ type girl struct {
 	Ranks		[4]int
 }
 
+type bookType int
+
+func (b bookType) index() int {
+	return int(b)
+}
+
+func (b bookType) valid() bool {
+	i := int(b)
+	return 0 <= i && i < 4
+}
+
 type reqTypeOnly struct {
 	Type		string
 }
@@ -41,6 +52,14 @@ type reqAction struct {
 	Nonce		int
 	ActStr		string
 	ActArg		string
+}
+
+type reqBook struct {
+	BookType	bookType
+}
+
+type reqChoose struct {
+	GirlIndex	int
 }
 
 type respTypeOnly struct {
@@ -76,18 +95,13 @@ type bookEntry struct {
 type respLookAround struct {
 	Type		string
 	Conn		int
-	Books		map[string]bookEntry
+	Books		[4]bookEntry
 }
 
-func newRespLookAround(bookable bool, conn, book, play int) interface{} {
+func newRespLookAround(conn int) *respLookAround {
 	resp := new(respLookAround)
 	resp.Type = "look-around"
 	resp.Conn = conn
-	resp.Books = make(map[string]bookEntry)
-	resp.Books["DS71"] = bookEntry{bookable, book, play}
-	resp.Books["CS71"] = bookEntry{false,0,0}
-	resp.Books["BS71"] = bookEntry{false,0,0}
-	resp.Books["AS71"] = bookEntry{false,0,0}
 	return resp
 }
 

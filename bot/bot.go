@@ -10,10 +10,11 @@ import (
 	"crypto/sha256"
 )
 
-var startGap = 3 * time.Second
+var startGap = 1 * time.Second
 var lookAroundGap = 100 * time.Second
 
 func thinkGap(pass bool) time.Duration {
+	//return time.Duration(10) * time.Millisecond
 	if pass {
 		return time.Duration(500 + rand.Intn(500)) * time.Millisecond
 	} else {
@@ -37,7 +38,7 @@ type reqTypeOnly struct {
 
 type reqBook struct {
 	Type		string
-	BookType	string
+	BookType	int
 }
 
 type reqAction struct {
@@ -49,9 +50,10 @@ type reqAction struct {
 
 func main() {
 	bots := []string {
+		/*
 		"手持两把锟斤拷", "鱼", "大章鱼", "京狗",
 		"aa7", "ZzZzZ", "0--0--0", "X.X",
-		"HasName", "喵打", "term", "职业菜鸡"}
+		"HasName",*/ "喵打", "term", "职业菜鸡"}
 
 	perm := rand.Perm(len(bots))
 
@@ -139,6 +141,9 @@ func (bot *bot) readSwitch(msg map[string]interface{}) {
 	case "look-around":
 		bot.handleLookAround(msg)
 	case "start":
+		msg := reqTypeOnly{"choose"} // girl index parsed 0
+		bot.write(msg)
+	case "chosen":
 		msg := reqTypeOnly{"ready"}
 		bot.write(msg)
 	case "table":
@@ -160,12 +165,12 @@ func (bot *bot) readSwitch(msg map[string]interface{}) {
 }
 
 func (bot *bot) handleLookAround(msg map[string]interface{}) {
-	books := msg["Books"].(map[string]interface{})
-	ds71 := books["DS71"].(map[string]interface{})
+	books := msg["Books"].([]interface{})
+	ds71 := books[0].(map[string]interface{})
 	bookable := ds71["Bookable"].(bool)
 	if bookable {
 		if rand.Intn(3) == 0 { // 1/3 prob to book
-			req := reqBook{"book", "DS71"}
+			req := reqBook{"book", 0}
 			bot.write(req)
 		}
 	}

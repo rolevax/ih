@@ -4,13 +4,15 @@ import (
 )
 
 type tssnMgr struct {
-	rec		map[uid]*tssn
-	reg		chan *tssn
-	unreg	chan *tssn
-	hasUser	chan *msgTssnMgrHasUser
-	ctUser	chan chan int
-	ready	chan uid
-	action	chan *msgTssnMgrAction
+	rec			map[uid]*tssn
+	btStat		[4]int
+	reg			chan *tssn
+	unreg		chan *tssn
+	hasUser		chan *msgTssnMgrHasUser
+	ctEachBt	chan chan [4]int
+	choose		chan *msgTssnChoose
+	ready		chan uid
+	action		chan *msgTssnMgrAction
 }
 
 func newTssnMgr() *tssnMgr {
@@ -20,7 +22,8 @@ func newTssnMgr() *tssnMgr {
 	tm.reg = make(chan *tssn)
 	tm.unreg = make(chan *tssn)
 	tm.hasUser = make(chan *msgTssnMgrHasUser)
-	tm.ctUser = make(chan chan int)
+	tm.ctEachBt = make(chan chan [4]int)
+	tm.choose = make(chan *msgTssnChoose)
 	tm.ready = make(chan uid)
 	tm.action = make(chan *msgTssnMgrAction)
 
@@ -37,8 +40,10 @@ func (tm *tssnMgr) Loop() {
 		case mtmhu := <-tm.hasUser:
 			_, ok := tm.rec[mtmhu.uid]
 			mtmhu.chRes <- ok
-		case ch := <-tm.ctUser:
-			ch <- len(tm.rec)
+		case ch := <-tm.ctEachBt:
+			ch <- tm.btStat
+		case msg := <-tm.choose:
+			tm.handleChoose(msg)
 		case uid := <-tm.ready:
 			tm.handleReady(uid)
 		case msg := <-tm.action:
@@ -73,6 +78,11 @@ func (tm *tssnMgr) HasUser(uid uid) bool {
 	return <-msg.chRes
 }
 
+func (tm *tssnMgr) Choose(uid uid, gidx int) {
+	msg := newMsgTssnChoose(uid, gidx)
+	tm.choose <- msg
+}
+
 func (tm *tssnMgr) Ready(uid uid) {
 	tm.ready <- uid
 }
@@ -87,9 +97,9 @@ func (tm *tssnMgr) Action(uid uid, act *reqAction) {
 	tm.action <- &msg
 }
 
-func (tm *tssnMgr) CtUser() int {
-	ch := make(chan int)
-	tm.ctUser <- ch
+func (tm *tssnMgr) CtEachBt() [4]int {
+	ch := make(chan [4]int)
+	tm.ctEachBt <- ch
 	return <-ch
 }
 
@@ -97,17 +107,25 @@ func (tm *tssnMgr) handleReg(tssn *tssn) {
 	for w := 0; w < 4; w++ {
 		tm.rec[tssn.uids[w]] = tssn
 	}
+	tm.btStat[tssn.bookType.index()]++
 }
 
 func (tm *tssnMgr) handleUnreg(tssn *tssn) {
 	for w := 0; w < 4; w++ {
 		delete(tm.rec, tssn.uids[w])
 	}
+	tm.btStat[tssn.bookType.index()]--
 }
 
 func (tm *tssnMgr) handleReady(uid uid) {
 	if tssn, ok := tm.rec[uid]; ok {
 		tssn.Ready(uid)
+	}
+}
+
+func (tm *tssnMgr) handleChoose(msg *msgTssnChoose) {
+	if tssn, ok := tm.rec[msg.uid]; ok {
+		tssn.Choose(msg)
 	}
 }
 

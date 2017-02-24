@@ -32,6 +32,7 @@ func loopUssn(conn net.Conn) {
 		reject(conn, newRespAuthFail(err.Error()))
 		return
 	}
+	log.Println(ussn.user.Id, "++++", conn.RemoteAddr())
 	sing.UssnMgr.Reg(ussn)
 	defer sing.UssnMgr.Unreg(ussn)
 	defer sing.BookMgr.Unbook(ussn.user.Id)
@@ -187,11 +188,27 @@ func (ussn *ussn) handleRead(breq []byte) {
 	case t == "look-around":
 		ussn.handleLookAround()
 	case t == "book":
-		sing.BookMgr.Book(ussn.user.Id)
+		var req reqBook
+		if err := json.Unmarshal(breq, &req); err != nil {
+			ussn.handleLogout(err)
+			return
+		}
+		if !req.BookType.valid() {
+			ussn.handleLogout(errors.New("invalid bktype"))
+			return
+		}
+		sing.BookMgr.Book(ussn.user.Id, req.BookType)
 	case t == "unbook":
 		sing.BookMgr.Unbook(ussn.user.Id)
 	case t == "ready":
 		sing.TssnMgr.Ready(ussn.user.Id)
+	case t == "choose":
+		var req reqChoose
+		if err := json.Unmarshal(breq, &req); err != nil {
+			ussn.handleLogout(err)
+			return
+		}
+		sing.TssnMgr.Choose(ussn.user.Id, req.GirlIndex)
 	case t == "t-action":
 		var act reqAction
 		if err := json.Unmarshal(breq, &act); err != nil {
@@ -231,11 +248,19 @@ func (ussn *ussn) handleLookAround() {
 		msg := respTypeOnly{"resume"}
 		ussn.handleWrite(msg)
 	} else {
-		bookable := true
 		connCt := sing.UssnMgr.CtUser()
-		playCt := sing.TssnMgr.CtUser()
-		bookCt := sing.BookMgr.CtBook()
-		msg := newRespLookAround(bookable, connCt, bookCt, playCt)
+		msg := newRespLookAround(connCt)
+		pss := sing.TssnMgr.CtEachBt()
+		bss := sing.BookMgr.CtBooks()
+		user := ussn.user
+		cBookable := user.Level >= 9
+		bBookable := user.Level >= 13 && user.Rating >= 1800.0
+		dBookable := !bBookable
+		aBookable := user.Level >= 16 && user.Rating >= 2000.0
+		msg.Books[0] = bookEntry{dBookable, bss[0].wait, 4 * pss[0]}
+		msg.Books[1] = bookEntry{cBookable, bss[1].wait, 4 * pss[1]}
+		msg.Books[2] = bookEntry{bBookable, bss[2].wait, 4 * pss[2]}
+		msg.Books[2] = bookEntry{aBookable, bss[3].wait, 4 * pss[3]}
 		ussn.handleWrite(msg)
 	}
 }

@@ -4,89 +4,123 @@ import (
 	"log"
 	"time"
 	"errors"
-	"encoding/json"
 	"math/rand"
+	"encoding/json"
 	"bitbucket.org/rolevax/sakilogy-server/saki"
 )
 
-const actTimeOut = 12 * time.Second
-const readyTimeOut = 20 * time.Second
+const answerTimeOut = 15 * time.Second
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
+type tssnState int
+
+const (
+	tssnWaitChoose	tssnState = iota
+	tssnWaitReady
+	tssnWaitAction
+)
+
 type tssn struct {
-	ready		chan uid
-	action		chan *msgTssnAction
-	done		chan struct{}
-	uids		[4]uid
-	girlIds		[4]gid
-	readys		[4]bool
-	onlines		[4]bool
-	nonces		[4]int
-	actTimer	*time.Timer
-	timeOutCts	[4]int
+	bookType		bookType
+	state			tssnState
+	ready			chan uid
+	choose			chan *msgTssnChoose
+	action			chan *msgTssnAction
+	done			chan struct{}
+	uids			[4]uid
+	gids			[4]gid
+	gidcs			[8]gid
+	waits			[4]bool
+	onlines			[4]bool
+	nonces			[4]int
+	answerTimer		*time.Timer
+	table			saki.TableSession
 }
 
-func loopTssn(uids [4]uid) {
-	tssn := startTssn(uids)
-	defer close(tssn.done)
-	sing.TssnMgr.Reg(tssn)
-	defer sing.TssnMgr.Unreg(tssn)
-
-	tssn.girlIds = genIds()
-	table := saki.NewTableSession(
-		int(tssn.girlIds[0]),int(tssn.girlIds[1]),
-		int(tssn.girlIds[2]), int(tssn.girlIds[3]))
-	defer saki.DeleteTableSession(table)
-
-	tssn.notifyLoad(table)
-
-	readyTimer := time.NewTimer(readyTimeOut)
-	hardTimer := time.NewTimer(2 * time.Hour)
-	defer hardTimer.Stop()
-
-	for tssn.anyOnline() && !table.GameOver() {
-		select {
-		case uid := <-tssn.ready:
-			tssn.handleReady(uid, table)
-		case mta := <-tssn.action:
-			tssn.handleAction(mta.uid, mta.act, table)
-		case <-tssn.actTimer.C:
-			tssn.sweepAll(table)
-		case <-readyTimer.C:
-			if !tssn.allReady() {
-				for i := 0; i < 4; i++ {
-					tssn.readys[i] = true
-				}
-				tssn.start(table)
-			}
-		case <-hardTimer.C:
-			return
-		}
-	}
-}
-
-func startTssn(uids [4]uid) *tssn {
+func startTssn(bt bookType, uids [4]uid) *tssn {
 	tssn := new(tssn)
 
+	tssn.bookType = bt
+	tssn.state = tssnWaitChoose
 	tssn.ready = make(chan uid)
+	tssn.choose = make(chan *msgTssnChoose)
 	tssn.action = make(chan *msgTssnAction)
 	tssn.done = make(chan struct{})
 	tssn.uids = uids
-	tssn.actTimer = time.NewTimer(actTimeOut)
-	if !tssn.actTimer.Stop() {
+	tssn.answerTimer = time.NewTimer(answerTimeOut)
+	if !tssn.answerTimer.Stop() {
 		select {
-		case <-tssn.actTimer.C:
+		case <-tssn.answerTimer.C:
 		default:
 		}
 	}
 	for i := 0; i < 4; i++ {
 		tssn.onlines[i] = true // regard as good by default
 	}
+	tssn.genIds()
 
 	return tssn
+}
+
+func loopTssn(bt bookType, uids [4]uid) {
+	log.Println("TSSN ++++", bt, uids)
+	defer log.Println("TSSN ----", bt, uids)
+	tssn := startTssn(bt, uids)
+	defer close(tssn.done)
+	sing.TssnMgr.Reg(tssn)
+	defer sing.TssnMgr.Unreg(tssn)
+	defer func() {
+		if tssn.table != nil {
+			saki.DeleteTableSession(tssn.table)
+		}
+	}()
+
+	tssn.notifyLoad()
+
+	hardTimer := time.NewTimer(2 * time.Hour)
+	defer hardTimer.Stop()
+
+	for tssn.anyOnline() {
+		select {
+		case msg := <-tssn.choose:
+			tssn.handleChoose(msg.uid, msg.gidx)
+		case uid := <-tssn.ready:
+			tssn.handleReady(uid)
+		case mta := <-tssn.action:
+			tssn.handleAction(mta.uid, mta.act)
+		case <-tssn.answerTimer.C:
+			tssn.handleAnswerTimeout()
+		case <-hardTimer.C:
+			log.Println("TSSN hard timer")
+			return
+		}
+
+		if tssn.table != nil && tssn.table.GameOver() {
+			return
+		}
+	}
+}
+
+type msgTssnChoose struct {
+	uid		uid
+	gidx	int
+}
+
+func newMsgTssnChoose(uid uid, gidx int) *msgTssnChoose {
+	msg := new(msgTssnChoose)
+	msg.uid = uid
+	msg.gidx = gidx
+	return msg
+}
+
+func (tssn *tssn) Choose(msg *msgTssnChoose) {
+	select {
+	case tssn.choose <- msg:
+	case <-tssn.done:
+	}
 }
 
 func (tssn *tssn) Ready(uid uid) {
@@ -108,30 +142,85 @@ func (tssn *tssn) Action(uid uid, act *reqAction) {
 	}
 }
 
-func (tssn *tssn) handleReady(uid uid, table saki.TableSession) {
+func (tssn *tssn) handleChoose(uid uid, gidx int) {
 	if i, ok := tssn.findUser(uid); ok {
-		if !tssn.readys[i] { // trigger only on toggle
-			tssn.readys[i] = true;
-			if tssn.allReady() {
-				tssn.start(table)
-			}
+		if tssn.state != tssnWaitChoose {
+			log.Println("tssn.handleChoose wrong state")
+			tssn.kick(i)
+			return
+		}
+
+		tssn.waits[i] = false
+		tssn.gids[i] = tssn.gidcs[2 * i + gidx]
+		if !tssn.hasWait() {
+			tssn.notifyChosen()
 		}
 	} else {
 		log.Fatalln("loopTssn uid not found")
 	}
 }
 
-func (tssn *tssn) allReady() bool {
-	r := &tssn.readys
-	return r[0] && r[1] && r[2] && r[3]
+func (tssn *tssn) handleReady(uid uid) {
+	if i, ok := tssn.findUser(uid); ok {
+		if tssn.state != tssnWaitReady {
+			log.Println("tssn.handleReady wrong state")
+			tssn.kick(i)
+			return
+		}
+
+		tssn.waits[i] = false
+		if !tssn.hasWait() {
+			tssn.start()
+		}
+	} else {
+		log.Fatalln("loopTssn uid not found")
+	}
 }
 
-func (tssn *tssn) anyOnline() bool {
-	o := &tssn.onlines
-	return o[0] || o[1] || o[2] || o[3]
+func (tssn *tssn) handleAction(uid uid, act *reqAction) {
+	i, _ := tssn.findUser(uid)
+	if tssn.state != tssnWaitAction {
+		log.Println("tssn.handleAction wrong state")
+		tssn.kick(i)
+		return
+	}
+
+	if act.ActStr == "RESUME" {
+		tssn.onlines[i] = true
+	} else if act.Nonce != tssn.nonces[i] {
+		log.Println(uid, "nonce", act.Nonce, "want", tssn.nonces[i]);
+		return
+	}
+	tssn.waits[i] = false
+	mails := tssn.table.Action(i, act.ActStr, act.ActArg)
+	defer saki.DeleteMailVector(mails)
+	tssn.handleMails(mails)
 }
 
-func (tssn *tssn) notifyLoad(table saki.TableSession) {
+func (tssn *tssn) handleAnswerTimeout() {
+	prevWaits := tssn.waits // copy, prevent overwrites incoming
+
+	switch tssn.state {
+	case tssnWaitChoose:
+		for w := 0; w < 4; w++ {
+			if prevWaits[w] {
+				tssn.handleChoose(tssn.uids[w], 0)
+				tssn.kick(w)
+			}
+		}
+	case tssnWaitReady:
+		for w := 0; w < 4; w++ {
+			if prevWaits[w] {
+				tssn.handleReady(tssn.uids[w])
+				tssn.kick(w)
+			}
+		}
+	case tssnWaitAction:
+		tssn.sweepAll()
+	}
+}
+
+func (tssn *tssn) notifyLoad() {
 	users := sing.Dao.GetUsers(&tssn.uids)
 	for i, user := range users {
 		if user == nil {
@@ -142,15 +231,16 @@ func (tssn *tssn) notifyLoad(table saki.TableSession) {
 	msg := struct {
 		Type		string
 		Users		[4]*user
-		GirlIds		[4]gid
 		TempDealer	int
-	}{"start", users, tssn.girlIds, 0}
+		Choices		[8]gid
+	}{"start", users, 0, tssn.gidcs}
 
 	for i, uid := range tssn.uids {
 		msg.TempDealer = (4 - i) % 4
+		tssn.waits[i] = true
 		err := tssn.sendPeer(i, msg)
 		if err != nil {
-			tssn.handleReady(uid, table)
+			tssn.handleChoose(uid, 0)
 		}
 
 		// rotate perspectives
@@ -160,12 +250,44 @@ func (tssn *tssn) notifyLoad(table saki.TableSession) {
 		msg.Users[2] = msg.Users[3]
 		msg.Users[3] = u0
 
-		g0 := msg.GirlIds[0]
-		msg.GirlIds[0] = msg.GirlIds[1]
-		msg.GirlIds[1] = msg.GirlIds[2]
-		msg.GirlIds[2] = msg.GirlIds[3]
-		msg.GirlIds[3] = g0
+		cs := &msg.Choices
+		g0, g1 := cs[0], cs[1]
+		cs[0], cs[1] = cs[2], cs[3]
+		cs[2], cs[3] = cs[4], cs[5]
+		cs[4], cs[5] = cs[6], cs[7]
+		cs[6], cs[7] = g0, g1
 	}
+
+	tssn.resetAnswerTimer()
+}
+
+func (tssn *tssn) notifyChosen() {
+	tssn.state = tssnWaitReady
+
+	msg := struct {
+		Type		string
+		GirlIds		[4]gid
+	}{"chosen", tssn.gids}
+
+	for w := 0; w < 4; w++ {
+		tssn.waits[w] = true
+		tssn.sendPeer(w, msg)
+
+		gs := &msg.GirlIds;
+		gs[0], gs[1], gs[2], gs[3] = gs[1], gs[2], gs[3], gs[0]
+	}
+
+	tssn.resetAnswerTimer()
+}
+
+func (tssn *tssn) hasWait() bool {
+	r := &tssn.waits
+	return r[0] || r[1] || r[2] || r[3]
+}
+
+func (tssn *tssn) anyOnline() bool {
+	o := &tssn.onlines
+	return o[0] || o[1] || o[2] || o[3]
 }
 
 func (tssn *tssn) findUser(uid uid) (int, bool) {
@@ -177,52 +299,42 @@ func (tssn *tssn) findUser(uid uid) (int, bool) {
 	return -1, false
 }
 
-func (tssn *tssn) start(table saki.TableSession) {
-	mails := table.Start()
+func (tssn *tssn) start() {
+	tssn.state = tssnWaitAction
+	tssn.table = saki.NewTableSession(
+		int(tssn.gids[0]),int(tssn.gids[1]),
+		int(tssn.gids[2]), int(tssn.gids[3]))
+
+	mails := tssn.table.Start()
 	defer saki.DeleteMailVector(mails)
-	tssn.handleMails(mails, table)
+	tssn.handleMails(mails)
 }
 
-func (tssn *tssn) handleAction(uid uid, act *reqAction,
-							   table saki.TableSession, ) {
-	i, _ := tssn.findUser(uid)
-	if act.ActStr == "RESUME" {
-		tssn.onlines[i] = true
-	} else if act.Nonce != tssn.nonces[i] {
-		log.Println(uid, "nonce", act.Nonce, "want", tssn.nonces[i]);
-		return
-	}
-	tssn.timeOutCts[i] = 0
-	mails := table.Action(i, act.ActStr, act.ActArg)
+func (tssn *tssn) sweepOne(i int) {
+	mails := tssn.table.SweepOne(i)
 	defer saki.DeleteMailVector(mails)
-	tssn.handleMails(mails, table)
+	tssn.handleMails(mails)
 }
 
-func (tssn *tssn) sweepOne(table saki.TableSession, i int) {
-	mails := table.SweepOne(i)
-	defer saki.DeleteMailVector(mails)
-	tssn.handleMails(mails, table)
-}
-
-func (tssn *tssn) sweepAll(table saki.TableSession) {
+func (tssn *tssn) sweepAll() {
 	var targets int
-	mails := table.SweepAll(&targets)
+	mails := tssn.table.SweepAll(&targets)
 	for w := uint(0); w < 4; w++ {
 		if (targets & (1 << w)) != 0 {
-			tssn.timeOutCts[w]++
-			if tssn.timeOutCts[w] == 3 {
-				tssn.timeOutCts[w] = 0
-				tssn.onlines[w] = false
-				sing.UssnMgr.Logout(tssn.uids[w])
-			}
+			tssn.waits[w] = false
+			tssn.kick(int(w))
 		}
 	}
 	defer saki.DeleteMailVector(mails)
-	tssn.handleMails(mails, table)
+	tssn.handleMails(mails)
 }
 
-func (tssn *tssn) handleMails(mails saki.MailVector,
-							  table saki.TableSession) {
+func (tssn *tssn) kick(w int) {
+	tssn.onlines[w] = false
+	sing.UssnMgr.Logout(tssn.uids[w])
+}
+
+func (tssn *tssn) handleMails(mails saki.MailVector) {
 	size := int(mails.Size())
 	if size > 0 {
 		var nonceInced [4]bool
@@ -233,7 +345,7 @@ func (tssn *tssn) handleMails(mails saki.MailVector,
 				nonceInced[w] = true
 			}
 		}
-		tssn.resetActTimer()
+		tssn.resetAnswerTimer()
 	}
 
 	for i := 0; i < size; i++ {
@@ -244,15 +356,14 @@ func (tssn *tssn) handleMails(mails saki.MailVector,
 			log.Fatalln("unmarshal c++ str", err)
 		}
 		if toWhom == -1 {
-			tssn.handleSystemMail(msg, table)
+			tssn.handleSystemMail(msg)
 		} else {
-			tssn.sendUserMail(toWhom, msg, table)
+			tssn.sendUserMail(toWhom, msg)
 		}
 	}
 }
 
-func (tssn *tssn) sendUserMail(who int, msg map[string]interface{},
-							   table saki.TableSession) {
+func (tssn *tssn) sendUserMail(who int, msg map[string]interface{}) {
 	msg["Nonce"] = tssn.nonces[who]
 	if msg["Event"] == "resume" {
 		users := sing.Dao.GetUsers(&tssn.uids)
@@ -271,8 +382,8 @@ func (tssn *tssn) sendUserMail(who int, msg map[string]interface{},
 
 	err := tssn.sendPeer(who, msg)
 	if err != nil && msg["Event"] == "activated" {
-		if tssn.anyOnline() && !table.GameOver() {
-			tssn.sweepOne(table, who)
+		if tssn.anyOnline() && !tssn.table.GameOver() {
+			tssn.sweepOne(who)
 		}
 	}
 }
@@ -281,34 +392,30 @@ func (tssn *tssn) sendPeer(i int, msg interface{}) error {
 	if tssn.onlines[i] {
 		err := sing.UssnMgr.Peer(tssn.uids[i], msg)
 		if err != nil {
-			tssn.onlines[i] = false
-			sing.UssnMgr.Logout(tssn.uids[i])
+			tssn.kick(i)
 		}
 		return err
 	}
 	return errors.New("peer not in session")
 }
 
-func (tssn *tssn) resetActTimer() {
-	if !tssn.actTimer.Stop() {
+func (tssn *tssn) resetAnswerTimer() {
+	if !tssn.answerTimer.Stop() {
 		select {
-		case <-tssn.actTimer.C:
+		case <-tssn.answerTimer.C:
 		default: // prevent blocked by double-draining
 		}
 	}
-	tssn.actTimer.Reset(actTimeOut)
+	tssn.answerTimer.Reset(answerTimeOut)
 }
 
-func (tssn *tssn) handleSystemMail(msg map[string]interface{},
-						           table saki.TableSession) {
+func (tssn *tssn) handleSystemMail(msg map[string]interface{}) {
 	switch (msg["Type"]) {
 	case "round-start-log":
-		fmt := "[%v,%v,%v,%v]-[%v,%v,%v,%v]\n" +
+		fmt := "%v %v\n" +
 			   "\tr=%v e=%v d=%v al=%v depo=%v seed=%v"
 		log.Printf(fmt,
-				   tssn.uids[0], tssn.uids[1], tssn.uids[2], tssn.uids[3],
-				   tssn.girlIds[0], tssn.girlIds[1],
-				   tssn.girlIds[2], tssn.girlIds[3],
+				   tssn.uids, tssn.gids,
 				   msg["round"], msg["extra"], msg["dealer"],
 				   msg["allLast"], msg["deposit"],
 				   uint(msg["seed"].(float64)))
@@ -318,7 +425,7 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 		ranks := msg["Rank"].([]interface{})
 		for r := 0; r < 4; r++ {
 			ordUids[r] = tssn.uids[int(ranks[r].(float64))]
-			ordGids[r] = tssn.girlIds[int(ranks[r].(float64))]
+			ordGids[r] = tssn.gids[int(ranks[r].(float64))]
 		}
 		statUserRank(&ordUids)
 		go statGirlRank(&ordGids)
@@ -326,13 +433,13 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 		time.Sleep(500 * time.Millisecond)
 		who := int(msg["Who"].(float64))
 		act := reqAction{tssn.nonces[who], "SPIN_OUT", "-1"}
-		tssn.handleAction(tssn.uids[who], &act, table)
+		tssn.handleAction(tssn.uids[who], &act)
 	default:
 		log.Fatalln("unknown system mail", msg)
 	}
 }
 
-func genIds() [4]gid {
+func (tssn *tssn) genIds() {
 	avails := []gid{
 		710113, 710114, 710115,
 		712411, 712412, 712413,
@@ -345,21 +452,20 @@ func genIds() [4]gid {
 		713301,
 		715212,
 		990001, 990002}
-	for {
-		i0 := rand.Intn(len(avails))
-		i1 := rand.Intn(len(avails))
-		if i1 == i0 {
-			continue
-		}
-		i2 := rand.Intn(len(avails))
-		if i2 == i0 || i2 == i1 {
-			continue
-		}
-		i3 := rand.Intn(len(avails))
-		if i3 == i0 || i3 == i1 || i3 == i2 {
-			continue
-		}
-		return [4]gid{avails[i0], avails[i1], avails[i2], avails[i3]}
+
+	switch tssn.bookType.index() {
+	case 0:
+		avails = avails[len(avails) - 14:]
+	case 1:
+		avails = avails[0:10]
+	}
+
+	perm := rand.Perm(len(avails))
+	for i := 0; i < 8; i++ { // 2-choose-1, thus 8 in total
+		tssn.gidcs[i] = avails[perm[i]]
+	}
+	for i := 0; i < 4; i++ {
+		tssn.gids[i] = tssn.gidcs[2 * i] // default values
 	}
 }
 
