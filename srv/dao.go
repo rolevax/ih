@@ -140,6 +140,32 @@ func (dao *dao) GetUsers(uids *[4]uid) [4]*user {
 	return users
 }
 
+func (dao *dao) GetRankedGids() []gid {
+	var gids []gid
+
+	rows, err := dao.db.Query(
+		`select girl_id from girls order by rating desc`)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var gid gid
+		err := rows.Scan(&gid)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		gids = append(gids, gid)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	return gids
+}
+
 func (dao *dao) GetGirls(gids *[4]gid) [4]*girl {
 	var girls [4]*girl
 

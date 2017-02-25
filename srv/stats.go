@@ -4,7 +4,7 @@ import (
 	"log"
 )
 
-func statUserRank(ordUids *[4]uid) {
+func statUserRank(ordUids *[4]uid, bookType bookType) {
 	users := sing.Dao.GetUsers(ordUids)
 	sumRating := 0.0
 	for w := 0; w < 4; w++ {
@@ -28,8 +28,8 @@ func statUserRank(ordUids *[4]uid) {
 		users[w].Rating += delta
 	}
 
-	updateTopPt(&users[0].Pt, &users[0].Level)
-	update2ndPt(&users[1].Pt, &users[0].Level)
+	updateTopPt(&users[0].Pt, &users[0].Level, bookType)
+	update2ndPt(&users[1].Pt, &users[0].Level, bookType)
 	updateLastPt(&users[3].Pt, &users[3].Level)
 
 	for r := 0; r < 4; r++ {
@@ -42,7 +42,7 @@ func statUserRank(ordUids *[4]uid) {
 	}
 }
 
-func statGirlRank(ordGids *[4]gid) {
+func statGirlRank(ordGids *[4]gid, bookType bookType) {
 	girls := sing.Dao.GetGirls(ordGids)
 	sumRating := 0.0
 	for w := 0; w < 4; w++ {
@@ -66,8 +66,8 @@ func statGirlRank(ordGids *[4]gid) {
 		girls[w].Rating += delta
 	}
 
-	updateTopPt(&girls[0].Pt, &girls[0].Level)
-	update2ndPt(&girls[1].Pt, &girls[1].Level)
+	updateTopPt(&girls[0].Pt, &girls[0].Level, bookType)
+	update2ndPt(&girls[1].Pt, &girls[1].Level, bookType)
 	updateLastPt(&girls[3].Pt, &girls[1].Level)
 
 	for r := 0; r < 4; r++ {
@@ -81,13 +81,35 @@ func average(d *[4]float64) float64 {
 	return (d[0] + d[1] + d[2] + d[3]) / 4.0
 }
 
-func updateTopPt(pt *int, level *int) {
-	*pt += 45
+func updateTopPt(pt *int, level *int, bookType bookType) {
+	switch bookType {
+	case 0:
+		*pt += 45
+	case 1:
+		*pt += 60
+	case 2:
+		*pt += 75
+	case 3:
+		*pt += 90
+	default:
+		log.Fatalln("updateTopPt: unknown bookType")
+	}
 	updateLevel(pt, level)
 }
 
-func update2ndPt(pt *int, level *int) {
-	*pt += 0
+func update2ndPt(pt *int, level *int, bookType bookType) {
+	switch bookType {
+	case 0:
+		*pt += 0
+	case 1:
+		*pt += 15
+	case 2:
+		*pt += 30
+	case 3:
+		*pt += 45
+	default:
+		log.Fatalln("update2ndPt: unknown bookType")
+	}
 	updateLevel(pt, level)
 }
 

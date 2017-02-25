@@ -427,8 +427,8 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{}) {
 			ordUids[r] = tssn.uids[int(ranks[r].(float64))]
 			ordGids[r] = tssn.gids[int(ranks[r].(float64))]
 		}
-		statUserRank(&ordUids)
-		go statGirlRank(&ordGids)
+		statUserRank(&ordUids, tssn.bookType)
+		go statGirlRank(&ordGids, tssn.bookType)
 	case "riichi-auto":
 		time.Sleep(500 * time.Millisecond)
 		who := int(msg["Who"].(float64))
@@ -440,23 +440,14 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{}) {
 }
 
 func (tssn *tssn) genIds() {
-	avails := []gid{
-		710113, 710114, 710115,
-		712411, 712412, 712413,
-		712611, 712613,
-		712714, 712715,
-		712915,
-		713311, 713314,
-		713811, 713815,
-		714915,
-		713301,
-		715212,
-		990001, 990002}
+	avails := sing.Dao.GetRankedGids()
 
 	switch tssn.bookType.index() {
 	case 0:
 		avails = avails[len(avails) - 14:]
 	case 1:
+		avails = avails[0:10]
+	default: // nobody may enter here by now, though
 		avails = avails[0:10]
 	}
 
