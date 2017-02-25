@@ -145,7 +145,7 @@ func (tssn *tssn) Action(uid uid, act *reqAction) {
 func (tssn *tssn) handleChoose(uid uid, gidx int) {
 	if i, ok := tssn.findUser(uid); ok {
 		if tssn.state != tssnWaitChoose {
-			log.Println("tssn.handleChoose wrong state")
+			log.Println("tssn.handleChoose wrong state", uid)
 			tssn.kick(i)
 			return
 		}
@@ -163,7 +163,7 @@ func (tssn *tssn) handleChoose(uid uid, gidx int) {
 func (tssn *tssn) handleReady(uid uid) {
 	if i, ok := tssn.findUser(uid); ok {
 		if tssn.state != tssnWaitReady {
-			log.Println("tssn.handleReady wrong state")
+			log.Println("tssn.handleReady wrong state", uid)
 			tssn.kick(i)
 			return
 		}
@@ -180,7 +180,7 @@ func (tssn *tssn) handleReady(uid uid) {
 func (tssn *tssn) handleAction(uid uid, act *reqAction) {
 	i, _ := tssn.findUser(uid)
 	if tssn.state != tssnWaitAction {
-		log.Println("tssn.handleAction wrong state")
+		log.Println("tssn.handleAction wrong state", uid)
 		tssn.kick(i)
 		return
 	}
@@ -300,6 +300,7 @@ func (tssn *tssn) findUser(uid uid) (int, bool) {
 }
 
 func (tssn *tssn) start() {
+	log.Println("TSSN ****", tssn.uids[0], tssn.gids)
 	tssn.state = tssnWaitAction
 	tssn.table = saki.NewTableSession(
 		int(tssn.gids[0]),int(tssn.gids[1]),
