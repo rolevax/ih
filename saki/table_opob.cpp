@@ -523,6 +523,9 @@ std::vector<int> TableOpOb::sweepAll()
 
 void TableOpOb::resume(int c)
 {
+	if (mTable->beforeEast1())
+		return; // no serious info needs to be provided
+
 	json args;
 	Who comer(c);
 
@@ -568,7 +571,7 @@ void TableOpOb::resume(int c)
 
 	args["round"] = mTable->getRound();
 	args["extraRound"] = mTable->getExtraRound();
-	args["dealer"] = mTable->getDealer().index();
+	args["dealer"] = mTable->getDealer().turnFrom(comer);
 	args["allLast"] = mTable->isAllLast();
 	args["deposit"] = mTable->getDeposit();
 
