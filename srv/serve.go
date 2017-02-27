@@ -5,10 +5,10 @@ import (
 	"net"
 )
 
-const Version = "0.7.0"
+const Version = "0.7.1"
 
 func versionCheck(v string) bool {
-	return v == Version
+	return v == Version || v == "0.7.0"
 }
 
 var sing struct {
