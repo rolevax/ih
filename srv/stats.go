@@ -29,7 +29,7 @@ func statUserRank(ordUids *[4]uid, bookType bookType) {
 	}
 
 	updateTopPt(&users[0].Pt, &users[0].Level, bookType)
-	update2ndPt(&users[1].Pt, &users[0].Level, bookType)
+	update2ndPt(&users[1].Pt, &users[1].Level, bookType)
 	updateLastPt(&users[3].Pt, &users[3].Level)
 
 	for r := 0; r < 4; r++ {
@@ -68,7 +68,7 @@ func statGirlRank(ordGids *[4]gid, bookType bookType) {
 
 	updateTopPt(&girls[0].Pt, &girls[0].Level, bookType)
 	update2ndPt(&girls[1].Pt, &girls[1].Level, bookType)
-	updateLastPt(&girls[3].Pt, &girls[1].Level)
+	updateLastPt(&girls[3].Pt, &girls[3].Level)
 
 	for r := 0; r < 4; r++ {
 		girls[r].Ranks[r]++
