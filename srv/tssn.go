@@ -431,7 +431,7 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{}) {
 		statUserRank(&ordUids, tssn.bookType)
 		go statGirlRank(&ordGids, tssn.bookType)
 	case "riichi-auto":
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(1000 * time.Millisecond)
 		who := int(msg["Who"].(float64))
 		act := reqAction{tssn.nonces[who], "SPIN_OUT", "-1"}
 		tssn.handleAction(tssn.uids[who], &act)
