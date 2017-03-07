@@ -7,12 +7,9 @@ import (
 
 const Version = "0.7.2"
 
-func versionCheck(v string) bool {
-	return v == Version || v == "0.7.1"
-}
-
 var sing struct {
 	Dao			*dao
+	Rao			*rao
 	UssnMgr		*ussnMgr
 	BookMgr		*bookMgr
 	TssnMgr		*tssnMgr
@@ -20,6 +17,7 @@ var sing struct {
 
 func Serve(port string) {
 	sing.Dao = newDao()
+	sing.Rao = newRao()
 	sing.UssnMgr = newUssnMgr()
 	sing.BookMgr = newBookMgr()
 	sing.TssnMgr = newTssnMgr()
