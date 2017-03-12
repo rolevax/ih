@@ -5,7 +5,7 @@ import (
 	"gopkg.in/redis.v5"
 )
 
-// redis access object
+// rao: redis access object
 type rao struct {
 	client		*redis.Client
 }

@@ -1,10 +1,5 @@
 # README
 
-This repository contains submodules. 
-Please don't forget to use `--recursive` when cloning. 
-
-```
-git clone --recursive https://bitbucket.org/rolevax/sakilogy-server.git
 ```
 ## Build
 
@@ -18,8 +13,9 @@ Requirement:
 Steps:
 
 ```
-cd $GOPATH/src/bitbucket.org/rolevax/sakilogy-server
-cd saki; make; cd ..
+git clone --recursive https://github.com/mjpancake/mjpancake-server.git
+cd $GOPATH/src/github.com/mjpancake/mjpancake-server
+cd saki; make clean; make; cd ..
 go build
 ```
 
@@ -35,7 +31,7 @@ Requirement:
 Then run the server:
 
 ```
-./sakilogy-server &
+./mjpancake-server &
 ```
 
 The log will output to stdout and stderr. 

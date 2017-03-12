@@ -6,7 +6,7 @@ import (
 	"errors"
 	"math/rand"
 	"encoding/json"
-	"bitbucket.org/rolevax/sakilogy-server/saki"
+	"github.com/mjpancake/mjpancake-server/saki"
 )
 
 const answerTimeOut = 15 * time.Second

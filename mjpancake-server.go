@@ -2,7 +2,7 @@ package main
 
 import (
 	"os"
-	"bitbucket.org/rolevax/sakilogy-server/srv"
+	"github.com/mjpancake/mjpancake-server/srv"
 )
 
 func main() {

@@ -30,7 +30,7 @@ func Serve(port string) {
 	if err != nil {
 		log.Fatalln(err)
 	} else {
-		log.Println("sakilogy-server", Version, "listen", port)
+		log.Println("mjpancake-server", Version, "listen", port)
 	}
 
 	for {

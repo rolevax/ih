@@ -1,12 +1,7 @@
-use tcp
+use line-break-separated json over tcp
 
-everything is json
-
-conn always closed by client in normal cases
-conn always closed by server in exceptional cases
-
-server can always return an { Error: string },
-only for exceptional internal errors, not for business logic
+a conn is always closed by client in normal cases
+a conn is always closed by server in exceptional cases
 
 client
 	server
@@ -14,13 +9,13 @@ client
 	b broadcast, same msg for all
 	r broadcast, rotate perspective
 
-{ Type: "login", Version: "0.7.0", Username: "...", Password: "..." }
+{ Type: "login", Version: "0.7.3", Username: "...", Password: "..." }
 { Type: "sign-up", Version: "...", Username: "...", Password: "..." }
 	. { Type: "auth", Ok: false, Reason: "..." } close
 	. { Type: "auth", Ok: true, User: {...} }
 
 { Type: "look-around" }
-	. { Type: "look-around", Book: bool, Conn: int, ... }
+	. { Type: "look-around", ... }
 
 { Type: "book" }
 	r { Type: "start", Users: [...], GirlIds: [...], TempDealer: ? }
@@ -32,7 +27,7 @@ client
 
 server
 	client
-{ Type: update-user, User: {...} }
+{ Type: "update-user", User: {...} }
 
 
 

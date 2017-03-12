@@ -14,6 +14,7 @@ type dao struct {
 func newDao() *dao {
 	dao := new(dao)
 
+	// just enjoying hard coding password
 	db, err := sql.Open("mysql",
 		"sakilogy:@k052a9@tcp(127.0.0.1:3306)/sakilogy")
 	if err != nil {
