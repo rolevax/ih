@@ -1,6 +1,8 @@
-# README
+# Pancake Mahjong Server
 
-```
+See the [client repository](https://github.com/mjpancake/mjpancake-client)
+for an introduction to Pancake Mahjong.
+
 ## Build
 
 Requirement:
