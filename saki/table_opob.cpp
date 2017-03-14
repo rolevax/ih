@@ -568,6 +568,7 @@ void TableOpOb::resume(int c)
 	};
 
 	args["wallRemain"] = mTable->getMount().wallRemain();
+	args["deadRemain"] = mTable->getMount().deadRemain();
 
 	args["round"] = mTable->getRound();
 	args["extraRound"] = mTable->getExtraRound();
