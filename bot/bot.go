@@ -3,15 +3,18 @@ package main
 import (
 	"net"
 	"log"
+	"fmt"
 	"time"
 	"math/rand"
 	"bufio"
 	"encoding/json"
 	"crypto/sha256"
+	"github.com/howeyc/gopass"
 )
 
 var startGap = 1 * time.Second
-var lookAroundGap = 100 * time.Second
+var lookAroundGap = 5 * time.Second
+var bookDenom = 50
 
 func thinkGap(pass bool) time.Duration {
 	//return time.Duration(10) * time.Millisecond
@@ -49,16 +52,22 @@ type reqAction struct {
 }
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
+	fmt.Print("bot password: ")
+	password, err := gopass.GetPasswd()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	bots := []string {
-		/*
 		"手持两把锟斤拷", "鱼", "大章鱼", "京狗",
 		"aa7", "ZzZzZ", "0--0--0", "X.X",
-		"HasName",*/ "喵打", "term", "职业菜鸡"}
+		"HasName", "喵打", "term", "职业菜鸡"}
 
 	perm := rand.Perm(len(bots))
 
 	for _, p := range perm {
-		go loopBot(bots[p], "iamarobot")
+		go loopBot(bots[p], string(password))
 		time.Sleep(startGap)
 	}
 
@@ -97,7 +106,7 @@ func login(username, password string) net.Conn {
 	}
 
 	shaPw := sha256.Sum256([]byte(password))
-	reqLogin := reqLogin{"login", username, shaPw[:], "0.7.0"}
+	reqLogin := reqLogin{"login", username, shaPw[:], "0.7.3"}
 	jsonb, _ := json.Marshal(reqLogin)
 	conn.Write(append(jsonb, '\n'))
 
@@ -167,9 +176,16 @@ func (bot *bot) readSwitch(msg map[string]interface{}) {
 func (bot *bot) handleLookAround(msg map[string]interface{}) {
 	books := msg["Books"].([]interface{})
 	ds71 := books[0].(map[string]interface{})
-	bookable := ds71["Bookable"].(bool)
+	bot.tryBook(ds71)
+	cs71 := books[1].(map[string]interface{})
+	bot.tryBook(cs71)
+}
+
+func (bot *bot) tryBook(xs71 map[string]interface{}) {
+	bookable := xs71["Bookable"].(bool)
+
 	if bookable {
-		if rand.Intn(3) == 0 { // 1/3 prob to book
+		if rand.Intn(bookDenom) == 0 {
 			req := reqBook{"book", 0}
 			bot.write(req)
 		}
