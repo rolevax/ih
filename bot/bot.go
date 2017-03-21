@@ -7,14 +7,24 @@ import (
 	"time"
 	"math/rand"
 	"bufio"
+	"sync"
 	"encoding/json"
 	"crypto/sha256"
 	"github.com/howeyc/gopass"
 )
 
-var startGap = 1 * time.Second
+var startGap = 100 * time.Millisecond
 var lookAroundGap = 5 * time.Second
-var bookDenom = 50
+var stayLimit = 5
+
+var chLookAroundTicket = make(chan struct{})
+
+type observe struct {
+	wait	int
+	stay	int
+	mutex	sync.Mutex
+}
+var prevs = [2]observe{}
 
 func thinkGap(pass bool) time.Duration {
 	//return time.Duration(10) * time.Millisecond
@@ -71,19 +81,23 @@ func main() {
 		time.Sleep(startGap)
 	}
 
-	forever := make(chan struct{})
-	<-forever
+	for {
+		chLookAroundTicket <- struct{}{}
+		time.Sleep(lookAroundGap)
+	}
 }
 
 type bot struct {
 	conn		net.Conn
 	chWrite		chan interface{}
+	username	string
 }
 
 func newBot(username, password string) *bot {
 	bot := new(bot)
 	bot.conn = login(username, password)
 	bot.chWrite = make(chan interface{})
+	bot.username = username
 	return bot
 }
 
@@ -110,11 +124,11 @@ func login(username, password string) net.Conn {
 	jsonb, _ := json.Marshal(reqLogin)
 	conn.Write(append(jsonb, '\n'))
 
-	reply, err := bufio.NewReader(conn).ReadString('\n')
+	_, err = bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
 		log.Fatalln("srv ----", err.Error())
 	}
-	log.Print("srv ++++ " + string(reply))
+	log.Println("srv ++++ ", username)
 
 	return conn
 }
@@ -176,27 +190,39 @@ func (bot *bot) readSwitch(msg map[string]interface{}) {
 func (bot *bot) handleLookAround(msg map[string]interface{}) {
 	books := msg["Books"].([]interface{})
 	ds71 := books[0].(map[string]interface{})
-	bot.tryBook(ds71)
+	bot.tryBook(0, ds71, &prevs[0])
 	cs71 := books[1].(map[string]interface{})
-	bot.tryBook(cs71)
+	bot.tryBook(1, cs71, &prevs[1])
 }
 
-func (bot *bot) tryBook(xs71 map[string]interface{}) {
+func (bot *bot) tryBook(x int, xs71 map[string]interface{}, ob *observe) {
 	bookable := xs71["Bookable"].(bool)
 
 	if bookable {
-		if rand.Intn(bookDenom) == 0 {
-			req := reqBook{"book", 0}
+		ob.mutex.Lock()
+		defer ob.mutex.Unlock()
+		if ob.stay == stayLimit {
+			log.Println(bot.username, "book", x)
+			ob.stay = 0
+			req := reqBook{"book", x}
 			bot.write(req)
+		} else {
+			wait := int(xs71["Book"].(float64))
+			if wait == ob.wait {
+				ob.stay++
+			} else {
+				ob.wait = wait
+				ob.stay = 0
+			}
 		}
 	}
 }
 
 func (bot *bot) lookAroundLoop() {
 	for {
+		<-chLookAroundTicket
 		req := reqTypeOnly{"look-around"}
 		bot.write(req)
-		time.Sleep(lookAroundGap)
 	}
 }
 
