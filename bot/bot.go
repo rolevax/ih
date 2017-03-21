@@ -21,6 +21,7 @@ var chLookAroundTicket = make(chan struct{})
 
 type observe struct {
 	wait	int
+	waitBot	int
 	stay	int
 	mutex	sync.Mutex
 }
@@ -201,16 +202,21 @@ func (bot *bot) tryBook(x int, xs71 map[string]interface{}, ob *observe) {
 	if bookable {
 		ob.mutex.Lock()
 		defer ob.mutex.Unlock()
-		if ob.stay == stayLimit {
-			log.Println(bot.username, "book", x)
-			ob.stay = 0
-			req := reqBook{"book", x}
-			bot.write(req)
+		if ob.stay >= stayLimit {
+			if ob.waitBot < 2 { // max 2 bots in one table
+				ob.waitBot++
+				ob.stay = 0
+				req := reqBook{"book", x}
+				bot.write(req)
+			}
 		} else {
 			wait := int(xs71["Book"].(float64))
 			if wait == ob.wait {
 				ob.stay++
 			} else {
+				if wait == 0 { // not a strict cond, but fine
+					ob.waitBot = 0
+				}
 				ob.wait = wait
 				ob.stay = 0
 			}
