@@ -16,6 +16,7 @@ import (
 var startGap = 100 * time.Millisecond
 var lookAroundGap = 5 * time.Second
 var stayLimit = 5
+var maxBotPerTable = 2
 
 var chLookAroundTicket = make(chan struct{})
 
@@ -203,7 +204,7 @@ func (bot *bot) tryBook(x int, xs71 map[string]interface{}, ob *observe) {
 		ob.mutex.Lock()
 		defer ob.mutex.Unlock()
 		if ob.stay >= stayLimit {
-			if ob.waitBot < 2 { // max 2 bots in one table
+			if ob.waitBot < maxBotPerTable {
 				ob.waitBot++
 				ob.stay = 0
 				req := reqBook{"book", x}
