@@ -187,6 +187,8 @@ func (ussn *ussn) handleRead(breq []byte) {
 	switch {
 	case t == "look-around":
 		ussn.handleLookAround()
+	case t == "heartbeat":
+		// do nothing
 	case t == "book":
 		var req reqBook
 		if err := json.Unmarshal(breq, &req); err != nil {
