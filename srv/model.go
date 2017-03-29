@@ -9,21 +9,22 @@ type uid uint
 // girl id, signed-int for compatibility to libsaki
 type gid int
 
-type user struct {
-	Id			uid
-	Username	string
+// level, pt, and rating
+type lpr struct {
 	Level		int
 	Pt			int
 	Rating		float64
-	Ranks		[4]int
+}
+
+type user struct {
+	Id			uid
+	Username	string
+	lpr
 }
 
 type girl struct {
 	Id			gid
-	Level		int
-	Pt			int
-	Rating		float64
-	Ranks		[4]int
+	lpr
 }
 
 type bookType int

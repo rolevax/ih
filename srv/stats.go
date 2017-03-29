@@ -4,81 +4,35 @@ import (
 	"log"
 )
 
-func statUserRank(ordUids *[4]uid, bookType bookType) {
-	users := sing.Dao.GetUsers(ordUids)
-	sumRating := 0.0
-	for w := 0; w < 4; w++ {
-		if users[w] == nil {
-			log.Fatalln("uid", ordUids[w], "not in DB")
-		}
-		sumRating += users[w].Rating
-	}
-	avgRating := sumRating / 4.0
-	bases := [4]float64{30.0, 10.0, -10.0, -30.0}
-
-	for w := 0; w < 4; w++ {
-		playCoeff := 0.2
-		ranks := &users[w].Ranks
-		play := ranks[0] + ranks[1] + ranks[2] + ranks[3]
-		if play < 400 {
-			playCoeff = (1 - float64(play) * 0.002)
-		}
-		diffCoeff := (avgRating - users[w].Rating) / 40.0
-		delta := playCoeff * (bases[w] + diffCoeff)
-		users[w].Rating += delta
-	}
-
-	updateTopPt(&users[0].Pt, &users[0].Level, bookType)
-	update2ndPt(&users[1].Pt, &users[1].Level, bookType)
-	updateLastPt(&users[3].Pt, &users[3].Level)
-
-	for r := 0; r < 4; r++ {
-		users[r].Ranks[r]++
-	}
-
-	sing.Dao.SetUsersRank(&users)
-	for w := 0; w < 4; w++ {
-		sing.UssnMgr.UpdateInfo(users[w])
-	}
-}
-
-func statGirlRank(ordGids *[4]gid, bookType bookType) {
-	girls := sing.Dao.GetGirls(ordGids)
-	sumRating := 0.0
-	for w := 0; w < 4; w++ {
-		if girls[w] == nil {
-			log.Fatalln("gid", ordGids[w], "not in DB")
-		}
-		sumRating += girls[w].Rating
-	}
-	avgRating := sumRating / 4.0
-	bases := [4]float64{30.0, 10.0, -10.0, -30.0}
-
-	for w := 0; w < 4; w++ {
-		playCoeff := 0.2
-		ranks := &girls[w].Ranks
-		play := ranks[0] + ranks[1] + ranks[2] + ranks[3]
-		if play < 400 {
-			playCoeff = (1 - float64(play) * 0.002)
-		}
-		diffCoeff := (avgRating - girls[w].Rating) / 40.0
-		delta := playCoeff * (bases[w] + diffCoeff)
-		girls[w].Rating += delta
-	}
-
-	updateTopPt(&girls[0].Pt, &girls[0].Level, bookType)
-	update2ndPt(&girls[1].Pt, &girls[1].Level, bookType)
-	updateLastPt(&girls[3].Pt, &girls[3].Level)
-
-	for r := 0; r < 4; r++ {
-		girls[r].Ranks[r]++
-	}
-
-	sing.Dao.SetGirlsRank(&girls)
-}
-
 func average(d *[4]float64) float64 {
 	return (d[0] + d[1] + d[2] + d[3]) / 4.0
+}
+
+func updateLpr(lprs *[4]*lpr, plays [4]int, bt bookType) {
+	sumRating := 0.0
+	for w := 0; w < 4; w++ {
+		if lprs[w] == nil {
+			log.Fatalln("updateLpr nil ptr")
+		}
+		sumRating += lprs[w].Rating
+	}
+	avgRating := sumRating / 4.0
+	bases := [4]float64{30.0, 10.0, -10.0, -30.0}
+
+	for w := 0; w < 4; w++ {
+		playCoeff := 0.2
+		play := plays[w]
+		if play < 400 {
+			playCoeff = (1 - float64(play) * 0.002)
+		}
+		diffCoeff := (avgRating - lprs[w].Rating) / 40.0
+		delta := playCoeff * (bases[w] + diffCoeff)
+		lprs[w].Rating += delta
+	}
+
+	updateTopPt(&lprs[0].Pt, &lprs[0].Level, bt)
+	update2ndPt(&lprs[1].Pt, &lprs[1].Level, bt)
+	updateLastPt(&lprs[3].Pt, &lprs[3].Level)
 }
 
 func updateTopPt(pt *int, level *int, bookType bookType) {

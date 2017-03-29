@@ -428,8 +428,7 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{}) {
 			ordUids[r] = tssn.uids[int(ranks[r].(float64))]
 			ordGids[r] = tssn.gids[int(ranks[r].(float64))]
 		}
-		statUserRank(&ordUids, tssn.bookType)
-		go statGirlRank(&ordGids, tssn.bookType)
+		sing.Dao.UpdateUserGirl(tssn.bookType, ordUids, ordGids)
 	case "riichi-auto":
 		time.Sleep(1000 * time.Millisecond)
 		who := int(msg["Who"].(float64))
