@@ -106,15 +106,22 @@ func newRespLookAround(conn int) *respLookAround {
 	return resp
 }
 
+type statRow struct {
+	GirlId		gid
+	Ranks		[4]int
+}
+
 type respUpdateUser struct {
 	Type		string
 	User		*user
+	Stats		[]statRow
 }
 
 func newRespUpdateUser(user *user) *respUpdateUser {
 	resp := new(respUpdateUser)
 	resp.Type = "update-user"
 	resp.User = user
+	resp.Stats = sing.Dao.GetStats(user.Id)
 	return resp
 }
 

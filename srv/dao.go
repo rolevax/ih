@@ -160,6 +160,35 @@ func (dao *dao) GetRankedGids() []gid {
 	return gids
 }
 
+func (dao *dao) GetStats(uid uid) []statRow {
+	var stats []statRow
+
+	// excluding doge
+	rows, err := dao.db.Query(
+		`select girl_id,rank1,rank2,rank3,rank4
+		from user_girl where user_id=?`, uid)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var r statRow
+		err := rows.Scan(&r.GirlId,
+			&r.Ranks[0], &r.Ranks[1], &r.Ranks[2], &r.Ranks[3])
+		if err != nil {
+			log.Fatalln(err)
+		}
+		stats = append(stats, r)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	return stats
+}
+
 func (dao *dao) UpdateUserGirl(bt bookType, uids [4]uid, gids [4]gid) {
 	tx, err := dao.db.Begin()
 	if err != nil {

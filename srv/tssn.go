@@ -429,6 +429,9 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{}) {
 			ordGids[r] = tssn.gids[int(ranks[r].(float64))]
 		}
 		sing.Dao.UpdateUserGirl(tssn.bookType, ordUids, ordGids)
+		for w := 0; w < 4; w++ {
+			sing.UssnMgr.UpdateInfo(tssn.uids[w])
+		}
 	case "riichi-auto":
 		time.Sleep(1000 * time.Millisecond)
 		who := int(msg["Who"].(float64))

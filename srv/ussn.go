@@ -19,7 +19,7 @@ type ussn struct {
 	conn		net.Conn
 	read		chan []byte
 	write		chan *msgUssnWrite
-	update		chan *user
+	update		chan struct{}
 	done		chan struct{}
 	logout		chan error
 }
@@ -49,8 +49,8 @@ func loopUssn(conn net.Conn) {
 			ussn.handleRead(breq)
 		case muw := <-ussn.write:
 			muw.chErr <-ussn.handleWrite(muw.msg)
-		case user:= <-ussn.update:
-			ussn.handleUpdateInfo(user)
+		case <-ussn.update:
+			ussn.handleUpdateInfo()
 		case err := <-ussn.logout:
 			ussn.handleLogout(err)
 		case <-ussn.done:
@@ -67,10 +67,11 @@ func startUssn(conn net.Conn) (*ussn, error) {
 
 	ussn.conn = conn
 	ussn.handleWrite(newRespAuthOk(&ussn.user))
+	ussn.handleUpdateInfo()
 
 	ussn.read = make(chan []byte)
 	ussn.write = make(chan *msgUssnWrite)
-	ussn.update = make(chan *user)
+	ussn.update = make(chan struct{})
 	ussn.done = make(chan struct{})
 	ussn.logout = make(chan error)
 
@@ -141,9 +142,9 @@ func (ussn *ussn) Write(msg interface{}) error {
 	}
 }
 
-func (ussn *ussn) UpdateInfo(user *user) {
+func (ussn *ussn) UpdateInfo() {
 	select {
-	case ussn.update <- user:
+	case ussn.update <- struct{}{}:
 	case <-ussn.done:
 	}
 }
@@ -267,8 +268,8 @@ func (ussn *ussn) handleLookAround() {
 	}
 }
 
-func (ussn *ussn) handleUpdateInfo(user *user) {
-	ussn.user = *user
-	ussn.handleWrite(newRespUpdateUser(user))
+func (ussn *ussn) handleUpdateInfo() {
+	ussn.user = *sing.Dao.GetUser(ussn.user.Id)
+	ussn.handleWrite(newRespUpdateUser(&ussn.user))
 }
 
