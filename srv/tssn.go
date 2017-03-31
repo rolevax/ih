@@ -357,7 +357,7 @@ func (tssn *tssn) handleMails(mails saki.MailVector) {
 			log.Fatalln("unmarshal c++ str", err)
 		}
 		if toWhom == -1 {
-			tssn.handleSystemMail(msg)
+			tssn.handleSystemMail(msg, str)
 		} else {
 			tssn.sendUserMail(toWhom, msg)
 		}
@@ -410,7 +410,12 @@ func (tssn *tssn) resetAnswerTimer() {
 	tssn.answerTimer.Reset(answerTimeOut)
 }
 
-func (tssn *tssn) handleSystemMail(msg map[string]interface{}) {
+type systemEndTableStat struct {
+	Ranks	[4]int
+}
+
+func (tssn *tssn) handleSystemMail(msg map[string]interface{},
+	msgStr string) {
 	switch (msg["Type"]) {
 	case "round-start-log":
 		fmt := "%v %v\n" +
@@ -421,14 +426,12 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{}) {
 				   msg["allLast"], msg["deposit"],
 				   uint(msg["seed"].(float64)))
 	case "table-end-stat":
-		var ordUids [4]uid
-		var ordGids [4]gid
-		ranks := msg["Rank"].([]interface{})
-		for r := 0; r < 4; r++ {
-			ordUids[r] = tssn.uids[int(ranks[r].(float64))]
-			ordGids[r] = tssn.gids[int(ranks[r].(float64))]
+		var stat systemEndTableStat
+		err := json.Unmarshal([]byte(msgStr), &stat)
+		if err != nil {
+			log.Fatalln("table-end-stat unmarshal", err)
 		}
-		sing.Dao.UpdateUserGirl(tssn.bookType, ordUids, ordGids)
+		sing.Dao.UpdateUserGirl(tssn.bookType, tssn.uids, tssn.gids, &stat)
 		for w := 0; w < 4; w++ {
 			sing.UssnMgr.UpdateInfo(tssn.uids[w])
 		}

@@ -189,25 +189,26 @@ func (dao *dao) GetStats(uid uid) []statRow {
 	return stats
 }
 
-func (dao *dao) UpdateUserGirl(bt bookType, uids [4]uid, gids [4]gid) {
+func (dao *dao) UpdateUserGirl(bt bookType, uids [4]uid, gids [4]gid,
+	args *systemEndTableStat) {
 	tx, err := dao.db.Begin()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	err = updateUserGirlStat(tx, uids, gids)
+	err = updateUserGirlStat(tx, uids, gids, args)
 	if err != nil {
 		tx.Rollback()
 		log.Fatalln(err)
 	}
 
-	err = updateUserRank(tx, uids, bt)
+	err = updateUserRank(tx, uids, args.Ranks, bt)
 	if err != nil {
 		tx.Rollback()
 		log.Fatalln(err)
 	}
 
-	err = updateGirlRank(tx, gids, bt)
+	err = updateGirlRank(tx, gids, args.Ranks, bt)
 	if err != nil {
 		tx.Rollback()
 		log.Fatalln(err)
@@ -216,9 +217,10 @@ func (dao *dao) UpdateUserGirl(bt bookType, uids [4]uid, gids [4]gid) {
 	tx.Commit()
 }
 
-func updateUserGirlStat(tx *sql.Tx, uids [4]uid, gids [4]gid) error {
+func updateUserGirlStat(tx *sql.Tx, uids [4]uid, gids [4]gid,
+	args *systemEndTableStat) error {
 	for i := 0; i < 4; i++ {
-		rankCol := "rank" + strconv.Itoa(i + 1)
+		rankCol := "rank" + strconv.Itoa(args.Ranks[i])
 		format := `insert into user_girl (user_id, girl_id, %s)
 			values (?, ?, 1)
 			on duplicate key update %s=%s+1`;
@@ -231,7 +233,7 @@ func updateUserGirlStat(tx *sql.Tx, uids [4]uid, gids [4]gid) error {
 	return nil
 }
 
-func updateUserRank(tx *sql.Tx, uids [4]uid, bt bookType) error {
+func updateUserRank(tx *sql.Tx, uids [4]uid, ranks [4]int, bt bookType) error {
 	var users [4]*user
 	var plays [4]int
 
@@ -278,7 +280,7 @@ func updateUserRank(tx *sql.Tx, uids [4]uid, bt bookType) error {
 		lprs[i] = &users[i].lpr
 	}
 
-	updateLpr(&lprs, plays, bt)
+	updateLpr(&lprs, ranks, plays, bt)
 
 	stmt := `update users set level=?, pt=?, rating=? where user_id=?`
 	for w := 0; w < 4; w++ {
@@ -292,7 +294,7 @@ func updateUserRank(tx *sql.Tx, uids [4]uid, bt bookType) error {
 	return nil
 }
 
-func updateGirlRank(tx *sql.Tx, gids [4]gid, bt bookType) error {
+func updateGirlRank(tx *sql.Tx, gids [4]gid, ranks [4]int, bt bookType) error {
 	var girls [4]*girl
 	var plays [4]int
 
@@ -338,7 +340,7 @@ func updateGirlRank(tx *sql.Tx, gids [4]gid, bt bookType) error {
 		lprs[i] = &girls[i].lpr
 	}
 
-	updateLpr(&lprs, plays, bt)
+	updateLpr(&lprs, ranks, plays, bt)
 
 	stmt := `update girls set level=?, pt=?, rating=? where girl_id=?`
 	for w := 0; w < 4; w++ {

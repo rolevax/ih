@@ -2,6 +2,7 @@
 #define SAKI_TABLEOPOB_H
 
 #include "mail.h"
+#include "table_stat.h"
 
 #include "json.hpp"
 
@@ -72,6 +73,7 @@ private:
 	void tableEndStat(const std::array<Who, 4> &rank);
 
 private:
+	TableStat mStat;
 	std::vector<Mail> mMails;
 	std::unique_ptr<Table> mTable;
 	std::array<TableOp, 4> mOps;

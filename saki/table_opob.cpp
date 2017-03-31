@@ -152,7 +152,7 @@ TableOpOb::TableOpOb(const std::array<int, 4> &girlIds)
 	std::array<TableOperator*, 4> ops {
 		&mOps[0], &mOps[1], &mOps[2], &mOps[3]
 	};
-	std::vector<TableObserver*> obs { this };
+	std::vector<TableObserver*> obs { this, &mStat };
 	Who td(0);
 
 	mTable.reset(new Table(points, girlIds, ops, obs, rule, td));
@@ -582,11 +582,11 @@ void TableOpOb::resume(int c)
 void TableOpOb::tableEndStat(const std::array<Who, 4> &rank)
 {
 	json rankList;
-	for (Who who : rank)
-		rankList.push_back(who.index());
+	for (int w = 0; w < 4; w++)
+		rankList.push_back(mTable->getRank(Who(w)));
 
 	json args;
-	args["Rank"] = rankList;
+	args["Ranks"] = rankList;
 
 	system("table-end-stat", args);
 }

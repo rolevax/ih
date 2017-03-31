@@ -2,13 +2,14 @@ package srv
 
 import (
 	"log"
+	"errors"
 )
 
 func average(d *[4]float64) float64 {
 	return (d[0] + d[1] + d[2] + d[3]) / 4.0
 }
 
-func updateLpr(lprs *[4]*lpr, plays [4]int, bt bookType) {
+func updateLpr(lprs *[4]*lpr, ranks [4]int, plays [4]int, bt bookType) {
 	sumRating := 0.0
 	for w := 0; w < 4; w++ {
 		if lprs[w] == nil {
@@ -26,13 +27,24 @@ func updateLpr(lprs *[4]*lpr, plays [4]int, bt bookType) {
 			playCoeff = (1 - float64(play) * 0.002)
 		}
 		diffCoeff := (avgRating - lprs[w].Rating) / 40.0
-		delta := playCoeff * (bases[w] + diffCoeff)
+		delta := playCoeff * (bases[ranks[w] - 1] + diffCoeff)
 		lprs[w].Rating += delta
 	}
 
-	updateTopPt(&lprs[0].Pt, &lprs[0].Level, bt)
-	update2ndPt(&lprs[1].Pt, &lprs[1].Level, bt)
-	updateLastPt(&lprs[3].Pt, &lprs[3].Level)
+	for w := 0; w < 4; w++ {
+		switch ranks[w] {
+		case 1:
+			updateTopPt(&lprs[w].Pt, &lprs[w].Level, bt)
+		case 2:
+			update2ndPt(&lprs[w].Pt, &lprs[w].Level, bt)
+		case 3:
+			// no change
+		case 4:
+			updateLastPt(&lprs[w].Pt, &lprs[w].Level)
+		default:
+			log.Fatalln(errors.New("invalid rank number"))
+		}
+	}
 }
 
 func updateTopPt(pt *int, level *int, bookType bookType) {
