@@ -109,6 +109,7 @@ func newRespLookAround(conn int) *respLookAround {
 type statRow struct {
 	GirlId		gid
 	Ranks		[4]int
+	AvgPoint	float64
 }
 
 type respUpdateUser struct {

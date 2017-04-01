@@ -581,12 +581,14 @@ void TableOpOb::resume(int c)
 
 void TableOpOb::tableEndStat(const std::array<Who, 4> &rank)
 {
+	json args;
+
 	json rankList;
 	for (int w = 0; w < 4; w++)
 		rankList.push_back(mTable->getRank(Who(w)));
-
-	json args;
 	args["Ranks"] = rankList;
+
+	args["Points"] = mTable->getPoints();
 
 	system("table-end-stat", args);
 }

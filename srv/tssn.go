@@ -411,7 +411,8 @@ func (tssn *tssn) resetAnswerTimer() {
 }
 
 type systemEndTableStat struct {
-	Ranks	[4]int
+	Ranks		[4]int
+	Points		[4]int
 }
 
 func (tssn *tssn) handleSystemMail(msg map[string]interface{},
