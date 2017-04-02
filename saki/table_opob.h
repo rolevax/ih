@@ -70,7 +70,7 @@ private:
 	void peer(int w, const char *event, const json &args);
 	void broad(const char *event, const json &msg);
 	void system(const char *type, const json &args);
-	void tableEndStat(const std::array<Who, 4> &rank);
+	void tableEndStat(const std::array<int, 4> &scores);
 
 private:
 	TableStat mStat;

@@ -110,6 +110,8 @@ type statRow struct {
 	GirlId		gid
 	Ranks		[4]int
 	AvgPoint	float64
+	ATop		int
+	ALast		int
 }
 
 type respUpdateUser struct {

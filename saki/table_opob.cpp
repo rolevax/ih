@@ -441,7 +441,7 @@ void TableOpOb::onTableEnded(const std::array<Who, 4> &rank,
 {
 	mEnd = true;
 
-	tableEndStat(rank);
+	tableEndStat(scores);
 
 	json args;
 	args["scores"] = scores;
@@ -579,7 +579,7 @@ void TableOpOb::resume(int c)
 	peer(c, "resume", args);
 }
 
-void TableOpOb::tableEndStat(const std::array<Who, 4> &rank)
+void TableOpOb::tableEndStat(const std::array<int, 4> &scores)
 {
 	json args;
 
@@ -589,6 +589,10 @@ void TableOpOb::tableEndStat(const std::array<Who, 4> &rank)
 	args["Ranks"] = rankList;
 
 	args["Points"] = mTable->getPoints();
+	args["ATop"] = std::count_if(scores.begin(), scores.end(), 
+			                     [](int s) { return s > 0; }) == 1;
+	args["ALast"] = std::count_if(scores.begin(), scores.end(), 
+			                      [](int s) { return s < 0; }) == 1;
 
 	system("table-end-stat", args);
 }

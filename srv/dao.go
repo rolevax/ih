@@ -165,7 +165,8 @@ func (dao *dao) GetStats(uid uid) []statRow {
 
 	// excluding doge
 	rows, err := dao.db.Query(
-		`select girl_id,rank1,rank2,rank3,rank4,avg_point
+		`select girl_id,rank1,rank2,rank3,rank4,
+		avg_point,a_top,a_last
 		from user_girl where user_id=?`, uid)
 	if err != nil {
 		log.Fatalln(err)
@@ -175,7 +176,7 @@ func (dao *dao) GetStats(uid uid) []statRow {
 		var r statRow
 		err := rows.Scan(&r.GirlId,
 			&r.Ranks[0], &r.Ranks[1], &r.Ranks[2], &r.Ranks[3],
-			&r.AvgPoint)
+			&r.AvgPoint, &r.ATop, &r.ALast)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -222,20 +223,35 @@ func updateUserGirlStat(tx *sql.Tx, uids [4]uid, gids [4]gid,
 	args *systemEndTableStat) error {
 	for i := 0; i < 4; i++ {
 		rankCol := "rank" + strconv.Itoa(args.Ranks[i])
+
+		var aTop, aLast int // fuck golang, cannot cast bool to int
+		if args.ATop && args.Ranks[i] == 1 {
+			aTop = 1
+		}
+		if args.ALast && args.Ranks[i] == 4 {
+			aLast = 1
+		}
+log.Println("===", aTop, aLast)
+
 		// fuck mariadb, cannot use virtual columns in "on dup key update"
 		// ("play" will always be null somehow)
 		// so manually typing (rank1+rank2+rank3+rank4) everywhere
 		format := `insert into user_girl
-			(user_id, girl_id, %s, avg_point)
-			values (?, ?, 1, ?)
+			(user_id, girl_id, %s, avg_point,
+				a_top, a_last)
+			values (?, ?, 1, ?, ?, ?)
 			on duplicate key update
 			avg_point=(avg_point*(rank1+rank2+rank3+rank4)+?)
 				/(rank1+rank2+rank3+rank4+1),
+			a_top=a_top+?,a_last=a_last+?,
 			%s=%s+1`;
 		stmt := fmt.Sprintf(format, rankCol, rankCol, rankCol)
 		_, err := tx.Exec(stmt,
-			uids[i], gids[i], args.Points[i],
-			args.Points[i])
+			// "values" part
+			uids[i], gids[i], args.Points[i], aTop, aLast,
+			// "update" part
+			args.Points[i],
+			aTop, aLast)
 		if err != nil {
 			return err
 		}
