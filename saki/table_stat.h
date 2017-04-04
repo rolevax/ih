@@ -12,7 +12,7 @@ using namespace saki;
 class TableStat : public TableObserver
 {
 public:
-	TableStat() = default;
+	TableStat();
 	virtual ~TableStat() = default;
 
 	void onRoundEnded(const Table &table, RoundResult result,
@@ -21,9 +21,20 @@ public:
 	void onTableEnded(const std::array<Who, 4> &rank,
 			          const std::array<int, 4> &scores) override;
 
+	int roundCt() const;
+	const std::array<int, 4> &wins() const;
+	const std::array<int, 4> &guns() const;
+	const std::array<int, 4> &barks() const;
+	const std::array<int, 4> &riichis() const;
+
 private:
 
 private:
+	int mRoundCt = 0;
+	std::array<int, 4> mWins;
+	std::array<int, 4> mGuns;
+	std::array<int, 4> mBarks;
+	std::array<int, 4> mRiichis;
 };
 
 

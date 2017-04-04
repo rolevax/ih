@@ -112,6 +112,11 @@ type statRow struct {
 	AvgPoint	float64
 	ATop		int
 	ALast		int
+	Round		int
+	Win			int
+	Gun			int
+	Bark		int
+	Riichi		int
 }
 
 type respUpdateUser struct {

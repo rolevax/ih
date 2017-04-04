@@ -415,6 +415,11 @@ type systemEndTableStat struct {
 	Points		[4]int
 	ATop		bool
 	ALast		bool
+	Round		int
+	Wins		[4]int
+	Guns		[4]int
+	Barks		[4]int
+	Riichis		[4]int
 }
 
 func (tssn *tssn) handleSystemMail(msg map[string]interface{},

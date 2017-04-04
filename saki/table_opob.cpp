@@ -593,6 +593,11 @@ void TableOpOb::tableEndStat(const std::array<int, 4> &scores)
 			                     [](int s) { return s > 0; }) == 1;
 	args["ALast"] = std::count_if(scores.begin(), scores.end(), 
 			                      [](int s) { return s < 0; }) == 1;
+	args["Round"] = mStat.roundCt();
+	args["Wins"] = mStat.wins();
+	args["Guns"] = mStat.guns();
+	args["Barks"] = mStat.barks();
+	args["Riichis"] = mStat.riichis();
 
 	system("table-end-stat", args);
 }
