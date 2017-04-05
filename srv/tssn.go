@@ -411,15 +411,22 @@ func (tssn *tssn) resetAnswerTimer() {
 }
 
 type systemEndTableStat struct {
-	Ranks		[4]int
-	Points		[4]int
-	ATop		bool
-	ALast		bool
-	Round		int
-	Wins		[4]int
-	Guns		[4]int
-	Barks		[4]int
-	Riichis		[4]int
+	Ranks			[4]int
+	Points			[4]int
+	ATop			bool
+	ALast			bool
+	Round			int
+	Wins			[4]int
+	Guns			[4]int
+	Barks			[4]int
+	Riichis			[4]int
+	WinSumPoints	[4]int
+	GunSumPoints	[4]int
+	BarkSumPoints	[4]int
+	RiichiSumPoints	[4]int
+	ReadySumTurns	[4]int
+	Readys			[4]int
+	WinSumTurns		[4]int
 }
 
 func (tssn *tssn) handleSystemMail(msg map[string]interface{},

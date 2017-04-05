@@ -598,6 +598,13 @@ void TableOpOb::tableEndStat(const std::array<int, 4> &scores)
 	args["Guns"] = mStat.guns();
 	args["Barks"] = mStat.barks();
 	args["Riichis"] = mStat.riichis();
+	args["WinSumPoints"] = mStat.winSumPoints();
+	args["GunSumPoints"] = mStat.gunSumPoints();
+	args["BarkSumPoints"] = mStat.barkSumPoints();
+	args["RiichiSumPoints"] = mStat.riichiSumPoints();
+	args["ReadySumTurns"] = mStat.readySumTurns();
+	args["Readys"] = mStat.readys();
+	args["WinSumTurns"] = mStat.winSumTurns();
 
 	system("table-end-stat", args);
 }

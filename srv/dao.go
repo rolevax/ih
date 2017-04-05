@@ -167,7 +167,9 @@ func (dao *dao) GetStats(uid uid) []statRow {
 	rows, err := dao.db.Query(
 		`select girl_id,rank1,rank2,rank3,rank4,
 		avg_point,a_top,a_last,
-		round,win,gun,bark,riichi
+		round,win,gun,bark,riichi,
+		win_point,gun_point,bark_point,riichi_point,
+		ready,ready_turn,win_turn
 		from user_girl where user_id=?`, uid)
 	if err != nil {
 		log.Fatalln(err)
@@ -178,7 +180,9 @@ func (dao *dao) GetStats(uid uid) []statRow {
 		err := rows.Scan(&r.GirlId,
 			&r.Ranks[0], &r.Ranks[1], &r.Ranks[2], &r.Ranks[3],
 			&r.AvgPoint, &r.ATop, &r.ALast,
-			&r.Round, &r.Win, &r.Gun, &r.Bark, &r.Riichi)
+			&r.Round, &r.Win, &r.Gun, &r.Bark, &r.Riichi,
+			&r.WinPoint, &r.GunPoint, &r.BarkPoint, &r.RiichiPoint,
+			&r.Ready, &r.ReadyTurn, &r.WinTurn)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -223,11 +227,9 @@ func (dao *dao) UpdateUserGirl(bt bookType, uids [4]uid, gids [4]gid,
 
 func updateUserGirlStat(tx *sql.Tx, uids [4]uid, gids [4]gid,
 	args *systemEndTableStat) error {
-log.Println("=== Round", args.Round)
-log.Println("Wins", args.Wins)
-log.Println("Guns", args.Guns)
-log.Println("Barks", args.Barks)
-log.Println("Riichis", args.Riichis)
+log.Println("Readys", args.Readys)
+log.Println("ReadySumTurns", args.ReadySumTurns)
+log.Println("WinSumTurns", args.WinSumTurns)
 	for i := 0; i < 4; i++ {
 		rankCol := "rank" + strconv.Itoa(args.Ranks[i])
 
@@ -243,19 +245,56 @@ log.Println("Riichis", args.Riichis)
 		gun := args.Guns[i]
 		bark := args.Barks[i]
 		riichi := args.Riichis[i]
+		winPoint := float64(args.WinSumPoints[i])
+		gunPoint := float64(args.GunSumPoints[i])
+		barkPoint := float64(args.BarkSumPoints[i])
+		riichiPoint := float64(args.RiichiSumPoints[i])
+		winSumTurn := float64(args.WinSumTurns[i])
+		var winAvg, winAvgTurn, gunAvg, barkAvg, riichiAvg float64
+		if win != 0 {
+			winAvg = winPoint / float64(win)
+			winAvgTurn = winSumTurn / float64(win)
+		}
+		if gun != 0 {
+			gunAvg = gunPoint / float64(gun)
+		}
+		if bark != 0 {
+			barkAvg = barkPoint / float64(bark)
+		}
+		if riichi != 0 {
+			riichiAvg = riichiPoint / float64(riichi)
+		}
+
+		ready := args.Readys[i]
+		readySumTurn := float64(args.ReadySumTurns[i])
+		var readyAvgTurn float64
+		if ready != 0 {
+			readyAvgTurn = readySumTurn / float64(ready)
+		}
 
 		// fuck mariadb, cannot use virtual columns in "on dup key update"
 		// ("play" will always be null somehow)
 		// so manually typing (rank1+rank2+rank3+rank4) everywhere
 		format := `insert into user_girl
 			(user_id, girl_id, %s, avg_point, a_top, a_last,
-				round, win, gun, bark, riichi)
+				round, win, gun, bark, riichi,
+				win_point, gun_point, bark_point, riichi_point,
+				ready, ready_turn, win_turn)
 			values (?, ?, 1, ?, ?, ?,
-				?, ?, ?, ?, ?)
+				?, ?, ?, ?, ?,
+				?, ?, ?, ?,
+				?, ?, ?)
 			on duplicate key update
 			avg_point=(avg_point*(rank1+rank2+rank3+rank4)+?)
 				/(rank1+rank2+rank3+rank4+1),
 			a_top=a_top+?,a_last=a_last+?,
+			win_point=if(win+?, (win_point+?)/(win+?), 0),
+			gun_point=if(gun+?, (gun_point+?)/(gun+?), 0),
+			bark_point=if(bark+?, (bark_point+?)/(bark+?), 0),
+			riichi_point=if(riichi+?, (riichi_point+?)/(riichi+?), 0),
+			win_turn=if(win+?, (win_turn+?)/(win+?), 0),
+			ready_turn=if(ready+?, (ready_turn+?)/(ready+?), 0),
+			ready=ready+?,
 			round=round+?,win=win+?,gun=gun+?,bark=bark+?,riichi=riichi+?,
 			%s=%s+1`;
 		stmt := fmt.Sprintf(format, rankCol, rankCol, rankCol)
@@ -263,9 +302,18 @@ log.Println("Riichis", args.Riichis)
 			// "values" part
 			uids[i], gids[i], args.Points[i], aTop, aLast,
 				args.Round, win, gun, bark, riichi,
+				winAvg, gunAvg, barkAvg, riichiAvg,
+				ready, readyAvgTurn, winAvgTurn,
 			// "update" part
 			args.Points[i],
 			aTop, aLast,
+			win, winPoint, win,
+			gun, gunPoint, gun,
+			bark, barkPoint, bark,
+			riichi, riichiPoint, riichi,
+			win, winSumTurn, win,
+			ready, readySumTurn, ready,
+			ready,
 			args.Round, win, gun, bark, riichi)
 		if err != nil {
 			return err
