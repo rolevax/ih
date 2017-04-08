@@ -3,6 +3,8 @@
 
 #include "libsaki/tableobserver.h"
 
+#include <map>
+
 
 
 using namespace saki;
@@ -39,6 +41,9 @@ public:
     const std::array<int, 4> &readySumTurns() const;
     const std::array<int, 4> &readys() const;
     const std::array<int, 4> &winSumTurns() const;
+    const std::array<std::map<const char*, int>, 4> &yakus() const;
+    const std::array<std::map<const char*, int>, 4> &sumHans() const;
+    const std::array<int, 4> &kzeykms() const;
 
 private:
 
@@ -56,6 +61,9 @@ private:
     std::array<int, 4> mReadys;
     std::array<int, 4> mReadySumTurns;
     std::array<int, 4> mWinSumTurns;
+	std::array<std::map<const char*, int>, 4> mYakus;
+	std::array<std::map<const char*, int>, 4> mSumHans;
+    std::array<int, 4> mKzeykms;
 };
 
 

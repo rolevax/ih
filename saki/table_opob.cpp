@@ -605,6 +605,9 @@ void TableOpOb::tableEndStat(const std::array<int, 4> &scores)
 	args["ReadySumTurns"] = mStat.readySumTurns();
 	args["Readys"] = mStat.readys();
 	args["WinSumTurns"] = mStat.winSumTurns();
+	args["Yakus"] = mStat.yakus();
+	args["SumHans"] = mStat.sumHans();
+	args["Kzeykms"] = mStat.kzeykms();
 
 	system("table-end-stat", args);
 }

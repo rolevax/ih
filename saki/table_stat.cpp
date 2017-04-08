@@ -15,6 +15,7 @@ TableStat::TableStat()
     mReadys.fill(0);
     mReadySumTurns.fill(0);
 	mWinSumTurns.fill(0);
+	mKzeykms.fill(0);
 }
 
 void TableStat::onRoundStarted(int r, int e, Who d,
@@ -82,6 +83,67 @@ void TableStat::onRoundEnded(const Table &table, RoundResult result,
 			if (result == RR::TSUMO)
 				turn++;
 			mWinSumTurns[who.index()] += turn;
+
+			std::vector<const char*> keys = form.keys();
+			int han = form.han();
+			std::map<const char*, int> &yaku = mYakus[who.index()];
+			std::map<const char*, int> &sumHan = mSumHans[who.index()];
+			for (const char *key : keys) {
+				if (yaku.find(key) == yaku.end()) {
+					yaku[key] = 1;
+					if (!form.isPrototypalYakuman())
+						sumHan[key] = han;
+				} else {
+					yaku[key]++;
+					if (!form.isPrototypalYakuman())
+						sumHan[key] += han;
+				}
+			}
+
+			auto update = [&](const char *key, int ct) {
+				if (ct == 0)
+					return;
+				if (yaku.find(key) == yaku.end())
+					yaku[key] = 0;
+				yaku[key] += ct;
+			};
+
+			if (!form.isPrototypalYakuman() && han >= 13)
+				mKzeykms[who.index()]++;
+
+			if (form.dora() > 0) {
+				const auto &drids = table.getMount().getDrids();
+				int hyou = drids[0] % table.getHand(who);
+				if (result == RR::RON)
+					hyou += drids[0] % table.getFocusTile();
+				update("dora", hyou);
+				int kan = 0;
+				for (size_t i = 1; i < drids.size(); i++) {
+					kan += drids[i] % table.getHand(who);
+					if (result == RR::RON)
+						kan += drids[i] % table.getFocusTile();
+				}
+				update("kandora", kan);
+			}
+
+			if (form.uradora() > 0) {
+				const auto &urids = table.getMount().getUrids();
+				int hyou = urids[0] % table.getHand(who);
+				if (result == RR::RON)
+					hyou += urids[0] % table.getFocusTile();
+				update("uradora", hyou);
+				int kan = 0;
+				for (size_t i = 1; i < urids.size(); i++) {
+					kan += urids[i] % table.getHand(who);
+					if (result == RR::RON)
+						kan += urids[i] % table.getFocusTile();
+				}
+				update("kanuradora", kan);
+			}
+
+			if (form.akadora() > 0) {
+				update("akadora", form.akadora());
+			}
         }
     }
 
@@ -131,7 +193,6 @@ void TableStat::onRoundEnded(const Table &table, RoundResult result,
             mRiichiSumPoints[w] += deltas[w];
         }
     }
-    // FUCK
 }
 
 void TableStat::onTableEnded(const std::array<Who, 4> &rank,
@@ -199,5 +260,20 @@ const std::array<int, 4> &TableStat::readys() const
 const std::array<int, 4> &TableStat::winSumTurns() const
 {
 	return mWinSumTurns;
+}
+
+const std::array<std::map<const char*, int>, 4> &TableStat::yakus() const
+{
+	return mYakus;
+}
+
+const std::array<std::map<const char*, int>, 4> &TableStat::sumHans() const
+{
+	return mSumHans;
+}
+
+const std::array<int, 4> &TableStat::kzeykms() const
+{
+	return mKzeykms;
 }
 

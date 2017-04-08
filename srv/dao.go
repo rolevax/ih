@@ -169,7 +169,32 @@ func (dao *dao) GetStats(uid uid) []statRow {
 		avg_point,a_top,a_last,
 		round,win,gun,bark,riichi,
 		win_point,gun_point,bark_point,riichi_point,
-		ready,ready_turn,win_turn
+		ready,ready_turn,win_turn,
+		yaku_rci, yaku_ipt, yaku_tmo, yaku_tny, yaku_pnf,
+		yaku_y1y, yaku_y2y, yaku_y3y,
+		yaku_jk1, yaku_jk2, yaku_jk3, yaku_jk4,
+		yaku_bk1, yaku_bk2, yaku_bk3, yaku_bk4,
+		yaku_ipk, yaku_rns, yaku_hai, yaku_hou, yaku_ckn,
+		yaku_ss1, yaku_it1, yaku_ct1,
+		yaku_wri, yaku_ss2, yaku_it2, yaku_ct2,
+		yaku_toi, yaku_ctt, yaku_sak, yaku_skt,
+		yaku_stk, yaku_hrt, yaku_s3g, yaku_h1t, yaku_jc2,
+		yaku_mnh, yaku_jc3, yaku_rpk, yaku_c1t, yaku_mnc,
+		yaku_x13, yaku_xd3, yaku_x4a, yaku_xt1, yaku_xs4, yaku_xd4,
+		yaku_xcr, yaku_xr1, yaku_xth, yaku_xch, yaku_x4k, yaku_x9r,
+		yaku_w13, yaku_w4a, yaku_w9r, kzeykm,
+		han_rci, han_ipt, han_tmo, han_tny, han_pnf,
+		han_y1y, han_y2y, han_y3y,
+		han_jk1, han_jk2, han_jk3, han_jk4,
+		han_bk1, han_bk2, han_bk3, han_bk4,
+		han_ipk, han_rns, han_hai, han_hou, han_ckn,
+		han_ss1, han_it1, han_ct1,
+		han_wri, han_ss2, han_it2, han_ct2,
+		han_toi, han_ctt, han_sak, han_skt,
+		han_stk, han_hrt, han_s3g, han_h1t, han_jc2,
+		han_mnh, han_jc3, han_rpk, han_c1t, han_mnc,
+		yaku_dora, yaku_uradora, yaku_akadora,
+		yaku_kandora, yaku_kanuradora
 		from user_girl where user_id=?`, uid)
 	if err != nil {
 		log.Fatalln(err)
@@ -182,7 +207,31 @@ func (dao *dao) GetStats(uid uid) []statRow {
 			&r.AvgPoint, &r.ATop, &r.ALast,
 			&r.Round, &r.Win, &r.Gun, &r.Bark, &r.Riichi,
 			&r.WinPoint, &r.GunPoint, &r.BarkPoint, &r.RiichiPoint,
-			&r.Ready, &r.ReadyTurn, &r.WinTurn)
+			&r.Ready, &r.ReadyTurn, &r.WinTurn,
+			&r.Rci, &r.Ipt, &r.Tmo, &r.Tny, &r.Pnf,
+			&r.Y1y, &r.Y2y, &r.Y3y,
+			&r.Jk1, &r.Jk2, &r.Jk3, &r.Jk4,
+			&r.Bk1, &r.Bk2, &r.Bk3, &r.Bk4,
+			&r.Ipk, &r.Rns, &r.Hai, &r.Hou, &r.Ckn,
+			&r.Ss1, &r.It1, &r.Ct1,
+			&r.Wri, &r.Ss2, &r.It2, &r.Ct2,
+			&r.Toi, &r.Ctt, &r.Sak, &r.Skt,
+			&r.Stk, &r.Hrt, &r.S3g, &r.H1t, &r.Jc2,
+			&r.Mnh, &r.Jc3, &r.Rpk, &r.C1t, &r.Mnc,
+			&r.X13, &r.Xd3, &r.X4a, &r.Xt1, &r.Xs4, &r.Xd4,
+			&r.Xcr, &r.Xr1, &r.Xth, &r.Xch, &r.X4k, &r.X9r,
+			&r.W13, &r.W4a, &r.W9r, &r.Kzeykm,
+			&r.RciHan, &r.IptHan, &r.TmoHan, &r.TnyHan, &r.PnfHan,
+			&r.Y1yHan, &r.Y2yHan, &r.Y3yHan,
+			&r.Jk1Han, &r.Jk2Han, &r.Jk3Han, &r.Jk4Han,
+			&r.Bk1Han, &r.Bk2Han, &r.Bk3Han, &r.Bk4Han,
+			&r.IpkHan, &r.RnsHan, &r.HaiHan, &r.HouHan, &r.CknHan,
+			&r.Ss1Han, &r.It1Han, &r.Ct1Han,
+			&r.WriHan, &r.Ss2Han, &r.It2Han, &r.Ct2Han,
+			&r.ToiHan, &r.CttHan, &r.SakHan, &r.SktHan,
+			&r.StkHan, &r.HrtHan, &r.S3gHan, &r.H1tHan, &r.Jc2Han,
+			&r.MnhHan, &r.Jc3Han, &r.RpkHan, &r.C1tHan, &r.MncHan,
+			&r.Dora, &r.Uradora, &r.Akadora, &r.Kandora, &r.Kanuradora)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -227,9 +276,6 @@ func (dao *dao) UpdateUserGirl(bt bookType, uids [4]uid, gids [4]gid,
 
 func updateUserGirlStat(tx *sql.Tx, uids [4]uid, gids [4]gid,
 	args *systemEndTableStat) error {
-log.Println("Readys", args.Readys)
-log.Println("ReadySumTurns", args.ReadySumTurns)
-log.Println("WinSumTurns", args.WinSumTurns)
 	for i := 0; i < 4; i++ {
 		rankCol := "rank" + strconv.Itoa(args.Ranks[i])
 
@@ -272,6 +318,8 @@ log.Println("WinSumTurns", args.WinSumTurns)
 			readyAvgTurn = readySumTurn / float64(ready)
 		}
 
+		kzeykm := args.Kzeykms[i]
+
 		// fuck mariadb, cannot use virtual columns in "on dup key update"
 		// ("play" will always be null somehow)
 		// so manually typing (rank1+rank2+rank3+rank4) everywhere
@@ -279,23 +327,25 @@ log.Println("WinSumTurns", args.WinSumTurns)
 			(user_id, girl_id, %s, avg_point, a_top, a_last,
 				round, win, gun, bark, riichi,
 				win_point, gun_point, bark_point, riichi_point,
-				ready, ready_turn, win_turn)
+				ready, ready_turn, win_turn, kzeykm)
 			values (?, ?, 1, ?, ?, ?,
 				?, ?, ?, ?, ?,
 				?, ?, ?, ?,
-				?, ?, ?)
+				?, ?, ?, ?)
 			on duplicate key update
 			avg_point=(avg_point*(rank1+rank2+rank3+rank4)+?)
 				/(rank1+rank2+rank3+rank4+1),
 			a_top=a_top+?,a_last=a_last+?,
-			win_point=if(win+?, (win_point+?)/(win+?), 0),
-			gun_point=if(gun+?, (gun_point+?)/(gun+?), 0),
-			bark_point=if(bark+?, (bark_point+?)/(bark+?), 0),
-			riichi_point=if(riichi+?, (riichi_point+?)/(riichi+?), 0),
-			win_turn=if(win+?, (win_turn+?)/(win+?), 0),
-			ready_turn=if(ready+?, (ready_turn+?)/(ready+?), 0),
+			win_point=if(win+?, (win_point*win+?)/(win+?), 0),
+			gun_point=if(gun+?, (gun_point*gun+?)/(gun+?), 0),
+			bark_point=if(bark+?, (bark_point*bark+?)/(bark+?), 0),
+			riichi_point=if(riichi+?, (riichi_point*riichi+?)
+				/(riichi+?), 0),
+			win_turn=if(win+?, (win_turn*win+?)/(win+?), 0),
+			ready_turn=if(ready+?, (ready_turn*ready+?)/(ready+?), 0),
 			ready=ready+?,
 			round=round+?,win=win+?,gun=gun+?,bark=bark+?,riichi=riichi+?,
+			kzeykm=kzeykm+?,
 			%s=%s+1`;
 		stmt := fmt.Sprintf(format, rankCol, rankCol, rankCol)
 		_, err := tx.Exec(stmt,
@@ -303,7 +353,7 @@ log.Println("WinSumTurns", args.WinSumTurns)
 			uids[i], gids[i], args.Points[i], aTop, aLast,
 				args.Round, win, gun, bark, riichi,
 				winAvg, gunAvg, barkAvg, riichiAvg,
-				ready, readyAvgTurn, winAvgTurn,
+				ready, readyAvgTurn, winAvgTurn, kzeykm,
 			// "update" part
 			args.Points[i],
 			aTop, aLast,
@@ -314,15 +364,51 @@ log.Println("WinSumTurns", args.WinSumTurns)
 			win, winSumTurn, win,
 			ready, readySumTurn, ready,
 			ready,
-			args.Round, win, gun, bark, riichi)
+			args.Round, win, gun, bark, riichi,
+			kzeykm)
 		if err != nil {
 			return err
+		}
+
+		// update yaku stat
+		yaku := args.Yakus[i]
+		if len(yaku) > 0 {
+			setter := ""
+			han := args.SumHans[i]
+			for key, ct := range yaku {
+				hanCol := "han_" + key
+				yakuCol := "yaku_" + key
+				// update avg han unless yakuman
+				if sum, ok := han[key]; ok {
+					next := fmt.Sprintf("%s=(%s*%s+%d)/(%s+%d)",
+						hanCol, hanCol, yakuCol, sum, yakuCol, ct)
+					if setter == "" {
+						setter = next
+					} else {
+						setter += ("," + next)
+					}
+				}
+
+				next := fmt.Sprintf("%s=%s+%d", yakuCol, yakuCol, ct)
+				if setter == "" {
+					setter = next
+				} else {
+					setter += ("," + next)
+				}
+			}
+			stmt := "update user_girl set " + setter +
+				" where user_id=? and girl_id=?"
+			_, err = tx.Exec(stmt, uids[i], gids[i])
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
-func updateUserRank(tx *sql.Tx, uids [4]uid, ranks [4]int, bt bookType) error {
+func updateUserRank(tx *sql.Tx, uids [4]uid, ranks [4]int,
+	bt bookType) error {
 	var users [4]*user
 	var plays [4]int
 
@@ -383,7 +469,8 @@ func updateUserRank(tx *sql.Tx, uids [4]uid, ranks [4]int, bt bookType) error {
 	return nil
 }
 
-func updateGirlRank(tx *sql.Tx, gids [4]gid, ranks [4]int, bt bookType) error {
+func updateGirlRank(tx *sql.Tx, gids [4]gid, ranks [4]int,
+	bt bookType) error {
 	var girls [4]*girl
 	var plays [4]int
 

@@ -427,6 +427,9 @@ type systemEndTableStat struct {
 	ReadySumTurns	[4]int
 	Readys			[4]int
 	WinSumTurns		[4]int
+	Yakus			[4]map[string]int
+	SumHans			[4]map[string]int
+	Kzeykms			[4]int
 }
 
 func (tssn *tssn) handleSystemMail(msg map[string]interface{},
