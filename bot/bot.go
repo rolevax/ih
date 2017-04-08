@@ -122,7 +122,7 @@ func login(username, password string) net.Conn {
 	}
 
 	shaPw := sha256.Sum256([]byte(password))
-	reqLogin := reqLogin{"login", username, shaPw[:], "0.7.3"}
+	reqLogin := reqLogin{"login", username, shaPw[:], "0.7.4"}
 	jsonb, _ := json.Marshal(reqLogin)
 	conn.Write(append(jsonb, '\n'))
 
@@ -203,24 +203,25 @@ func (bot *bot) tryBook(x int, xs71 map[string]interface{}, ob *observe) {
 	if bookable {
 		ob.mutex.Lock()
 		defer ob.mutex.Unlock()
-		if ob.stay >= stayLimit {
-			if ob.waitBot < maxBotPerTable {
-				ob.waitBot++
-				ob.stay = 0
-				req := reqBook{"book", x}
-				bot.write(req)
+
+		wait := int(xs71["Book"].(float64))
+		if wait == 0 { // not a strict cond, but fine
+			ob.waitBot = 0
+		}
+
+		if wait == ob.wait {
+			ob.stay++
+			if ob.stay >= stayLimit {
+				if ob.waitBot < maxBotPerTable {
+					ob.waitBot++
+					ob.stay = 0
+					req := reqBook{"book", x}
+					bot.write(req)
+				}
 			}
 		} else {
-			wait := int(xs71["Book"].(float64))
-			if wait == ob.wait {
-				ob.stay++
-			} else {
-				if wait == 0 { // not a strict cond, but fine
-					ob.waitBot = 0
-				}
-				ob.wait = wait
-				ob.stay = 0
-			}
+			ob.wait = wait
+			ob.stay = 0
 		}
 	}
 }
