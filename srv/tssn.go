@@ -471,7 +471,7 @@ func (tssn *tssn) genIds() {
 		avails = avails[len(avails) - 14:]
 	case 1:
 		avails = avails[0:10]
-	default: // nobody may enter here by now, though
+	default: // not so many girls yet, use same as B-class
 		avails = avails[0:10]
 	}
 

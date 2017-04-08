@@ -263,7 +263,7 @@ func (ussn *ussn) handleLookAround() {
 		msg.Books[0] = bookEntry{dBookable, bss[0].wait, 4 * pss[0]}
 		msg.Books[1] = bookEntry{cBookable, bss[1].wait, 4 * pss[1]}
 		msg.Books[2] = bookEntry{bBookable, bss[2].wait, 4 * pss[2]}
-		msg.Books[2] = bookEntry{aBookable, bss[3].wait, 4 * pss[3]}
+		msg.Books[3] = bookEntry{aBookable, bss[3].wait, 4 * pss[3]}
 		ussn.handleWrite(msg)
 	}
 }
