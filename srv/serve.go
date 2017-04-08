@@ -5,7 +5,7 @@ import (
 	"net"
 )
 
-const Version = "0.7.4"
+const Version = "0.7.5"
 
 var sing struct {
 	Dao			*dao
