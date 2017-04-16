@@ -1,11 +1,12 @@
 package srv
 
 import (
-	"log"
-	"time"
-	"errors"
-	"math/rand"
 	"encoding/json"
+	"errors"
+	"log"
+	"math/rand"
+	"time"
+
 	"github.com/mjpancake/mjpancake-server/saki"
 )
 
@@ -18,26 +19,26 @@ func init() {
 type tssnState int
 
 const (
-	tssnWaitChoose	tssnState = iota
+	tssnWaitChoose tssnState = iota
 	tssnWaitReady
 	tssnWaitAction
 )
 
 type tssn struct {
-	bookType		bookType
-	state			tssnState
-	ready			chan uid
-	choose			chan *msgTssnChoose
-	action			chan *msgTssnAction
-	done			chan struct{}
-	uids			[4]uid
-	gids			[4]gid
-	gidcs			[8]gid
-	waits			[4]bool
-	onlines			[4]bool
-	nonces			[4]int
-	answerTimer		*time.Timer
-	table			saki.TableSession
+	bookType    bookType
+	state       tssnState
+	ready       chan uid
+	choose      chan *msgTssnChoose
+	action      chan *msgTssnAction
+	done        chan struct{}
+	uids        [4]uid
+	gids        [4]gid
+	gidcs       [12]gid
+	waits       [4]bool
+	onlines     [4]bool
+	nonces      [4]int
+	answerTimer *time.Timer
+	table       saki.TableSession
 }
 
 func startTssn(bt bookType, uids [4]uid) *tssn {
@@ -105,8 +106,8 @@ func loopTssn(bt bookType, uids [4]uid) {
 }
 
 type msgTssnChoose struct {
-	uid		uid
-	gidx	int
+	uid  uid
+	gidx int
 }
 
 func newMsgTssnChoose(uid uid, gidx int) *msgTssnChoose {
@@ -131,8 +132,8 @@ func (tssn *tssn) Ready(uid uid) {
 }
 
 type msgTssnAction struct {
-	uid		uid
-	act		*reqAction
+	uid uid
+	act *reqAction
 }
 
 func (tssn *tssn) Action(uid uid, act *reqAction) {
@@ -151,7 +152,8 @@ func (tssn *tssn) handleChoose(uid uid, gidx int) {
 		}
 
 		tssn.waits[i] = false
-		tssn.gids[i] = tssn.gidcs[2 * i + gidx]
+		cpu := len(tssn.gidcs) / 4 // choice per user
+		tssn.gids[i] = tssn.gidcs[i*cpu+gidx]
 		if !tssn.hasWait() {
 			tssn.notifyChosen()
 		}
@@ -188,7 +190,7 @@ func (tssn *tssn) handleAction(uid uid, act *reqAction) {
 	if act.ActStr == "RESUME" {
 		tssn.onlines[i] = true
 	} else if act.Nonce != tssn.nonces[i] {
-		log.Println(uid, "nonce", act.Nonce, "want", tssn.nonces[i]);
+		log.Println(uid, "nonce", act.Nonce, "want", tssn.nonces[i])
 		return
 	}
 	tssn.waits[i] = false
@@ -229,10 +231,10 @@ func (tssn *tssn) notifyLoad() {
 	}
 
 	msg := struct {
-		Type		string
-		Users		[4]*user
-		TempDealer	int
-		Choices		[8]gid
+		Type       string
+		Users      [4]*user
+		TempDealer int
+		Choices    [len(tssn.gidcs)]gid
 	}{"start", users, 0, tssn.gidcs}
 
 	for i, uid := range tssn.uids {
@@ -251,11 +253,14 @@ func (tssn *tssn) notifyLoad() {
 		msg.Users[3] = u0
 
 		cs := &msg.Choices
-		g0, g1 := cs[0], cs[1]
-		cs[0], cs[1] = cs[2], cs[3]
-		cs[2], cs[3] = cs[4], cs[5]
-		cs[4], cs[5] = cs[6], cs[7]
-		cs[6], cs[7] = g0, g1
+		cpu := len(cs) / 4 // choice per user
+		for i := 0; i < cpu; i++ {
+			tmp := cs[i]
+			for w := 0; w < 3; w++ {
+				cs[w*cpu+i] = cs[(w+1)*cpu+i]
+			}
+			cs[3*cpu+i] = tmp
+		}
 	}
 
 	tssn.resetAnswerTimer()
@@ -265,15 +270,15 @@ func (tssn *tssn) notifyChosen() {
 	tssn.state = tssnWaitReady
 
 	msg := struct {
-		Type		string
-		GirlIds		[4]gid
+		Type    string
+		GirlIds [4]gid
 	}{"chosen", tssn.gids}
 
 	for w := 0; w < 4; w++ {
 		tssn.waits[w] = true
 		tssn.sendPeer(w, msg)
 
-		gs := &msg.GirlIds;
+		gs := &msg.GirlIds
 		gs[0], gs[1], gs[2], gs[3] = gs[1], gs[2], gs[3], gs[0]
 	}
 
@@ -303,7 +308,7 @@ func (tssn *tssn) start() {
 	log.Println("TSSN ****", tssn.uids[0], tssn.gids)
 	tssn.state = tssnWaitAction
 	tssn.table = saki.NewTableSession(
-		int(tssn.gids[0]),int(tssn.gids[1]),
+		int(tssn.gids[0]), int(tssn.gids[1]),
 		int(tssn.gids[2]), int(tssn.gids[3]))
 
 	mails := tssn.table.Start()
@@ -377,7 +382,7 @@ func (tssn *tssn) sendUserMail(who int, msg map[string]interface{}) {
 		cross := (who + 2) % 4
 		left := (who + 3) % 4
 		rotated := [4]*user{users[who], users[right],
-							users[cross], users[left]}
+			users[cross], users[left]}
 		msg["Args"].(map[string]interface{})["users"] = rotated
 	}
 
@@ -411,38 +416,38 @@ func (tssn *tssn) resetAnswerTimer() {
 }
 
 type systemEndTableStat struct {
-	Ranks			[4]int
-	Points			[4]int
-	ATop			bool
-	ALast			bool
-	Round			int
-	Wins			[4]int
-	Guns			[4]int
-	Barks			[4]int
-	Riichis			[4]int
-	WinSumPoints	[4]int
-	GunSumPoints	[4]int
-	BarkSumPoints	[4]int
-	RiichiSumPoints	[4]int
-	ReadySumTurns	[4]int
-	Readys			[4]int
-	WinSumTurns		[4]int
-	Yakus			[4]map[string]int
-	SumHans			[4]map[string]int
-	Kzeykms			[4]int
+	Ranks           [4]int
+	Points          [4]int
+	ATop            bool
+	ALast           bool
+	Round           int
+	Wins            [4]int
+	Guns            [4]int
+	Barks           [4]int
+	Riichis         [4]int
+	WinSumPoints    [4]int
+	GunSumPoints    [4]int
+	BarkSumPoints   [4]int
+	RiichiSumPoints [4]int
+	ReadySumTurns   [4]int
+	Readys          [4]int
+	WinSumTurns     [4]int
+	Yakus           [4]map[string]int
+	SumHans         [4]map[string]int
+	Kzeykms         [4]int
 }
 
 func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 	msgStr string) {
-	switch (msg["Type"]) {
+	switch msg["Type"] {
 	case "round-start-log":
 		fmt := "%v %v\n" +
-			   "\tr=%v e=%v d=%v al=%v depo=%v seed=%v"
+			"\tr=%v e=%v d=%v al=%v depo=%v seed=%v"
 		log.Printf(fmt,
-				   tssn.uids, tssn.gids,
-				   msg["round"], msg["extra"], msg["dealer"],
-				   msg["allLast"], msg["deposit"],
-				   uint(msg["seed"].(float64)))
+			tssn.uids, tssn.gids,
+			msg["round"], msg["extra"], msg["dealer"],
+			msg["allLast"], msg["deposit"],
+			uint(msg["seed"].(float64)))
 	case "table-end-stat":
 		var stat systemEndTableStat
 		err := json.Unmarshal([]byte(msgStr), &stat)
@@ -465,22 +470,33 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 
 func (tssn *tssn) genIds() {
 	avails := sing.Dao.GetRankedGids()
+	cpu := len(tssn.gidcs) / 4 // choice per user
 
 	switch tssn.bookType.index() {
 	case 0:
-		avails = avails[len(avails) - 14:]
-	case 1:
-		avails = avails[0:10]
-	default: // not so many girls yet, use same as B-class
-		avails = avails[0:10]
+		last14 := avails[len(avails)-14:]
+		perm := rand.Perm(len(last14))
+		for i := 0; i < len(tssn.gidcs); i++ {
+			tssn.gidcs[i] = last14[perm[i]]
+		}
+	default: // not so many girls yet
+		{
+			top8 := avails[0:8]
+			perm := rand.Perm(len(top8))
+			for i := 0; i < len(top8); i++ {
+				tssn.gidcs[(i%4)*cpu+i/4] = top8[perm[i]]
+			}
+		}
+		{
+			rest := avails[8:]
+			perm := rand.Perm(len(rest))
+			for i := 0; i < 4; i++ { // assume len(gidcs)==12
+				tssn.gidcs[i*cpu+2] = rest[perm[i]]
+			}
+		}
 	}
 
-	perm := rand.Perm(len(avails))
-	for i := 0; i < 8; i++ { // 2-choose-1, thus 8 in total
-		tssn.gidcs[i] = avails[perm[i]]
-	}
-	for i := 0; i < 4; i++ {
-		tssn.gids[i] = tssn.gidcs[2 * i] // default values
+	for w := 0; w < 4; w++ {
+		tssn.gids[w] = tssn.gidcs[w*cpu] // choose first as default
 	}
 }
-
