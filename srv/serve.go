@@ -8,11 +8,11 @@ import (
 const Version = "0.7.5"
 
 var sing struct {
-	Dao			*dao
-	Rao			*rao
-	UssnMgr		*ussnMgr
-	BookMgr		*bookMgr
-	TssnMgr		*tssnMgr
+	Dao     *dao
+	Rao     *rao
+	UssnMgr *ussnMgr
+	BookMgr *bookMgr
+	TssnMgr *tssnMgr
 }
 
 func Serve(port string) {
@@ -26,7 +26,7 @@ func Serve(port string) {
 	go sing.BookMgr.Loop()
 	go sing.TssnMgr.Loop()
 
-	ln, err := net.Listen("tcp", ":" + port)
+	ln, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		log.Fatalln(err)
 	} else {
@@ -43,5 +43,3 @@ func Serve(port string) {
 		}
 	}
 }
-
-

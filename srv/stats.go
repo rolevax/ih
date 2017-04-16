@@ -1,8 +1,8 @@
 package srv
 
 import (
-	"log"
 	"errors"
+	"log"
 )
 
 func average(d *[4]float64) float64 {
@@ -24,10 +24,10 @@ func updateLpr(lprs *[4]*lpr, ranks [4]int, plays [4]int, bt bookType) {
 		playCoeff := 0.2
 		play := plays[w]
 		if play < 400 {
-			playCoeff = (1 - float64(play) * 0.002)
+			playCoeff = (1 - float64(play)*0.002)
 		}
 		diffCoeff := (avgRating - lprs[w].Rating) / 40.0
-		delta := playCoeff * (bases[ranks[w] - 1] + diffCoeff)
+		delta := playCoeff * (bases[ranks[w]-1] + diffCoeff)
 		lprs[w].Rating += delta
 	}
 
@@ -103,7 +103,7 @@ func updateLevel(pt *int, level *int) {
 		1200, 1400, 1600, 1800, 2000}
 
 	if *pt >= maxs[*level] {
-		if *level + 1 < len(maxs) {
+		if *level+1 < len(maxs) {
 			(*level)++
 			*pt = starts[*level]
 		} else {
@@ -118,6 +118,3 @@ func updateLevel(pt *int, level *int) {
 		}
 	}
 }
-
-
-

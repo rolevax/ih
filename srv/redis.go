@@ -2,21 +2,22 @@ package srv
 
 import (
 	"log"
+
 	"gopkg.in/redis.v5"
 )
 
 // rao: redis access object
 type rao struct {
-	client		*redis.Client
+	client *redis.Client
 }
 
 func newRao() *rao {
 	rao := new(rao)
 
 	rao.client = redis.NewClient(&redis.Options{
-		Addr:		"localhost:6379",
-		Password:	"",
-		DB:			0})
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0})
 
 	_, err := rao.client.Ping().Result()
 	if err != nil {
@@ -38,4 +39,3 @@ func (rao *rao) AcceptVersion(ver string) bool {
 	}
 	return res
 }
-

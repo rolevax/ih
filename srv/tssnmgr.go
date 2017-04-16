@@ -1,18 +1,15 @@
 package srv
 
-import (
-)
-
 type tssnMgr struct {
-	rec			map[uid]*tssn
-	btStat		[4]int
-	reg			chan *tssn
-	unreg		chan *tssn
-	hasUser		chan *msgTssnMgrHasUser
-	ctEachBt	chan chan [4]int
-	choose		chan *msgTssnChoose
-	ready		chan uid
-	action		chan *msgTssnMgrAction
+	rec      map[uid]*tssn
+	btStat   [4]int
+	reg      chan *tssn
+	unreg    chan *tssn
+	hasUser  chan *msgTssnMgrHasUser
+	ctEachBt chan chan [4]int
+	choose   chan *msgTssnChoose
+	ready    chan uid
+	action   chan *msgTssnMgrAction
 }
 
 func newTssnMgr() *tssnMgr {
@@ -61,8 +58,8 @@ func (tm *tssnMgr) Unreg(tssn *tssn) {
 }
 
 type msgTssnMgrHasUser struct {
-	uid		uid
-	chRes	chan bool
+	uid   uid
+	chRes chan bool
 }
 
 func newMsgTssnMgrHasUser(uid uid) *msgTssnMgrHasUser {
@@ -88,8 +85,8 @@ func (tm *tssnMgr) Ready(uid uid) {
 }
 
 type msgTssnMgrAction struct {
-	uid		uid
-	act		*reqAction
+	uid uid
+	act *reqAction
 }
 
 func (tm *tssnMgr) Action(uid uid, act *reqAction) {
@@ -134,5 +131,3 @@ func (tm *tssnMgr) handleAction(msg *msgTssnMgrAction) {
 		tssn.Action(msg.uid, msg.act)
 	}
 }
-
-

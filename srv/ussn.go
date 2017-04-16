@@ -1,12 +1,12 @@
 package srv
 
 import (
+	"bufio"
+	"encoding/json"
+	"errors"
 	"log"
 	"net"
-	"bufio"
-	"errors"
 	"time"
-	"encoding/json"
 )
 
 const readAuthTimeOut = 10 * time.Second
@@ -15,13 +15,13 @@ const writeTimeOut = 10 * time.Second
 const obayTimeOut = 5 * time.Second
 
 type ussn struct {
-	user		user
-	conn		net.Conn
-	read		chan []byte
-	write		chan *msgUssnWrite
-	update		chan struct{}
-	done		chan struct{}
-	logout		chan error
+	user   user
+	conn   net.Conn
+	read   chan []byte
+	write  chan *msgUssnWrite
+	update chan struct{}
+	done   chan struct{}
+	logout chan error
 }
 
 func loopUssn(conn net.Conn) {
@@ -48,7 +48,7 @@ func loopUssn(conn net.Conn) {
 		case breq := <-ussn.read:
 			ussn.handleRead(breq)
 		case muw := <-ussn.write:
-			muw.chErr <-ussn.handleWrite(muw.msg)
+			muw.chErr <- ussn.handleWrite(muw.msg)
 		case <-ussn.update:
 			ussn.handleUpdateInfo()
 		case err := <-ussn.logout:
@@ -121,8 +121,8 @@ func reject(conn net.Conn, msg interface{}) {
 }
 
 type msgUssnWrite struct {
-	msg		interface{}
-	chErr	chan error
+	msg   interface{}
+	chErr chan error
 }
 
 func newMsgUssnWrite(msg interface{}) *msgUssnWrite {
@@ -272,4 +272,3 @@ func (ussn *ussn) handleUpdateInfo() {
 	ussn.user = *sing.Dao.GetUser(ussn.user.Id)
 	ussn.handleWrite(newRespUpdateUser(&ussn.user))
 }
-

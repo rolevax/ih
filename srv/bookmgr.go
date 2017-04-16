@@ -1,18 +1,15 @@
 package srv
 
-import (
-)
-
 type bookMgr struct {
-	book		chan *msgBookMgrBook
-	unbook		chan uid
-	ctBooks		chan chan [4]bookState
-	states		[4]bookState
+	book    chan *msgBookMgrBook
+	unbook  chan uid
+	ctBooks chan chan [4]bookState
+	states  [4]bookState
 }
 
 type bookState struct {
-	waits		[4]uid
-	wait		int
+	waits [4]uid
+	wait  int
 }
 
 func (bs *bookState) removeIfAny(uid uid) {
@@ -24,8 +21,8 @@ func (bs *bookState) removeIfAny(uid uid) {
 		return
 	}
 	// swap to back, and pop back
-	e := bs.wait - 1;
-	bs.waits[i], bs.waits[e] = bs.waits[e], bs.waits[i];
+	e := bs.wait - 1
+	bs.waits[i], bs.waits[e] = bs.waits[e], bs.waits[i]
 	bs.wait--
 }
 
@@ -36,7 +33,7 @@ func newBookMgr() *bookMgr {
 	bm.unbook = make(chan uid)
 	bm.ctBooks = make(chan chan [4]bookState)
 
-	return bm;
+	return bm
 }
 
 func (bm *bookMgr) Loop() {
@@ -53,8 +50,8 @@ func (bm *bookMgr) Loop() {
 }
 
 type msgBookMgrBook struct {
-	uid			uid
-	bookType	bookType
+	uid      uid
+	bookType bookType
 }
 
 func (bm *bookMgr) Book(uid uid, bookType bookType) {
@@ -84,7 +81,7 @@ func (bm *bookMgr) handleBook(uid uid, bookType bookType) {
 		return
 	}
 
-	state.waits[state.wait] = uid;
+	state.waits[state.wait] = uid
 	state.wait++
 	if state.wait == 4 {
 		bm.handleStart(bookType)
@@ -104,6 +101,3 @@ func (bm *bookMgr) handleStart(bt bookType) {
 	}
 	go loopTssn(bt, state.waits)
 }
-
-
-

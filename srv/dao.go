@@ -1,16 +1,17 @@
 package srv
 
 import (
-	"log"
 	"database/sql"
 	"errors"
-	"strconv"
 	"fmt"
-	_"github.com/go-sql-driver/mysql"
+	"log"
+	"strconv"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type dao struct {
-	db		*sql.DB
+	db *sql.DB
 }
 
 func newDao() *dao {
@@ -44,7 +45,7 @@ func (dao *dao) Login(username, password string) (*ussn, error) {
 		from users where username=? && password=?`,
 		username, password).
 		Scan(&ussn.user.Id, &ussn.user.Username, &ussn.user.Level,
-			 &ussn.user.Pt, &ussn.user.Rating)
+			&ussn.user.Pt, &ussn.user.Rating)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -87,8 +88,8 @@ func (dao *dao) GetUser(uid uid) *user {
 	err := dao.db.QueryRow(
 		`select user_id, username, level, pt, rating
 		from users where user_id=?`, uid).
-		Scan(&user.Id, &user.Username, &user.Level, 
-			 &user.Pt, &user.Rating)
+		Scan(&user.Id, &user.Username, &user.Level,
+			&user.Pt, &user.Rating)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -346,14 +347,14 @@ func updateUserGirlStat(tx *sql.Tx, uids [4]uid, gids [4]gid,
 			ready=ready+?,
 			round=round+?,win=win+?,gun=gun+?,bark=bark+?,riichi=riichi+?,
 			kzeykm=kzeykm+?,
-			%s=%s+1`;
+			%s=%s+1`
 		stmt := fmt.Sprintf(format, rankCol, rankCol, rankCol)
 		_, err := tx.Exec(stmt,
 			// "values" part
 			uids[i], gids[i], args.Points[i], aTop, aLast,
-				args.Round, win, gun, bark, riichi,
-				winAvg, gunAvg, barkAvg, riichiAvg,
-				ready, readyAvgTurn, winAvgTurn, kzeykm,
+			args.Round, win, gun, bark, riichi,
+			winAvg, gunAvg, barkAvg, riichiAvg,
+			ready, readyAvgTurn, winAvgTurn, kzeykm,
 			// "update" part
 			args.Points[i],
 			aTop, aLast,
@@ -443,7 +444,6 @@ func updateUserRank(tx *sql.Tx, uids [4]uid, ranks [4]int,
 		return err
 	}
 
-
 	for _, user := range users {
 		if user == nil {
 			return errors.New("updateUserRank: nil user")
@@ -529,6 +529,3 @@ func updateGirlRank(tx *sql.Tx, gids [4]gid, ranks [4]int,
 
 	return nil
 }
-
-
-

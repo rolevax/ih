@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+
 	"github.com/mjpancake/mjpancake-server/srv"
 )
 
@@ -12,4 +13,3 @@ func main() {
 	}
 	srv.Serve(port)
 }
-

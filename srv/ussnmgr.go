@@ -5,13 +5,13 @@ import (
 )
 
 type ussnMgr struct {
-	rec		map[uid]*ussn
-	reg		chan *ussn
-	unreg	chan *ussn
-    peer    chan *msgUssnMgrPeer
-	update	chan uid
-	logout	chan uid
-	ctUser	chan chan int
+	rec    map[uid]*ussn
+	reg    chan *ussn
+	unreg  chan *ussn
+	peer   chan *msgUssnMgrPeer
+	update chan uid
+	logout chan uid
+	ctUser chan chan int
 }
 
 func newUssnMgr() *ussnMgr {
@@ -20,7 +20,7 @@ func newUssnMgr() *ussnMgr {
 	um.rec = make(map[uid]*ussn)
 	um.reg = make(chan *ussn)
 	um.unreg = make(chan *ussn)
-    um.peer = make(chan *msgUssnMgrPeer)
+	um.peer = make(chan *msgUssnMgrPeer)
 	um.update = make(chan uid)
 	um.logout = make(chan uid)
 	um.ctUser = make(chan chan int)
@@ -29,9 +29,9 @@ func newUssnMgr() *ussnMgr {
 }
 
 type msgUssnMgrPeer struct {
-	to		uid
-	msg		interface{}
-	chErr	chan error
+	to    uid
+	msg   interface{}
+	chErr chan error
 }
 
 func newMsgUssnMgrPeer(to uid, msg interface{}) *msgUssnMgrPeer {
@@ -125,4 +125,3 @@ func (um *ussnMgr) handleLogout(uid uid) {
 		go ussn.Logout(errors.New("server kick"))
 	}
 }
-
