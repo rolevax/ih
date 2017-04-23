@@ -1,13 +1,15 @@
 # Pancake Mahjong Server
 
-See the [client repository](https://github.com/mjpancake/mjpancake-client)
+[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/mjpancake)
+
+See the [client repository](https://github.com/mjpancake/mjpancake)
 for an introduction to Pancake Mahjong.
 
 ## Build
 
 Requirement:
 
-- Unix-like environment with common build tools (tested on Linux and macOS)
+- Unix-like environment with common build tools
 - Go
 - SWIG 3.0
 - All the other dependencies are go-gettable
@@ -15,8 +17,8 @@ Requirement:
 Steps:
 
 ```
-git clone --recursive https://github.com/mjpancake/mjpancake-server.git
-cd $GOPATH/src/github.com/mjpancake/mjpancake-server
+go get github.com/mjpancake/hisa
+cd $GOPATH/src/github.com/mjpancake/hisa
 cd saki; make clean; make; cd ..
 go build
 ```
@@ -33,7 +35,7 @@ Requirement:
 Then run the server:
 
 ```
-./mjpancake-server &
+./hisa &
 ```
 
 The log will output to stdout and stderr. 

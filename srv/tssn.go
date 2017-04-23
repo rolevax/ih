@@ -7,7 +7,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/mjpancake/mjpancake-server/saki"
+	"github.com/mjpancake/hisa/saki"
 )
 
 const answerTimeOut = 15 * time.Second

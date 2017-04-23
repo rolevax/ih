@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/mjpancake/mjpancake-server/srv"
+	"github.com/mjpancake/hisa/srv"
 )
 
 func main() {

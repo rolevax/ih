@@ -5,7 +5,7 @@ import (
 	"net"
 )
 
-const Version = "0.7.5"
+const Version = "0.7.6"
 
 var sing struct {
 	Dao     *dao
@@ -30,7 +30,7 @@ func Serve(port string) {
 	if err != nil {
 		log.Fatalln(err)
 	} else {
-		log.Println("mjpancake-server", Version, "listen", port)
+		log.Println("hisa server", Version, "listen", port)
 	}
 
 	for {
