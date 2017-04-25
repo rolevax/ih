@@ -483,15 +483,15 @@ func (tssn *tssn) genIds() {
 		{
 			top8 := avails[0:8]
 			perm := rand.Perm(len(top8))
-			for i := 0; i < len(top8); i++ {
+			for i := 0; i < 4; i++ {
 				tssn.gidcs[(i%4)*cpu+i/4] = top8[perm[i]]
 			}
 		}
 		{
 			rest := avails[8:]
 			perm := rand.Perm(len(rest))
-			for i := 0; i < 4; i++ { // assume len(gidcs)==12
-				tssn.gidcs[i*cpu+2] = rest[perm[i]]
+			for i := 0; i < 8; i++ { // assume len(gidcs)==12
+				tssn.gidcs[(i%4)*cpu+i/4+1] = rest[perm[i]]
 			}
 		}
 	}

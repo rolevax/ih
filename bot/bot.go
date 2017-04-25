@@ -1,19 +1,19 @@
 package main
 
 import (
-	"net"
-	"log"
-	"fmt"
-	"time"
-	"math/rand"
 	"bufio"
-	"sync"
-	"encoding/json"
 	"crypto/sha256"
+	"encoding/json"
+	"fmt"
 	"github.com/howeyc/gopass"
+	"log"
+	"math/rand"
+	"net"
+	"sync"
+	"time"
 )
 
-var startGap = 100 * time.Millisecond
+var startGap = 500 * time.Millisecond
 var lookAroundGap = 5 * time.Second
 var stayLimit = 5
 var maxBotPerTable = 2
@@ -21,46 +21,47 @@ var maxBotPerTable = 2
 var chLookAroundTicket = make(chan struct{})
 
 type observe struct {
-	wait	int
-	waitBot	int
-	stay	int
-	mutex	sync.Mutex
+	wait    int
+	waitBot int
+	stay    int
+	mutex   sync.Mutex
 }
+
 var prevs = [2]observe{}
 
 func thinkGap(pass bool) time.Duration {
 	//return time.Duration(10) * time.Millisecond
 	if pass {
-		return time.Duration(500 + rand.Intn(500)) * time.Millisecond
+		return time.Duration(500+rand.Intn(500)) * time.Millisecond
 	} else {
 		r1 := rand.Intn(300)
 		r2 := rand.Intn(300)
 		r3 := rand.Intn(300)
-		return time.Duration(1000 + r1 + r2 + r3) * time.Millisecond
+		return time.Duration(1000+r1+r2+r3) * time.Millisecond
 	}
 }
 
 type reqLogin struct {
-	Type		string
-	Username	string
-	Password	[]byte
-	Version		string
+	Type     string
+	Username string
+	Password []byte
+	Version  string
 }
 
 type reqTypeOnly struct {
-	Type		string
+	Type string
 }
 
 type reqBook struct {
-	Type		string
-	BookType	int
+	Type     string
+	BookType int
 }
 
 type reqAction struct {
-	Type		string
-	ActStr		string
-	ActArg		string
-	Nonce		int
+	Type   string
+	ActStr string
+	ActArg string
+	Nonce  int
 }
 
 func main() {
@@ -71,7 +72,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	bots := []string {
+	bots := []string{
 		"手持两把锟斤拷", "鱼", "大章鱼", "京狗",
 		"aa7", "ZzZzZ", "0--0--0", "X.X",
 		"HasName", "喵打", "term", "职业菜鸡"}
@@ -90,9 +91,9 @@ func main() {
 }
 
 type bot struct {
-	conn		net.Conn
-	chWrite		chan interface{}
-	username	string
+	conn     net.Conn
+	chWrite  chan interface{}
+	username string
 }
 
 func newBot(username, password string) *bot {
@@ -118,11 +119,11 @@ func loopBot(username, password string) {
 func login(username, password string) net.Conn {
 	conn, err := net.Dial("tcp", "127.0.0.1:6171")
 	if err != nil {
-		log.Fatalln(err);
+		log.Fatalln(err)
 	}
 
 	shaPw := sha256.Sum256([]byte(password))
-	reqLogin := reqLogin{"login", username, shaPw[:], "0.7.4"}
+	reqLogin := reqLogin{"login", username, shaPw[:], "0.7.6"}
 	jsonb, _ := json.Marshal(reqLogin)
 	conn.Write(append(jsonb, '\n'))
 
@@ -162,7 +163,7 @@ func (bot *bot) readLoop() {
 }
 
 func (bot *bot) readSwitch(msg map[string]interface{}) {
-	switch (msg["Type"]) {
+	switch msg["Type"] {
 	case "look-around":
 		bot.handleLookAround(msg)
 	case "start":
@@ -177,7 +178,7 @@ func (bot *bot) readSwitch(msg map[string]interface{}) {
 			args := msg["Args"].(map[string]interface{})
 			action := args["action"].(map[string]interface{})
 			_, pass := action["PASS"]
-			msg := reqAction{"t-action","BOT","-1",nonce}
+			msg := reqAction{"t-action", "BOT", "-1", nonce}
 			time.Sleep(thinkGap(pass))
 			bot.write(msg)
 		}
@@ -233,5 +234,3 @@ func (bot *bot) lookAroundLoop() {
 		bot.write(req)
 	}
 }
-
-
