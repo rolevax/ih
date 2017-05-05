@@ -3,14 +3,17 @@ package main
 import (
 	"bufio"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/howeyc/gopass"
 	"log"
 	"math/rand"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/howeyc/gopass"
+	"github.com/mjpancake/hisa/model"
 )
 
 var startGap = 500 * time.Millisecond
@@ -39,29 +42,6 @@ func thinkGap(pass bool) time.Duration {
 		r3 := rand.Intn(300)
 		return time.Duration(1000+r1+r2+r3) * time.Millisecond
 	}
-}
-
-type reqLogin struct {
-	Type     string
-	Username string
-	Password []byte
-	Version  string
-}
-
-type reqTypeOnly struct {
-	Type string
-}
-
-type reqBook struct {
-	Type     string
-	BookType int
-}
-
-type reqAction struct {
-	Type   string
-	ActStr string
-	ActArg string
-	Nonce  int
 }
 
 func main() {
@@ -123,7 +103,12 @@ func login(username, password string) net.Conn {
 	}
 
 	shaPw := sha256.Sum256([]byte(password))
-	reqLogin := reqLogin{"login", username, shaPw[:], "0.7.6"}
+	reqLogin := &model.CsAuth{
+		Type:     "login",
+		Version:  "0.8.0",
+		Username: username,
+		Password: base64.StdEncoding.EncodeToString(shaPw[:]),
+	}
 	jsonb, _ := json.Marshal(reqLogin)
 	conn.Write(append(jsonb, '\n'))
 
@@ -167,10 +152,10 @@ func (bot *bot) readSwitch(msg map[string]interface{}) {
 	case "look-around":
 		bot.handleLookAround(msg)
 	case "start":
-		msg := reqTypeOnly{"choose"} // girl index parsed 0
+		msg := model.CsTypeOnly{"choose"} // girl index parsed 0
 		bot.write(msg)
 	case "chosen":
-		msg := reqTypeOnly{"ready"}
+		msg := model.CsTypeOnly{"ready"}
 		bot.write(msg)
 	case "table":
 		if msg["Event"] == "activated" {
@@ -178,7 +163,12 @@ func (bot *bot) readSwitch(msg map[string]interface{}) {
 			args := msg["Args"].(map[string]interface{})
 			action := args["action"].(map[string]interface{})
 			_, pass := action["PASS"]
-			msg := reqAction{"t-action", "BOT", "-1", nonce}
+			msg := &model.CsAction{
+				Type:   "t-action",
+				ActStr: "BOT",
+				ActArg: "-1",
+				Nonce:  nonce,
+			}
 			time.Sleep(thinkGap(pass))
 			bot.write(msg)
 		}
@@ -198,7 +188,7 @@ func (bot *bot) handleLookAround(msg map[string]interface{}) {
 	bot.tryBook(1, cs71, &prevs[1])
 }
 
-func (bot *bot) tryBook(x int, xs71 map[string]interface{}, ob *observe) {
+func (bot *bot) tryBook(x model.BookType, xs71 map[string]interface{}, ob *observe) {
 	bookable := xs71["Bookable"].(bool)
 
 	if bookable {
@@ -216,7 +206,10 @@ func (bot *bot) tryBook(x int, xs71 map[string]interface{}, ob *observe) {
 				if ob.waitBot < maxBotPerTable {
 					ob.waitBot++
 					ob.stay = 0
-					req := reqBook{"book", x}
+					req := &model.CsBook{
+						Type:     "book",
+						BookType: x,
+					}
 					bot.write(req)
 				}
 			}
@@ -230,7 +223,7 @@ func (bot *bot) tryBook(x int, xs71 map[string]interface{}, ob *observe) {
 func (bot *bot) lookAroundLoop() {
 	for {
 		<-chLookAroundTicket
-		req := reqTypeOnly{"look-around"}
+		req := model.CsTypeOnly{"look-around"}
 		bot.write(req)
 	}
 }

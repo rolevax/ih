@@ -1,4 +1,4 @@
-package srv
+package db
 
 import (
 	"database/sql"
@@ -7,165 +7,14 @@ import (
 	"log"
 	"strconv"
 
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/mjpancake/hisa/model"
 )
 
-type dao struct {
-	db *sql.DB
-}
-
-func newDao() *dao {
-	dao := new(dao)
-
-	// just enjoying hard coding password
-	db, err := sql.Open("mysql",
-		"sakilogy:@k052a9@tcp(127.0.0.1:3306)/sakilogy")
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	if db.Ping() != nil {
-		log.Fatalln("ping DB failed", err)
-	}
-
-	dao.db = db
-
-	return dao
-}
-
-func (dao *dao) Close() {
-	dao.db.Close()
-}
-
-func (dao *dao) Login(username, password string) (*ussn, error) {
-	ussn := new(ussn)
-
-	err := dao.db.QueryRow(
-		`select user_id, username, level, pt, rating
-		from users where username=? && password=?`,
-		username, password).
-		Scan(&ussn.user.Id, &ussn.user.Username, &ussn.user.Level,
-			&ussn.user.Pt, &ussn.user.Rating)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, errors.New("用户名或密码错误")
-		}
-		log.Fatalln("dao.login", err)
-	}
-
-	return ussn, nil
-}
-
-func (dao *dao) SignUp(username, password string) (*ussn, error) {
-	var exist bool
-	err := dao.db.QueryRow(
-		"select exists(select 1 from users where username=?)",
-		username).Scan(&exist)
-
-	if err != nil {
-		log.Fatalln("dao.SignUp", err)
-	}
-
-	if exist {
-		return nil, errors.New("用户名已存在")
-	}
-
-	_, err = dao.db.Exec(
-		"insert into users (username, password) values (?,?)",
-		username, password)
-
-	if err != nil {
-		log.Fatalln("dao.SignUp", err)
-	}
-
-	return dao.Login(username, password)
-}
-
-func (dao *dao) GetUser(uid uid) *user {
-	user := new(user)
-
-	err := dao.db.QueryRow(
-		`select user_id, username, level, pt, rating
-		from users where user_id=?`, uid).
-		Scan(&user.Id, &user.Username, &user.Level,
-			&user.Pt, &user.Rating)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil
-		}
-		log.Fatalln("dao.GetUser", err)
-	}
-
-	return user
-}
-
-func (dao *dao) GetUsers(uids *[4]uid) [4]*user {
-	var users [4]*user
-
-	rows, err := dao.db.Query(
-		`select user_id, username, level, pt, rating
-		from users where user_id in (?,?,?,?)`,
-		uids[0], uids[1], uids[2], uids[3])
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		user := new(user)
-		err := rows.Scan(&user.Id, &user.Username,
-			&user.Level, &user.Pt, &user.Rating)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		for w := 0; w < 4; w++ {
-			if uids[w] == user.Id {
-				users[w] = user
-			}
-		}
-	}
-
-	err = rows.Err()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	return users
-}
-
-func (dao *dao) GetRankedGids() []gid {
-	var gids []gid
+func GetStats(uid model.Uid) []model.StatRow {
+	var stats []model.StatRow
 
 	// excluding doge
-	rows, err := dao.db.Query(
-		`select girl_id from girls where girl_id<>0 order by rating desc`)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var gid gid
-		err := rows.Scan(&gid)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		gids = append(gids, gid)
-	}
-
-	err = rows.Err()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	return gids
-}
-
-func (dao *dao) GetStats(uid uid) []statRow {
-	var stats []statRow
-
-	// excluding doge
-	rows, err := dao.db.Query(
+	rows, err := db.Query(
 		`select girl_id,rank1,rank2,rank3,rank4,
 		avg_point,a_top,a_last,
 		round,win,gun,bark,riichi,
@@ -202,7 +51,7 @@ func (dao *dao) GetStats(uid uid) []statRow {
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var r statRow
+		var r model.StatRow
 		err := rows.Scan(&r.GirlId,
 			&r.Ranks[0], &r.Ranks[1], &r.Ranks[2], &r.Ranks[3],
 			&r.AvgPoint, &r.ATop, &r.ALast,
@@ -247,9 +96,9 @@ func (dao *dao) GetStats(uid uid) []statRow {
 	return stats
 }
 
-func (dao *dao) UpdateUserGirl(bt bookType, uids [4]uid, gids [4]gid,
-	args *systemEndTableStat) {
-	tx, err := dao.db.Begin()
+func UpdateUserGirl(bt model.BookType, uids [4]model.Uid,
+	gids [4]model.Gid, args *model.EndTableStat) {
+	tx, err := db.Begin()
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -275,8 +124,8 @@ func (dao *dao) UpdateUserGirl(bt bookType, uids [4]uid, gids [4]gid,
 	tx.Commit()
 }
 
-func updateUserGirlStat(tx *sql.Tx, uids [4]uid, gids [4]gid,
-	args *systemEndTableStat) error {
+func updateUserGirlStat(tx *sql.Tx, uids [4]model.Uid,
+	gids [4]model.Gid, args *model.EndTableStat) error {
 	for i := 0; i < 4; i++ {
 		rankCol := "rank" + strconv.Itoa(args.Ranks[i])
 
@@ -408,9 +257,9 @@ func updateUserGirlStat(tx *sql.Tx, uids [4]uid, gids [4]gid,
 	return nil
 }
 
-func updateUserRank(tx *sql.Tx, uids [4]uid, ranks [4]int,
-	bt bookType) error {
-	var users [4]*user
+func updateUserRank(tx *sql.Tx, uids [4]model.Uid,
+	ranks [4]int, bt model.BookType) error {
+	var users [4]*model.User
 	var plays [4]int
 
 	rows, err := tx.Query(
@@ -425,7 +274,7 @@ func updateUserRank(tx *sql.Tx, uids [4]uid, ranks [4]int,
 	}
 	defer rows.Close()
 	for rows.Next() {
-		user := new(user)
+		user := &model.User{}
 		var play int
 		err := rows.Scan(
 			&user.Id, &user.Level, &user.Pt, &user.Rating, &play)
@@ -450,9 +299,9 @@ func updateUserRank(tx *sql.Tx, uids [4]uid, ranks [4]int,
 		}
 	}
 
-	var lprs [4]*lpr
+	var lprs [4]*model.Lpr
 	for i := 0; i < 4; i++ {
-		lprs[i] = &users[i].lpr
+		lprs[i] = &users[i].Lpr
 	}
 
 	updateLpr(&lprs, ranks, plays, bt)
@@ -469,9 +318,9 @@ func updateUserRank(tx *sql.Tx, uids [4]uid, ranks [4]int,
 	return nil
 }
 
-func updateGirlRank(tx *sql.Tx, gids [4]gid, ranks [4]int,
-	bt bookType) error {
-	var girls [4]*girl
+func updateGirlRank(tx *sql.Tx, gids [4]model.Gid,
+	ranks [4]int, bt model.BookType) error {
+	var girls [4]*model.Girl
 	var plays [4]int
 
 	rows, err := tx.Query(
@@ -486,7 +335,7 @@ func updateGirlRank(tx *sql.Tx, gids [4]gid, ranks [4]int,
 	}
 	defer rows.Close()
 	for rows.Next() {
-		girl := new(girl)
+		girl := &model.Girl{}
 		var play int
 		err := rows.Scan(
 			&girl.Id, &girl.Level, &girl.Pt, &girl.Rating, &play)
@@ -511,9 +360,9 @@ func updateGirlRank(tx *sql.Tx, gids [4]gid, ranks [4]int,
 		}
 	}
 
-	var lprs [4]*lpr
+	var lprs [4]*model.Lpr
 	for i := 0; i < 4; i++ {
-		lprs[i] = &girls[i].lpr
+		lprs[i] = &girls[i].Lpr
 	}
 
 	updateLpr(&lprs, ranks, plays, bt)

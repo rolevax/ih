@@ -1,15 +1,18 @@
-package srv
+package db
 
 import (
 	"errors"
 	"log"
+
+	"github.com/mjpancake/hisa/model"
 )
 
 func average(d *[4]float64) float64 {
 	return (d[0] + d[1] + d[2] + d[3]) / 4.0
 }
 
-func updateLpr(lprs *[4]*lpr, ranks [4]int, plays [4]int, bt bookType) {
+func updateLpr(lprs *[4]*model.Lpr, ranks [4]int,
+	plays [4]int, bt model.BookType) {
 	sumRating := 0.0
 	for w := 0; w < 4; w++ {
 		if lprs[w] == nil {
@@ -47,7 +50,7 @@ func updateLpr(lprs *[4]*lpr, ranks [4]int, plays [4]int, bt bookType) {
 	}
 }
 
-func updateTopPt(pt *int, level *int, bookType bookType) {
+func updateTopPt(pt *int, level *int, bookType model.BookType) {
 	switch bookType {
 	case 0:
 		*pt += 45
@@ -63,7 +66,7 @@ func updateTopPt(pt *int, level *int, bookType bookType) {
 	updateLevel(pt, level)
 }
 
-func update2ndPt(pt *int, level *int, bookType bookType) {
+func update2ndPt(pt *int, level *int, bookType model.BookType) {
 	switch bookType {
 	case 0:
 		*pt += 0

@@ -1,4 +1,4 @@
-package srv
+package tssn
 
 import (
 	"encoding/json"
@@ -7,6 +7,10 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/mjpancake/hisa/actor/tssn/tbus"
+	"github.com/mjpancake/hisa/actor/ussn/ubus"
+	"github.com/mjpancake/hisa/db"
+	"github.com/mjpancake/hisa/model"
 	"github.com/mjpancake/hisa/saki"
 )
 
@@ -24,16 +28,16 @@ const (
 	tssnWaitAction
 )
 
-type tssn struct {
-	bookType    bookType
+type ss struct {
+	bookType    model.BookType
 	state       tssnState
-	ready       chan uid
-	choose      chan *msgTssnChoose
-	action      chan *msgTssnAction
+	ready       chan model.Uid
+	choose      chan *tbus.MsgChoose
+	action      chan *tbus.MsgAction
 	done        chan struct{}
-	uids        [4]uid
-	gids        [4]gid
-	gidcs       [12]gid
+	uids        [4]model.Uid
+	gids        [4]model.Gid
+	gidcs       [12]model.Gid
 	waits       [4]bool
 	onlines     [4]bool
 	nonces      [4]int
@@ -41,14 +45,14 @@ type tssn struct {
 	table       saki.TableSession
 }
 
-func startTssn(bt bookType, uids [4]uid) *tssn {
-	tssn := new(tssn)
+func startTssn(bt model.BookType, uids [4]model.Uid) *ss {
+	tssn := new(ss)
 
 	tssn.bookType = bt
 	tssn.state = tssnWaitChoose
-	tssn.ready = make(chan uid)
-	tssn.choose = make(chan *msgTssnChoose)
-	tssn.action = make(chan *msgTssnAction)
+	tssn.ready = make(chan model.Uid)
+	tssn.choose = make(chan *tbus.MsgChoose)
+	tssn.action = make(chan *tbus.MsgAction)
 	tssn.done = make(chan struct{})
 	tssn.uids = uids
 	tssn.answerTimer = time.NewTimer(answerTimeOut)
@@ -66,13 +70,13 @@ func startTssn(bt bookType, uids [4]uid) *tssn {
 	return tssn
 }
 
-func loopTssn(bt bookType, uids [4]uid) {
+func LoopTssn(bt model.BookType, uids [4]model.Uid) {
 	log.Println("TSSN ++++", bt, uids)
 	defer log.Println("TSSN ----", bt, uids)
 	tssn := startTssn(bt, uids)
 	defer close(tssn.done)
-	sing.TssnMgr.Reg(tssn)
-	defer sing.TssnMgr.Unreg(tssn)
+	Reg(tssn)
+	defer Unreg(tssn)
 	defer func() {
 		if tssn.table != nil {
 			saki.DeleteTableSession(tssn.table)
@@ -87,11 +91,11 @@ func loopTssn(bt bookType, uids [4]uid) {
 	for tssn.anyOnline() {
 		select {
 		case msg := <-tssn.choose:
-			tssn.handleChoose(msg.uid, msg.gidx)
+			tssn.handleChoose(msg.Uid, msg.Gidx)
 		case uid := <-tssn.ready:
 			tssn.handleReady(uid)
 		case mta := <-tssn.action:
-			tssn.handleAction(mta.uid, mta.act)
+			tssn.handleAction(mta.Uid, mta.Act)
 		case <-tssn.answerTimer.C:
 			tssn.handleAnswerTimeout()
 		case <-hardTimer.C:
@@ -105,26 +109,14 @@ func loopTssn(bt bookType, uids [4]uid) {
 	}
 }
 
-type msgTssnChoose struct {
-	uid  uid
-	gidx int
-}
-
-func newMsgTssnChoose(uid uid, gidx int) *msgTssnChoose {
-	msg := new(msgTssnChoose)
-	msg.uid = uid
-	msg.gidx = gidx
-	return msg
-}
-
-func (tssn *tssn) Choose(msg *msgTssnChoose) {
+func (tssn *ss) Choose(msg *tbus.MsgChoose) {
 	select {
 	case tssn.choose <- msg:
 	case <-tssn.done:
 	}
 }
 
-func (tssn *tssn) Ready(uid uid) {
+func (tssn *ss) Ready(uid model.Uid) {
 	select {
 	case tssn.ready <- uid:
 	case <-tssn.done:
@@ -132,18 +124,18 @@ func (tssn *tssn) Ready(uid uid) {
 }
 
 type msgTssnAction struct {
-	uid uid
-	act *reqAction
+	uid model.Uid
+	act *model.CsAction
 }
 
-func (tssn *tssn) Action(uid uid, act *reqAction) {
+func (tssn *ss) Action(uid model.Uid, act *model.CsAction) {
 	select {
-	case tssn.action <- &msgTssnAction{uid, act}:
+	case tssn.action <- &tbus.MsgAction{uid, act}:
 	case <-tssn.done:
 	}
 }
 
-func (tssn *tssn) handleChoose(uid uid, gidx int) {
+func (tssn *ss) handleChoose(uid model.Uid, gidx int) {
 	if i, ok := tssn.findUser(uid); ok {
 		if tssn.state != tssnWaitChoose {
 			log.Println("tssn.handleChoose wrong state", uid)
@@ -162,7 +154,7 @@ func (tssn *tssn) handleChoose(uid uid, gidx int) {
 	}
 }
 
-func (tssn *tssn) handleReady(uid uid) {
+func (tssn *ss) handleReady(uid model.Uid) {
 	if i, ok := tssn.findUser(uid); ok {
 		if tssn.state != tssnWaitReady {
 			log.Println("tssn.handleReady wrong state", uid)
@@ -179,7 +171,7 @@ func (tssn *tssn) handleReady(uid uid) {
 	}
 }
 
-func (tssn *tssn) handleAction(uid uid, act *reqAction) {
+func (tssn *ss) handleAction(uid model.Uid, act *model.CsAction) {
 	i, _ := tssn.findUser(uid)
 	if tssn.state != tssnWaitAction {
 		log.Println("tssn.handleAction wrong state", uid)
@@ -199,7 +191,7 @@ func (tssn *tssn) handleAction(uid uid, act *reqAction) {
 	tssn.handleMails(mails)
 }
 
-func (tssn *tssn) handleAnswerTimeout() {
+func (tssn *ss) handleAnswerTimeout() {
 	prevWaits := tssn.waits // copy, prevent overwrites incoming
 
 	switch tssn.state {
@@ -222,8 +214,8 @@ func (tssn *tssn) handleAnswerTimeout() {
 	}
 }
 
-func (tssn *tssn) notifyLoad() {
-	users := sing.Dao.GetUsers(&tssn.uids)
+func (tssn *ss) notifyLoad() {
+	users := db.GetUsers(&tssn.uids)
 	for i, user := range users {
 		if user == nil {
 			log.Fatalln("tssn.nofityLoad:", tssn.uids[i], "not in DB")
@@ -232,9 +224,9 @@ func (tssn *tssn) notifyLoad() {
 
 	msg := struct {
 		Type       string
-		Users      [4]*user
+		Users      [4]*model.User
 		TempDealer int
-		Choices    [len(tssn.gidcs)]gid
+		Choices    [len(tssn.gidcs)]model.Gid
 	}{"start", users, 0, tssn.gidcs}
 
 	for i, uid := range tssn.uids {
@@ -266,12 +258,12 @@ func (tssn *tssn) notifyLoad() {
 	tssn.resetAnswerTimer()
 }
 
-func (tssn *tssn) notifyChosen() {
+func (tssn *ss) notifyChosen() {
 	tssn.state = tssnWaitReady
 
 	msg := struct {
 		Type    string
-		GirlIds [4]gid
+		GirlIds [4]model.Gid
 	}{"chosen", tssn.gids}
 
 	for w := 0; w < 4; w++ {
@@ -285,17 +277,17 @@ func (tssn *tssn) notifyChosen() {
 	tssn.resetAnswerTimer()
 }
 
-func (tssn *tssn) hasWait() bool {
+func (tssn *ss) hasWait() bool {
 	r := &tssn.waits
 	return r[0] || r[1] || r[2] || r[3]
 }
 
-func (tssn *tssn) anyOnline() bool {
+func (tssn *ss) anyOnline() bool {
 	o := &tssn.onlines
 	return o[0] || o[1] || o[2] || o[3]
 }
 
-func (tssn *tssn) findUser(uid uid) (int, bool) {
+func (tssn *ss) findUser(uid model.Uid) (int, bool) {
 	for i, u := range tssn.uids {
 		if u == uid {
 			return i, true
@@ -304,7 +296,7 @@ func (tssn *tssn) findUser(uid uid) (int, bool) {
 	return -1, false
 }
 
-func (tssn *tssn) start() {
+func (tssn *ss) start() {
 	log.Println("TSSN ****", tssn.uids[0], tssn.gids)
 	tssn.state = tssnWaitAction
 	tssn.table = saki.NewTableSession(
@@ -316,13 +308,13 @@ func (tssn *tssn) start() {
 	tssn.handleMails(mails)
 }
 
-func (tssn *tssn) sweepOne(i int) {
+func (tssn *ss) sweepOne(i int) {
 	mails := tssn.table.SweepOne(i)
 	defer saki.DeleteMailVector(mails)
 	tssn.handleMails(mails)
 }
 
-func (tssn *tssn) sweepAll() {
+func (tssn *ss) sweepAll() {
 	var targets int
 	mails := tssn.table.SweepAll(&targets)
 	for w := uint(0); w < 4; w++ {
@@ -335,12 +327,12 @@ func (tssn *tssn) sweepAll() {
 	tssn.handleMails(mails)
 }
 
-func (tssn *tssn) kick(w int) {
+func (tssn *ss) kick(w int) {
 	tssn.onlines[w] = false
-	sing.UssnMgr.Logout(tssn.uids[w])
+	ubus.Logout(tssn.uids[w])
 }
 
-func (tssn *tssn) handleMails(mails saki.MailVector) {
+func (tssn *ss) handleMails(mails saki.MailVector) {
 	size := int(mails.Size())
 	if size > 0 {
 		var nonceInced [4]bool
@@ -369,10 +361,10 @@ func (tssn *tssn) handleMails(mails saki.MailVector) {
 	}
 }
 
-func (tssn *tssn) sendUserMail(who int, msg map[string]interface{}) {
+func (tssn *ss) sendUserMail(who int, msg map[string]interface{}) {
 	msg["Nonce"] = tssn.nonces[who]
 	if msg["Event"] == "resume" {
-		users := sing.Dao.GetUsers(&tssn.uids)
+		users := db.GetUsers(&tssn.uids)
 		for i, user := range users {
 			if user == nil {
 				log.Fatalln("tssn.send-resume:", tssn.uids[i], "not in DB")
@@ -381,7 +373,7 @@ func (tssn *tssn) sendUserMail(who int, msg map[string]interface{}) {
 		right := (who + 1) % 4
 		cross := (who + 2) % 4
 		left := (who + 3) % 4
-		rotated := [4]*user{users[who], users[right],
+		rotated := [4]*model.User{users[who], users[right],
 			users[cross], users[left]}
 		msg["Args"].(map[string]interface{})["users"] = rotated
 	}
@@ -394,9 +386,9 @@ func (tssn *tssn) sendUserMail(who int, msg map[string]interface{}) {
 	}
 }
 
-func (tssn *tssn) sendPeer(i int, msg interface{}) error {
+func (tssn *ss) sendPeer(i int, msg interface{}) error {
 	if tssn.onlines[i] {
-		err := sing.UssnMgr.Peer(tssn.uids[i], msg)
+		err := ubus.Peer(tssn.uids[i], msg)
 		if err != nil {
 			tssn.kick(i)
 		}
@@ -405,7 +397,7 @@ func (tssn *tssn) sendPeer(i int, msg interface{}) error {
 	return errors.New("peer not in session")
 }
 
-func (tssn *tssn) resetAnswerTimer() {
+func (tssn *ss) resetAnswerTimer() {
 	if !tssn.answerTimer.Stop() {
 		select {
 		case <-tssn.answerTimer.C:
@@ -415,29 +407,7 @@ func (tssn *tssn) resetAnswerTimer() {
 	tssn.answerTimer.Reset(answerTimeOut)
 }
 
-type systemEndTableStat struct {
-	Ranks           [4]int
-	Points          [4]int
-	ATop            bool
-	ALast           bool
-	Round           int
-	Wins            [4]int
-	Guns            [4]int
-	Barks           [4]int
-	Riichis         [4]int
-	WinSumPoints    [4]int
-	GunSumPoints    [4]int
-	BarkSumPoints   [4]int
-	RiichiSumPoints [4]int
-	ReadySumTurns   [4]int
-	Readys          [4]int
-	WinSumTurns     [4]int
-	Yakus           [4]map[string]int
-	SumHans         [4]map[string]int
-	Kzeykms         [4]int
-}
-
-func (tssn *tssn) handleSystemMail(msg map[string]interface{},
+func (tssn *ss) handleSystemMail(msg map[string]interface{},
 	msgStr string) {
 	switch msg["Type"] {
 	case "round-start-log":
@@ -449,30 +419,34 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 			msg["allLast"], msg["deposit"],
 			uint(msg["seed"].(float64)))
 	case "table-end-stat":
-		var stat systemEndTableStat
+		var stat model.EndTableStat
 		err := json.Unmarshal([]byte(msgStr), &stat)
 		if err != nil {
 			log.Fatalln("table-end-stat unmarshal", err)
 		}
-		sing.Dao.UpdateUserGirl(tssn.bookType, tssn.uids, tssn.gids, &stat)
+		db.UpdateUserGirl(tssn.bookType, tssn.uids, tssn.gids, &stat)
 		for w := 0; w < 4; w++ {
-			sing.UssnMgr.UpdateInfo(tssn.uids[w])
+			ubus.UpdateInfo(tssn.uids[w])
 		}
 	case "riichi-auto":
 		time.Sleep(1000 * time.Millisecond)
 		who := int(msg["Who"].(float64))
-		act := reqAction{tssn.nonces[who], "SPIN_OUT", "-1"}
-		tssn.handleAction(tssn.uids[who], &act)
+		act := &model.CsAction{
+			Nonce:  tssn.nonces[who],
+			ActStr: "SPIN_OUT",
+			ActArg: "-1",
+		}
+		tssn.handleAction(tssn.uids[who], act)
 	default:
 		log.Fatalln("unknown system mail", msg)
 	}
 }
 
-func (tssn *tssn) genIds() {
-	avails := sing.Dao.GetRankedGids()
+func (tssn *ss) genIds() {
+	avails := db.GetRankedGids()
 	cpu := len(tssn.gidcs) / 4 // choice per user
 
-	switch tssn.bookType.index() {
+	switch tssn.bookType.Index() {
 	case 0:
 		last14 := avails[len(avails)-14:]
 		perm := rand.Perm(len(last14))
