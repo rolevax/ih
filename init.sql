@@ -180,3 +180,16 @@ alter table user_girl add column (
 	yaku_kanuradora int unsigned not null default 0
 );
 
+create table replays (
+    replay_id int unsigned primary key not null auto_increment,
+	content mediumtext not null
+);
+
+create table user_replay (
+    user_id int unsigned not null,
+    replay_id int unsigned not null,
+    primary key (user_id, replay_id),
+    foreign key (user_id) references users(user_id),
+    foreign key (replay_id) references replays(replay_id)
+);
+
