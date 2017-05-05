@@ -1,3 +1,10 @@
+create database sakilogy;
+
+--- enjoy hard coding password
+create user 'sakilogy'@'localhost' identified by '@k052a9';
+grant all privileges on sakilogy.* to 'sakilogy'@'localhost';
+flush privileges;
+
 use sakilogy;
 
 create table users (
@@ -6,14 +13,14 @@ create table users (
     password char(44) not null,
     level int(2) unsigned not null default 0,
     pt int(4) unsigned not null default 0,
-    rating float(8,3) not null default 1500.0,
+    rating float(8,3) not null default 1500.0
 );
 
 create table girls (
     girl_id int primary key,
     level int(2) unsigned not null default 0,
     pt int(4) unsigned not null default 0,
-    rating float(8,3) not null default 1500.0,
+    rating float(8,3) not null default 1500.0
 );
 
 -- a sample girl list, written at v0.7.6. add more if necessary.

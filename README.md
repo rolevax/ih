@@ -10,7 +10,7 @@ for an introduction to Pancake Mahjong.
 Requirement:
 
 - Unix-like environment with common build tools
-- Go
+- Go 1.8 or above
 - SWIG 3.0
 - All the other dependencies are go-gettable
 
@@ -27,10 +27,9 @@ go build
 
 Requirement:
 
-- A running MySQL server with related tables already created
-  (see the wiki for the database schema)
+- A running MySQL server with a well-built database.
+  - To initialize a DB, start `mysql` as root and `source init.sql;`
 - A running Redis server with the default configurations
-  (see `srv/redis.go`)
 
 Then run the server:
 
