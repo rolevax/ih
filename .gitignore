@@ -1,5 +1,6 @@
 hisa
 bot/bot
+monkey/monkey
 saki/saki.go
 saki/saki_wrap.cxx
 saki/build

@@ -71,15 +71,15 @@ func startUssn(conn net.Conn) (*ss, error) {
 		return nil, err
 	}
 
-	ss.conn = conn
-	ss.handleWrite(model.NewScAuthOk(&ss.user))
-	ss.handleUpdateInfo()
-
 	ss.read = make(chan []byte)
 	ss.write = make(chan *msgUssnWrite)
 	ss.update = make(chan struct{})
 	ss.done = make(chan struct{})
 	ss.logout = make(chan error)
+
+	ss.conn = conn
+	ss.handleWrite(model.NewScAuthOk(&ss.user))
+	ss.handleUpdateInfo()
 
 	go ss.readLoop()
 

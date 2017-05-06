@@ -174,7 +174,8 @@ func (tssn *ss) handleReady(uid model.Uid) {
 func (tssn *ss) handleAction(uid model.Uid, act *model.CsAction) {
 	i, _ := tssn.findUser(uid)
 	if tssn.state != tssnWaitAction {
-		log.Println("tssn.handleAction wrong state", uid)
+		log.Println("tssn.handleAction wrong state", uid,
+			act.ActStr, act.ActArg, tssn.state)
 		tssn.kick(i)
 		return
 	}
@@ -229,9 +230,12 @@ func (tssn *ss) notifyLoad() {
 		Choices    [len(tssn.gidcs)]model.Gid
 	}{"start", users, 0, tssn.gidcs}
 
+	for i, _ := range tssn.waits {
+		tssn.waits[i] = true
+	}
+
 	for i, uid := range tssn.uids {
 		msg.TempDealer = (4 - i) % 4
-		tssn.waits[i] = true
 		err := tssn.sendPeer(i, msg)
 		if err != nil {
 			tssn.handleChoose(uid, 0)
@@ -268,6 +272,9 @@ func (tssn *ss) notifyChosen() {
 
 	for w := 0; w < 4; w++ {
 		tssn.waits[w] = true
+	}
+
+	for w := 0; w < 4; w++ {
 		tssn.sendPeer(w, msg)
 
 		gs := &msg.GirlIds
