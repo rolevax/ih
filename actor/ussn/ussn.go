@@ -1,24 +1,18 @@
 package ussn
 
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
 	"log"
 	"net"
-	"time"
 
 	"github.com/mjpancake/hisa/actor/book"
 	"github.com/mjpancake/hisa/actor/tssn/tbus"
 	"github.com/mjpancake/hisa/actor/ussn/ubus"
 	"github.com/mjpancake/hisa/db"
 	"github.com/mjpancake/hisa/model"
+	"github.com/mjpancake/hisa/netio"
 )
-
-const readAuthTimeOut = 10 * time.Second
-const idleTimeOut = 15 * time.Minute
-const writeTimeOut = 10 * time.Second
-const obayTimeOut = 5 * time.Second
 
 type ss struct {
 	user   model.User
@@ -87,8 +81,7 @@ func startUssn(conn net.Conn) (*ss, error) {
 }
 
 func authUssn(conn net.Conn) (*ss, error) {
-	conn.SetReadDeadline(time.Now().Add(readAuthTimeOut))
-	breq, err := bufio.NewReader(conn).ReadBytes('\n')
+	breq, err := netio.ReadAuth(conn)
 	if err != nil {
 		return nil, err
 	}
@@ -128,8 +121,7 @@ func reject(conn net.Conn, msg interface{}) {
 		log.Fatalln("auth reject", err)
 	}
 
-	conn.SetWriteDeadline(time.Now().Add(writeTimeOut))
-	if _, err := conn.Write(append(jsonb, '\n')); err != nil {
+	if err := netio.Write(conn, jsonb); err != nil {
 		log.Println("auth reject", err)
 	} else {
 		log.Println(conn.RemoteAddr(), "<---", string(jsonb))
@@ -176,10 +168,8 @@ func (ss *ss) Logout(err error) {
 }
 
 func (ss *ss) readLoop() {
-	reader := bufio.NewReader(ss.conn)
 	for {
-		ss.conn.SetReadDeadline(time.Now().Add(idleTimeOut))
-		breq, err := reader.ReadBytes('\n')
+		breq, err := netio.Read(ss.conn)
 		if err != nil {
 			ss.Logout(err) // ok, not in ss main goroutine
 			return
@@ -247,8 +237,7 @@ func (ss *ss) handleWrite(msg interface{}) error {
 		return err
 	}
 
-	ss.conn.SetWriteDeadline(time.Now().Add(writeTimeOut))
-	_, err = ss.conn.Write(append(jsonb, '\n'))
+	err = netio.Write(ss.conn, jsonb)
 	if err != nil {
 		ss.handleLogout(err)
 	} else {

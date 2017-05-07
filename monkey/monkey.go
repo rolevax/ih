@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/howeyc/gopass"
 	"github.com/mjpancake/hisa/model"
+	"github.com/mjpancake/hisa/netio"
 )
 
 func main() {
@@ -22,7 +22,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	for i := 0; i < 40; i++ {
+	for i := 0; i < 4; i++ {
 		username := "bot" + strconv.Itoa(i)
 		go loopBot(username, string(password))
 	}
@@ -45,7 +45,7 @@ func signUp(username, password string) {
 		Password: base64.StdEncoding.EncodeToString(shaPw[:]),
 	}
 	jsonb, _ := json.Marshal(reqLogin)
-	conn.Write(append(jsonb, '\n'))
+	netio.Write(conn, jsonb)
 	time.Sleep(1 * time.Second)
 	conn.Close()
 }
@@ -90,9 +90,9 @@ func login(username, password string) net.Conn {
 		Password: base64.StdEncoding.EncodeToString(shaPw[:]),
 	}
 	jsonb, _ := json.Marshal(reqLogin)
-	conn.Write(append(jsonb, '\n'))
+	netio.Write(conn, jsonb)
 
-	_, err = bufio.NewReader(conn).ReadString('\n')
+	_, err = netio.Read(conn)
 	if err != nil {
 		log.Fatalln(err.Error())
 	}
@@ -105,16 +105,15 @@ func (bot *bot) write(msg interface{}) {
 	if err != nil {
 		log.Fatalln("write marshal:", err)
 	}
-	_, err = bot.conn.Write(append(jsonb, '\n'))
+	err = netio.Write(bot.conn, jsonb)
 	if err != nil {
 		log.Fatalln(err)
 	}
 }
 
 func (bot *bot) readLoop() {
-	reader := bufio.NewReader(bot.conn)
 	for {
-		reply, err := reader.ReadString('\n')
+		reply, err := netio.Read(bot.conn)
 		if err != nil {
 			log.Fatalln("srv ---- ", err)
 		}
