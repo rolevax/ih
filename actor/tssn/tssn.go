@@ -36,6 +36,7 @@ type ss struct {
 	action      chan *tbus.MsgAction
 	done        chan struct{}
 	uids        [4]model.Uid
+	users       [4]*model.User
 	gids        [4]model.Gid
 	gidcs       [12]model.Gid
 	waits       [4]bool
@@ -55,6 +56,12 @@ func startTssn(bt model.BookType, uids [4]model.Uid) *ss {
 	tssn.action = make(chan *tbus.MsgAction)
 	tssn.done = make(chan struct{})
 	tssn.uids = uids
+	tssn.users = db.GetUsers(&tssn.uids)
+	for i, user := range tssn.users {
+		if user == nil {
+			log.Fatalln("startTssn:", tssn.uids[i], "not in DB")
+		}
+	}
 	tssn.answerTimer = time.NewTimer(answerTimeOut)
 	if !tssn.answerTimer.Stop() {
 		select {
@@ -216,12 +223,7 @@ func (tssn *ss) handleAnswerTimeout() {
 }
 
 func (tssn *ss) notifyLoad() {
-	users := db.GetUsers(&tssn.uids)
-	for i, user := range users {
-		if user == nil {
-			log.Fatalln("tssn.nofityLoad:", tssn.uids[i], "not in DB")
-		}
-	}
+	users := tssn.users
 
 	msg := struct {
 		Type       string
@@ -371,17 +373,15 @@ func (tssn *ss) handleMails(mails saki.MailVector) {
 func (tssn *ss) sendUserMail(who int, msg map[string]interface{}) {
 	msg["Nonce"] = tssn.nonces[who]
 	if msg["Event"] == "resume" {
-		users := db.GetUsers(&tssn.uids)
-		for i, user := range users {
-			if user == nil {
-				log.Fatalln("tssn.send-resume:", tssn.uids[i], "not in DB")
-			}
-		}
 		right := (who + 1) % 4
 		cross := (who + 2) % 4
 		left := (who + 3) % 4
-		rotated := [4]*model.User{users[who], users[right],
-			users[cross], users[left]}
+		rotated := [4]*model.User{
+			tssn.users[who],
+			tssn.users[right],
+			tssn.users[cross],
+			tssn.users[left],
+		}
 		msg["Args"].(map[string]interface{})["users"] = rotated
 	}
 
@@ -431,6 +431,7 @@ func (tssn *ss) handleSystemMail(msg map[string]interface{},
 		if err != nil {
 			log.Fatalln("table-end-stat unmarshal", err)
 		}
+		tssn.injectUsers(stat.Replay)
 		db.UpdateUserGirl(tssn.bookType, tssn.uids, tssn.gids, &stat)
 		for w := 0; w < 4; w++ {
 			ubus.UpdateInfo(tssn.uids[w])
@@ -480,4 +481,17 @@ func (tssn *ss) genIds() {
 	for w := 0; w < 4; w++ {
 		tssn.gids[w] = tssn.gidcs[w*cpu] // choose first as default
 	}
+}
+
+func (tssn *ss) injectUsers(replay map[string]interface{}) {
+	var users [4]map[string]interface{}
+	for w := 0; w < 4; w++ {
+		user := make(map[string]interface{})
+		user["Id"] = tssn.uids[w]
+		user["Username"] = tssn.users[w].Username
+		user["Level"] = tssn.users[w].Level
+		user["Rating"] = tssn.users[w].Rating
+		users[w] = user
+	}
+	replay["users"] = users
 }

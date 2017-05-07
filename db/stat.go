@@ -121,6 +121,12 @@ func UpdateUserGirl(bt model.BookType, uids [4]model.Uid,
 		log.Fatalln(err)
 	}
 
+	err = updateReplay(tx, uids, args.Replay)
+	if err != nil {
+		tx.Rollback()
+		log.Fatalln(err)
+	}
+
 	tx.Commit()
 }
 

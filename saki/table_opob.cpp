@@ -1,10 +1,10 @@
 #include "table_opob.h"
 
+#include "json.hpp"
+
 #include "libsaki/string_enum.h"
 #include "libsaki/ai.h"
 #include "libsaki/util.h"
-
-#include <bitset>
 
 
 
@@ -46,85 +46,6 @@ Action makeAction(const string &actStr, const string &actArg, int who)
 	}
 }
 
-unsigned createSwapMask(const TileCount &closed,
-                        const std::vector<T37> &choices)
-{
-	// assume 'choices' is 34-sorted
-	std::bitset<13> mask;
-	int i = 0;
-
-	auto it = choices.begin();
-	for (const T37 &t : tiles37::ORDER37) {
-		if (it == choices.end())
-			break;
-		int ct = closed.ct(t);
-		if (ct > 0) {
-			bool val = t.looksSame(*it);
-			while (ct --> 0)
-				mask[i++] = val;
-			it += val; // consume choice if matched
-		}
-	}
-
-	return mask.to_ulong();
-}
-
-std::vector<string> createTileStrs(const std::vector<T34> &ts)
-{
-	std::vector<string> res;
-	for (T34 t : ts)
-		res.emplace_back(t.str());
-	return res;
-}
-
-std::string createTile(const T37 &t, bool lay = false)
-{
-	std::string res(t.str());
-	if (lay)
-		res += '_';
-	return res;
-}
-
-json createTiles(const std::vector<T37> &ts)
-{
-	json res = json::array();
-	for (const T37 &t : ts)
-		res.emplace_back(createTile(t, false));
-	return res;
-}
-
-json createBark(const M37 &m)
-{
-	json res;
-	using T = M37::Type;
-	T type = m.type();
-	res["type"] = (type == T::CHII ? 1 : (type == T::PON ? 3 : 4));
-	int open = m.layIndex();
-	if (type != T::ANKAN)
-		res["open"] = open;
-
-	res["0"] = createTile(m[0], open == 0);
-	res["1"] = createTile(m[1], open == 1);
-	res["2"] = createTile(m[2], open == 2);
-
-	if (m.isKan()) {
-		res["3"] = createTile(m[3], type == T::KAKAN);
-		res["isDaiminkan"] = (type == T::DAIMINKAN);
-		res["isAnkan"] = (type == T::ANKAN);
-		res["isKakan"] = (type == T::KAKAN);
-	}
-
-	return res;
-}
-
-json createBarks(const std::vector<M37> &ms)
-{
-	json list = json::array();
-	for (const M37 &m : ms)
-		list.emplace_back(createBark(m));
-	return list;
-}
-
 template<typename T>
 void rotate(T &arr)
 {
@@ -135,7 +56,6 @@ void rotate(T &arr)
 	arr[3] = temp;
 }
                   
-
 
 
 TableOpOb::TableOpOb(const std::array<int, 4> &girlIds)
@@ -152,7 +72,7 @@ TableOpOb::TableOpOb(const std::array<int, 4> &girlIds)
 	std::array<TableOperator*, 4> ops {
 		&mOps[0], &mOps[1], &mOps[2], &mOps[3]
 	};
-	std::vector<TableObserver*> obs { this, &mStat };
+	std::vector<TableObserver*> obs { this, &mStat, &mReplay };
 	Who td(0);
 
 	mTable.reset(new Table(points, girlIds, ops, obs, rule, td));
@@ -608,6 +528,8 @@ void TableOpOb::tableEndStat(const std::array<int, 4> &scores)
 	args["Yakus"] = mStat.yakus();
 	args["SumHans"] = mStat.sumHans();
 	args["Kzeykms"] = mStat.kzeykms();
+
+	args["Replay"] = createReplay(mReplay);
 
 	system("table-end-stat", args);
 }

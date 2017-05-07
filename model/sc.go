@@ -48,3 +48,17 @@ func NewScUpdateUser(user *User, stats []StatRow) *ScUpdateUser {
 	}
 	return resp
 }
+
+type ScGetReplay struct {
+	Type       string
+	ReplayId   uint
+	ReplayJson string
+}
+
+func NewScGetReplay(replayId uint, replayJson string) *ScGetReplay {
+	return &ScGetReplay{
+		Type:       "get-replay",
+		ReplayId:   replayId,
+		ReplayJson: replayJson,
+	}
+}

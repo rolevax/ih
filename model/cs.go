@@ -26,3 +26,7 @@ type CsBook struct {
 type CsChoose struct {
 	GirlIndex int
 }
+
+type CsGetReplay struct {
+	ReplayId uint
+}

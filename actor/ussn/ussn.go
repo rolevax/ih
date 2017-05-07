@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net"
+	"time"
 
 	"github.com/mjpancake/hisa/actor/book"
 	"github.com/mjpancake/hisa/actor/tssn/tbus"
@@ -225,6 +226,14 @@ func (ss *ss) handleRead(breq []byte) {
 			return
 		}
 		tbus.Action(ss.user.Id, &act)
+	case t == "get-replay":
+		var req model.CsGetReplay
+		if err := json.Unmarshal(breq, &req); err != nil {
+			ss.handleLogout(err)
+			return
+		}
+		time.Sleep(2 * time.Second)
+		ss.handleGetReplay(req.ReplayId)
 	default:
 		ss.handleLogout(errors.New("invalid req: " + string(breq)))
 	}
@@ -276,4 +285,12 @@ func (ss *ss) handleLookAround() {
 func (ss *ss) handleUpdateInfo() {
 	ss.user = *db.GetUser(ss.user.Id)
 	ss.handleWrite(model.NewScUpdateUser(&ss.user, db.GetStats(ss.user.Id)))
+}
+
+func (ss *ss) handleGetReplay(replayId uint) {
+	text, err := db.GetReplay(replayId)
+	if err != nil {
+		ss.handleLogout(err)
+	}
+	ss.handleWrite(model.NewScGetReplay(replayId, text))
 }

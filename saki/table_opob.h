@@ -3,20 +3,18 @@
 
 #include "mail.h"
 #include "table_stat.h"
-
-#include "json.hpp"
+#include "s11n.h"
 
 #include "libsaki/tableoperator.h"
 #include "libsaki/tableobserver.h"
 #include "libsaki/table.h"
+#include "libsaki/replay.h"
 
 #include <memory>
 
 class TableOpOb;
 
-using namespace saki;
 using string = std::string;
-using json = nlohmann::json;
 
 class TableOp : public TableOperator
 {
@@ -74,6 +72,7 @@ private:
 
 private:
 	TableStat mStat;
+	Replay mReplay;
 	std::vector<Mail> mMails;
 	std::unique_ptr<Table> mTable;
 	std::array<TableOp, 4> mOps;

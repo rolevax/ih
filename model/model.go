@@ -186,4 +186,5 @@ type EndTableStat struct {
 	Yakus           [4]map[string]int
 	SumHans         [4]map[string]int
 	Kzeykms         [4]int
+	Replay          map[string]interface{}
 }
