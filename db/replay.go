@@ -3,9 +3,37 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 
 	"github.com/mjpancake/hisa/model"
 )
+
+func GetReplayList(uid model.Uid) []uint {
+	var ids []uint
+
+	rows, err := db.Query(
+		`select replay_id from user_replay where user_id=? order by replay_id desc`,
+		uid)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id uint
+		err := rows.Scan(&id)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		ids = append(ids, id)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	return ids
+}
 
 func GetReplay(replayId uint) (string, error) {
 	var text string

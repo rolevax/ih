@@ -35,7 +35,7 @@ insert into girls (girl_id) values
 	(713301),
 	(713811), (713815),
 	(714915),
-	(715712),
+	(715212),
 	(990001), (990002);
 
 create table user_girl (

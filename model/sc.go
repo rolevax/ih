@@ -49,6 +49,18 @@ func NewScUpdateUser(user *User, stats []StatRow) *ScUpdateUser {
 	return resp
 }
 
+type ScGetReplayList struct {
+	Type      string
+	ReplayIds []uint
+}
+
+func NewScGetReplayList(replayIds []uint) *ScGetReplayList {
+	return &ScGetReplayList{
+		Type:      "get-replay-list",
+		ReplayIds: replayIds,
+	}
+}
+
 type ScGetReplay struct {
 	Type       string
 	ReplayId   uint

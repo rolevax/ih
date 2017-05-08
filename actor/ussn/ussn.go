@@ -192,12 +192,12 @@ func (ss *ss) handleRead(breq []byte) {
 	}
 	t := req.Type
 
-	switch {
-	case t == "look-around":
+	switch t {
+	case "look-around":
 		ss.handleLookAround()
-	case t == "heartbeat":
+	case "heartbeat":
 		// do nothing
-	case t == "book":
+	case "book":
 		var req model.CsBook
 		if err := json.Unmarshal(breq, &req); err != nil {
 			ss.handleLogout(err)
@@ -208,25 +208,27 @@ func (ss *ss) handleRead(breq []byte) {
 			return
 		}
 		book.Book(ss.user.Id, req.BookType)
-	case t == "unbook":
+	case "unbook":
 		book.Unbook(ss.user.Id)
-	case t == "ready":
+	case "ready":
 		tbus.Ready(ss.user.Id)
-	case t == "choose":
+	case "choose":
 		var req model.CsChoose
 		if err := json.Unmarshal(breq, &req); err != nil {
 			ss.handleLogout(err)
 			return
 		}
 		tbus.Choose(ss.user.Id, req.GirlIndex)
-	case t == "t-action":
+	case "t-action":
 		var act model.CsAction
 		if err := json.Unmarshal(breq, &act); err != nil {
 			ss.handleLogout(err)
 			return
 		}
 		tbus.Action(ss.user.Id, &act)
-	case t == "get-replay":
+	case "get-replay-list":
+		ss.handleGetReplayList()
+	case "get-replay":
 		var req model.CsGetReplay
 		if err := json.Unmarshal(breq, &req); err != nil {
 			ss.handleLogout(err)
@@ -285,6 +287,11 @@ func (ss *ss) handleLookAround() {
 func (ss *ss) handleUpdateInfo() {
 	ss.user = *db.GetUser(ss.user.Id)
 	ss.handleWrite(model.NewScUpdateUser(&ss.user, db.GetStats(ss.user.Id)))
+}
+
+func (ss *ss) handleGetReplayList() {
+	ids := db.GetReplayList(ss.user.Id)
+	ss.handleWrite(model.NewScGetReplayList(ids))
 }
 
 func (ss *ss) handleGetReplay(replayId uint) {
