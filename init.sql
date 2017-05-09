@@ -36,7 +36,7 @@ insert into girls (girl_id) values
 	(713811), (713815),
 	(714915),
 	(715212),
-	(990001), (990002);
+	(990001), (990002), (990003);
 
 create table user_girl (
     user_id int unsigned not null,
