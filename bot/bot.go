@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/howeyc/gopass"
 	"github.com/mjpancake/hisa/model"
+	"github.com/rolevax/sp4g"
 )
 
 var startGap = 500 * time.Millisecond
@@ -110,9 +110,9 @@ func login(username, password string) net.Conn {
 		Password: base64.StdEncoding.EncodeToString(shaPw[:]),
 	}
 	jsonb, _ := json.Marshal(reqLogin)
-	conn.Write(append(jsonb, '\n'))
+	sp4g.Write(conn, jsonb)
 
-	_, err = bufio.NewReader(conn).ReadString('\n')
+	_, err = sp4g.Read(conn)
 	if err != nil {
 		log.Fatalln("srv ----", err.Error())
 	}
@@ -126,16 +126,15 @@ func (bot *bot) write(msg interface{}) {
 	if err != nil {
 		log.Fatalln("write marshal:", err)
 	}
-	_, err = bot.conn.Write(append(jsonb, '\n'))
+	err = sp4g.Write(bot.conn, jsonb)
 	if err != nil {
 		log.Fatalln(err)
 	}
 }
 
 func (bot *bot) readLoop() {
-	reader := bufio.NewReader(bot.conn)
 	for {
-		reply, err := reader.ReadString('\n')
+		reply, err := sp4g.Read(bot.conn)
 		if err != nil {
 			log.Fatalln("srv ---- ", err)
 		}
