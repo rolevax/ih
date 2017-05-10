@@ -11,22 +11,30 @@ type CsAuth struct {
 	Password string
 }
 
+type CsLookAround struct{}
+
+type CsHeartBeat struct{}
+
+type CsChoose struct {
+	GirlIndex int
+}
+
+type CsReady struct{}
+
 type CsAction struct {
-	Type   string
 	Nonce  int
 	ActStr string
 	ActArg string
 }
 
 type CsBook struct {
-	Type     string
 	BookType BookType
 }
 
-type CsChoose struct {
-	GirlIndex int
-}
+type CsUnbook struct{}
 
 type CsGetReplay struct {
 	ReplayId uint
 }
+
+type CsGetReplayList struct{}

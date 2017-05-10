@@ -22,7 +22,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	for i := 0; i < 4; i++ {
+	for i := 0; i < 40; i++ {
 		username := "bot" + strconv.Itoa(i)
 		go loopBot(username, string(password))
 	}
@@ -85,7 +85,7 @@ func login(username, password string) net.Conn {
 	shaPw := sha256.Sum256([]byte(password))
 	reqLogin := &model.CsAuth{
 		Type:     "login",
-		Version:  "0.8.0",
+		Version:  "0.8.2",
 		Username: username,
 		Password: base64.StdEncoding.EncodeToString(shaPw[:]),
 	}
@@ -109,6 +109,8 @@ func (bot *bot) write(msg interface{}) {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	time.Sleep(10 * time.Millisecond)
+	//log.Println(bot.username, "--->", string(jsonb))
 }
 
 func (bot *bot) readLoop() {
@@ -117,6 +119,7 @@ func (bot *bot) readLoop() {
 		if err != nil {
 			log.Fatalln("srv ---- ", err)
 		}
+		//log.Println(bot.username, "<---", string(reply))
 		var msg map[string]interface{}
 		if err := json.Unmarshal([]byte(reply), &msg); err != nil {
 			log.Fatalln("unmarshal srv reply:", err)
@@ -138,7 +141,10 @@ func (bot *bot) readSwitch(msg map[string]interface{}) {
 	case "table":
 		if msg["Event"] == "activated" {
 			nonce := int(msg["Nonce"].(float64))
-			msg := &model.CsAction{
+			msg := &struct {
+				Type, ActStr, ActArg string
+				Nonce                int
+			}{
 				Type:   "t-action",
 				ActStr: "BOT",
 				ActArg: "-1",
@@ -161,7 +167,10 @@ func (bot *bot) handleLookAround(msg map[string]interface{}) {
 }
 
 func (bot *bot) tryBook(x model.BookType) {
-	req := &model.CsBook{
+	req := &struct {
+		Type     string
+		BookType model.BookType
+	}{
 		Type:     "book",
 		BookType: x,
 	}

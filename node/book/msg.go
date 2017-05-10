@@ -3,7 +3,7 @@ package book
 import "github.com/mjpancake/hisa/model"
 
 type BookState struct {
-	Waits [4]model.Uid
+	Waits [model.BookTypeKinds]model.Uid
 	Wait  int
 }
 

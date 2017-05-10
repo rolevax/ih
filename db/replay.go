@@ -12,7 +12,8 @@ func GetReplayList(uid model.Uid) []uint {
 	var ids []uint
 
 	rows, err := db.Query(
-		`select replay_id from user_replay where user_id=? order by replay_id desc`,
+		`select replay_id from user_replay
+		where user_id=? order by replay_id desc`,
 		uid)
 	if err != nil {
 		log.Fatalln(err)
