@@ -18,7 +18,7 @@ const Version = "0.8.2"
 type logWriter struct{}
 
 func (w logWriter) Write(bytes []byte) (int, error) {
-	prefix := time.Now().UTC().Format("01/02 15:04:05")
+	prefix := time.Now().Format("01/02 15:04:05")
 	return fmt.Print(prefix, " ", string(bytes))
 }
 
