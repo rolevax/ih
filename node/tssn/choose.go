@@ -24,10 +24,16 @@ func (tssn *tssn) Choose(ctx actor.Context) {
 		tssn.handleChooseTimeout()
 	case *pcChoose:
 		tssn.handleChoose(msg.Uid, msg.Gidx, makeOnNext(ctx))
+	case *pcReady:
+		i, _ := tssn.findUser(msg.Uid)
+		tssn.kick(i, "tssn.Choose get pcReady")
+	case *pcAction:
+		i, _ := tssn.findUser(msg.Uid)
+		tssn.kick(i, "tssn.Choose get pcAction")
 	case *ccChoose:
 		tssn.handleChoose(msg.Uid, msg.Gidx, makeOnNext(ctx))
 	default:
-		log.Printf("tssn.Choose unexpected %T\n", msg)
+		log.Fatalf("tssn.Choose unexpected %T\n", msg)
 	}
 
 	switch ctx.Message().(type) {

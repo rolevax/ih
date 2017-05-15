@@ -20,12 +20,18 @@ func (tssn *tssn) Ready(ctx actor.Context) {
 		tssn.bye(ctx)
 	case *actor.ReceiveTimeout:
 		tssn.handleReadyTimeout()
+	case *pcChoose:
+		i, _ := tssn.findUser(msg.Uid)
+		tssn.kick(i, "tssn.Ready get pcChoose")
 	case *pcReady:
 		tssn.handleReady(msg.Uid, makeOnNext(ctx))
+	case *pcAction:
+		i, _ := tssn.findUser(msg.Uid)
+		tssn.kick(i, "tssn.Ready get pcAction")
 	case *ccReady:
 		tssn.handleReady(msg.Uid, makeOnNext(ctx))
 	default:
-		log.Printf("tssn.Ready unexpected %T\n", msg)
+		log.Fatalf("tssn.Ready unexpected %T\n", msg)
 	}
 
 	switch ctx.Message().(type) {

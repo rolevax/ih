@@ -40,7 +40,7 @@ func signUp(username, password string) {
 	shaPw := sha256.Sum256([]byte(password))
 	reqLogin := &model.CsAuth{
 		Type:     "sign-up",
-		Version:  "0.8.0",
+		Version:  "0.8.2",
 		Username: username,
 		Password: base64.StdEncoding.EncodeToString(shaPw[:]),
 	}
