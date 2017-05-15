@@ -42,10 +42,7 @@ func (tssn *tssn) Ready(ctx actor.Context) {
 }
 
 func (tssn *tssn) notifyChosen() {
-	msg := struct {
-		Type    string
-		GirlIds [4]model.Gid
-	}{"chosen", tssn.gids}
+	msg := model.NewScChosen(tssn.gids)
 
 	for w := 0; w < 4; w++ {
 		tssn.waits[w] = true
@@ -53,9 +50,7 @@ func (tssn *tssn) notifyChosen() {
 
 	for w := 0; w < 4; w++ {
 		tssn.sendPeer(w, msg)
-
-		gs := &msg.GirlIds
-		gs[0], gs[1], gs[2], gs[3] = gs[1], gs[2], gs[3], gs[0]
+		msg.RightPers()
 	}
 }
 

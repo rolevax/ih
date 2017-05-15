@@ -79,40 +79,18 @@ func (tssn *tssn) genIds() {
 func (tssn *tssn) notifyLoad() {
 	users := tssn.users
 
-	msg := struct {
-		Type       string
-		Users      [4]*model.User
-		TempDealer int
-		Choices    [len(tssn.gidcs)]model.Gid
-	}{"start", users, 0, tssn.gidcs}
+	msg := model.NewScStart(users, 0, tssn.gidcs)
 
 	for i, _ := range tssn.waits {
 		tssn.waits[i] = true
 	}
 
 	for i, uid := range tssn.uids {
-		msg.TempDealer = (4 - i) % 4
 		err := tssn.sendPeer(i, msg)
 		if err != nil {
 			tssn.p.Tell(&ccChoose{Uid: uid, Gidx: 0})
 		}
-
-		// rotate perspectives
-		u0 := msg.Users[0]
-		msg.Users[0] = msg.Users[1]
-		msg.Users[1] = msg.Users[2]
-		msg.Users[2] = msg.Users[3]
-		msg.Users[3] = u0
-
-		cs := &msg.Choices
-		cpu := len(cs) / 4 // choice per user
-		for i := 0; i < cpu; i++ {
-			tmp := cs[i]
-			for w := 0; w < 3; w++ {
-				cs[w*cpu+i] = cs[(w+1)*cpu+i]
-			}
-			cs[3*cpu+i] = tmp
-		}
+		msg.RightPers()
 	}
 }
 

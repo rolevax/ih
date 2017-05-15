@@ -74,3 +74,57 @@ func NewScGetReplay(replayId uint, replayJson string) *ScGetReplay {
 		ReplayJson: replayJson,
 	}
 }
+
+type ScStart struct {
+	Type       string
+	Users      [4]*User
+	TempDealer int
+	Choices    [12]Gid
+}
+
+func NewScStart(users [4]*User, td int, cs [12]Gid) *ScStart {
+	return &ScStart{
+		Type:       "start",
+		Users:      users,
+		TempDealer: td,
+		Choices:    cs,
+	}
+}
+
+func (msg *ScStart) RightPers() {
+	msg.TempDealer = (msg.TempDealer + 3) % 4
+
+	// rotate perspectives
+	u0 := msg.Users[0]
+	msg.Users[0] = msg.Users[1]
+	msg.Users[1] = msg.Users[2]
+	msg.Users[2] = msg.Users[3]
+	msg.Users[3] = u0
+
+	cs := &msg.Choices
+	cpu := len(cs) / 4 // choice per user
+	for i := 0; i < cpu; i++ {
+		tmp := cs[i]
+		for w := 0; w < 3; w++ {
+			cs[w*cpu+i] = cs[(w+1)*cpu+i]
+		}
+		cs[3*cpu+i] = tmp
+	}
+}
+
+type ScChosen struct {
+	Type    string
+	GirlIds [4]Gid
+}
+
+func NewScChosen(gids [4]Gid) *ScChosen {
+	return &ScChosen{
+		Type:    "chosen",
+		GirlIds: gids,
+	}
+}
+
+func (msg *ScChosen) RightPers() {
+	gs := &msg.GirlIds
+	gs[0], gs[1], gs[2], gs[3] = gs[1], gs[2], gs[3], gs[0]
+}
