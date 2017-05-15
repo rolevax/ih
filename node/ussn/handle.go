@@ -23,7 +23,11 @@ func (ussn *ussn) handleReject(msg error) {
 }
 
 func (ussn *ussn) handleError(msg error) {
-	log.Println(ussn.user.Id, "----", msg)
+	if ussn.user != nil {
+		log.Println(ussn.user.Id, "----", msg)
+	} else {
+		log.Println(ussn.conn.RemoteAddr(), "----", msg)
+	}
 	ussn.p.Stop()
 }
 
