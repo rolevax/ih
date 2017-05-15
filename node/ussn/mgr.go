@@ -29,7 +29,6 @@ func Receive(ctx actor.Context) {
 	case *actor.Restarting:
 	case *node.MuSc:
 		handleSc(msg.To, msg.Msg, ctx.Sender())
-		ctx.Respond(nil)
 	case *node.MuKick:
 		handleKick(msg.Uid, msg.Reason)
 	case *node.MuUpdateInfo:

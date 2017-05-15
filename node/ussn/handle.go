@@ -44,7 +44,7 @@ func (ussn *ussn) handleSc(msg interface{}, resp func(interface{})) {
 		}
 		ussn.handleError(err)
 	} else {
-		//log.Println(ss.user.Id, "<---", string(jsonb))
+		//log.Println(ussn.user.Id, "<---", string(jsonb))
 	}
 
 	resp(err)

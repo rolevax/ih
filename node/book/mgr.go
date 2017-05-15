@@ -70,10 +70,11 @@ func handleUnbook(uid model.Uid) {
 
 func handleStart(bt model.BookType) {
 	state := &states[bt.Index()]
-	for _, uid := range states[bt.Index()].Waits {
+	uids := state.Waits // copy
+	for _, uid := range uids {
 		handleUnbook(uid)
 	}
-	tssn.Start(bt, state.Waits)
+	tssn.Start(bt, uids)
 }
 
 func handleCtBooks(resp func(interface{})) {
