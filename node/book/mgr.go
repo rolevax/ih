@@ -13,7 +13,11 @@ var states [model.BookTypeKinds]BookState
 
 func Init() {
 	props := actor.FromFunc(Receive)
-	node.Bmgr = actor.Spawn(props)
+	pid, err := actor.SpawnNamed(props, "Bmgr")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	node.Bmgr = pid
 }
 
 func Receive(ctx actor.Context) {

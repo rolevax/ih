@@ -14,7 +14,11 @@ var rec map[model.Uid]*ussn = make(map[model.Uid]*ussn)
 
 func Init() {
 	props := actor.FromFunc(Receive)
-	node.Umgr = actor.Spawn(props)
+	pid, err := actor.SpawnNamed(props, "Umgr")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	node.Umgr = pid
 }
 
 func Receive(ctx actor.Context) {

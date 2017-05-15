@@ -15,7 +15,11 @@ var (
 
 func Init() {
 	props := actor.FromFunc(Receive)
-	node.Tmgr = actor.Spawn(props)
+	pid, err := actor.SpawnNamed(props, "Tmgr")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	node.Tmgr = pid
 }
 
 func Receive(ctx actor.Context) {

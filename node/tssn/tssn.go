@@ -51,7 +51,11 @@ func Start(bt model.BookType, uids [4]model.Uid) {
 	tssn.genIds()
 
 	props := actor.FromInstance(tssn)
-	tssn.p = actor.Spawn(props)
+	pid, err := actor.SpawnPrefix(props, "tssn")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	tssn.p = pid
 	node.Tmgr.Tell(&cpReg{add: true, tssn: tssn})
 }
 

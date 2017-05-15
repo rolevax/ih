@@ -24,7 +24,11 @@ func Start(conn net.Conn) {
 		conn: conn,
 	}
 	props := actor.FromInstance(ussn)
-	ussn.p = actor.Spawn(props)
+	pid, err := actor.SpawnPrefix(props, "ussn")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	ussn.p = pid
 }
 
 func (ussn *ussn) Receive(ctx actor.Context) {
