@@ -104,13 +104,13 @@ func (ussn *ussn) handleLookAround() {
 	if playing {
 		ussn.handleSc(&model.ScTypeOnly{"resume"}, noResp)
 	} else {
-		res, err := node.Umgr.RequestFuture(&cpCtUser{}, uuReqTmot).Result()
+		res, err := node.Umgr.RequestFuture(&cpWater{}, uuReqTmot).Result()
 		if err != nil {
 			ussn.handleError(err)
 			return
 		}
-		connCt := res.(int)
-		msg := model.NewScLookAround(connCt)
+		water := res.(*pcWater)
+		msg := model.NewScLookAround(water.ct, water.water)
 
 		pss, err := (&node.MtCtPlays{}).Req()
 		if err != nil {

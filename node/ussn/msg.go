@@ -5,7 +5,12 @@ type cpReg struct {
 	ussn *ussn
 }
 
-type cpCtUser struct{}
+type cpWater struct{}
+
+type pcWater struct {
+	ct    int
+	water []string
+}
 
 type pcSc struct {
 	msg interface{}

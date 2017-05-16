@@ -4,13 +4,17 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/mjpancake/hisa/model"
 	"github.com/mjpancake/hisa/node"
 )
 
-var rec map[model.Uid]*ussn = make(map[model.Uid]*ussn)
+var (
+	rec   map[model.Uid]*ussn = make(map[model.Uid]*ussn)
+	water []string            // optimize it later
+)
 
 func Init() {
 	props := actor.FromFunc(Receive)
@@ -35,8 +39,10 @@ func Receive(ctx actor.Context) {
 		handleUpdateInfo(msg.Uid)
 	case *cpReg:
 		handleReg(msg.add, msg.ussn)
-	case *cpCtUser:
-		ctx.Respond(len(rec))
+	case *cpWater:
+		w := &pcWater{ct: len(rec), water: make([]string, len(water))}
+		copy(w.water, water)
+		ctx.Respond(w)
 	default:
 		log.Fatalf("Umgr.Recv: unexpected %T\n", msg)
 	}
@@ -50,12 +56,16 @@ func handleReg(add bool, ussn *ussn) {
 	if add {
 		if prev, ok := rec[ussn.user.Id]; ok {
 			prev.p.Tell(errors.New("kick by force login"))
+		} else {
+			// log only on non-force
+			addWater(ussn.user.Username, "上线")
 		}
 		rec[ussn.user.Id] = ussn
 	} else {
 		node.Bmgr.Tell(&node.MbUnbook{Uid: ussn.user.Id})
 		if prev, ok := rec[ussn.user.Id]; ok && prev == ussn {
 			delete(rec, ussn.user.Id)
+			addWater(ussn.user.Username, "下线")
 		}
 	}
 }
@@ -83,5 +93,18 @@ func handleUpdateInfo(uid model.Uid) {
 func handleKick(uid model.Uid, reason string) {
 	if ussn, ok := rec[uid]; ok {
 		ussn.p.Tell(fmt.Errorf("kick as %v", reason))
+	}
+}
+
+func addWater(username, what string) {
+	wat := fmt.Sprintf(
+		"%s %s %s",
+		time.Now().Format("15:04"),
+		username,
+		what,
+	)
+	water = append(water, wat)
+	if len(water) > 12 {
+		water = water[1:]
 	}
 }

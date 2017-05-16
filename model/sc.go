@@ -27,11 +27,16 @@ func NewScAuthOk(u *User) *ScAuthOk {
 type ScLookAround struct {
 	Type  string
 	Conn  int
+	Water []string
 	Books [4]BookEntry
 }
 
-func NewScLookAround(conn int) *ScLookAround {
-	return &ScLookAround{Type: "look-around", Conn: conn}
+func NewScLookAround(conn int, water []string) *ScLookAround {
+	return &ScLookAround{
+		Type:  "look-around",
+		Conn:  conn,
+		Water: water,
+	}
 }
 
 type ScUpdateUser struct {
