@@ -47,8 +47,8 @@ func (tssn *tssn) genIds() {
 	avails := db.GetRankedGids()
 	cpu := len(tssn.gidcs) / 4 // choice per user
 
-	switch tssn.bookType.Index() {
-	case 0:
+	switch tssn.bookType.Abcd() {
+	case model.BookD:
 		last14 := avails[len(avails)-14:]
 		perm := rand.Perm(len(last14))
 		for i := 0; i < len(tssn.gidcs); i++ {

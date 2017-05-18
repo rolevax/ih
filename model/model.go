@@ -26,7 +26,15 @@ type Girl struct {
 
 type BookType int
 
-const BookTypeKinds = 4
+type Abcd int
+
+const (
+	BookTypeKinds = 4
+	BookD         = Abcd(0)
+	BookC         = Abcd(1)
+	BookB         = Abcd(2)
+	BookA         = Abcd(3)
+)
 
 func (b BookType) Index() int {
 	return int(b)
@@ -35,6 +43,10 @@ func (b BookType) Index() int {
 func (b BookType) Valid() bool {
 	i := int(b)
 	return 0 <= i && i < BookTypeKinds
+}
+
+func (b BookType) Abcd() Abcd {
+	return Abcd(int(b) % 4)
 }
 
 type BookEntry struct {

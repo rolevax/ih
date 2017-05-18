@@ -1,7 +1,6 @@
 package db
 
 import (
-	"errors"
 	"log"
 
 	"github.com/mjpancake/hisa/model"
@@ -45,39 +44,35 @@ func updateLpr(lprs *[4]*model.Lpr, ranks [4]int,
 		case 4:
 			updateLastPt(&lprs[w].Pt, &lprs[w].Level)
 		default:
-			log.Fatalln(errors.New("invalid rank number"))
+			log.Fatalln("db.updateLpr: invalid rank", ranks[w])
 		}
 	}
 }
 
 func updateTopPt(pt *int, level *int, bookType model.BookType) {
-	switch bookType {
-	case 0:
+	switch bookType.Abcd() {
+	case model.BookD:
 		*pt += 45
-	case 1:
+	case model.BookC:
 		*pt += 60
-	case 2:
+	case model.BookB:
 		*pt += 75
-	case 3:
+	case model.BookA:
 		*pt += 90
-	default:
-		log.Fatalln("updateTopPt: unknown bookType")
 	}
 	updateLevel(pt, level)
 }
 
 func update2ndPt(pt *int, level *int, bookType model.BookType) {
-	switch bookType {
-	case 0:
+	switch bookType.Abcd() {
+	case model.BookD:
 		*pt += 0
-	case 1:
+	case model.BookC:
 		*pt += 15
-	case 2:
+	case model.BookB:
 		*pt += 30
-	case 3:
+	case model.BookA:
 		*pt += 45
-	default:
-		log.Fatalln("update2ndPt: unknown bookType")
 	}
 	updateLevel(pt, level)
 }
