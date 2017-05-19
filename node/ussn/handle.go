@@ -110,28 +110,28 @@ func (ussn *ussn) handleLookAround() {
 			return
 		}
 		water := res.(*pcWater)
-		msg := model.NewScLookAround(water.ct, water.water)
 
-		pss, err := (&node.MtCtPlays{}).Req()
+		tables, err := (&node.MtCtPlays{}).Req()
 		if err != nil {
 			ussn.handleError(err)
 			return
 		}
-		bss, err := (&node.MbCtBooks{}).Req()
+		waits, err := (&node.MbCtBooks{}).Req()
 		if err != nil {
 			ussn.handleError(err)
 			return
 		}
 
 		user := ussn.user
-		cBookable := user.Level >= 9
-		bBookable := user.Level >= 13 && user.Rating >= 1800.0
-		dBookable := !bBookable
-		aBookable := user.Level >= 16 && user.Rating >= 2000.0
-		msg.Books[0] = model.BookEntry{dBookable, bss[0], 4 * pss[0]}
-		msg.Books[1] = model.BookEntry{cBookable, bss[1], 4 * pss[1]}
-		msg.Books[2] = model.BookEntry{bBookable, bss[2], 4 * pss[2]}
-		msg.Books[3] = model.BookEntry{aBookable, bss[3], 4 * pss[3]}
+		dcbaBookable := [4]bool{
+			user.Level < 13 && user.Rating < 1800.0,
+			user.Level >= 9,
+			user.Level >= 13 && user.Rating >= 1800.0,
+			user.Level >= 16 && user.Rating >= 2000.0,
+		}
+
+		msg := model.NewScLookAround(water.ct, water.water,
+			&dcbaBookable, &waits, &tables)
 		ussn.handleSc(msg, noResp)
 	}
 }

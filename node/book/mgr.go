@@ -57,7 +57,8 @@ func handleBook(uid model.Uid, bookType model.BookType) {
 
 	state.Waits[state.Wait] = uid
 	state.Wait++
-	if state.Wait == 4 {
+	if state.Wait == bookType.NeedUser() {
+		state.fillByAi()
 		handleStart(bookType)
 	}
 }

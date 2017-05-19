@@ -71,6 +71,11 @@ func handleReg(add bool, ussn *ussn) {
 }
 
 func handleSc(to model.Uid, msg interface{}, sender *actor.PID) {
+	if to.IsBot() {
+		botSc(to, msg, sender)
+		return
+	}
+
 	if ussn, ok := rec[to]; ok {
 		if sender != nil {
 			ussn.p.Request(&pcSc{msg: msg}, sender)
@@ -85,12 +90,21 @@ func handleSc(to model.Uid, msg interface{}, sender *actor.PID) {
 }
 
 func handleUpdateInfo(uid model.Uid) {
+	if uid.IsBot() {
+		return
+	}
+
 	if ussn, ok := rec[uid]; ok {
 		ussn.p.Tell(&pcUpdateInfo{})
 	}
 }
 
 func handleKick(uid model.Uid, reason string) {
+	if uid.IsBot() {
+		log.Println("Umgr: kicing a bot", uid)
+		return
+	}
+
 	if ussn, ok := rec[uid]; ok {
 		ussn.p.Tell(fmt.Errorf("kick as %v", reason))
 	}

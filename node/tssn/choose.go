@@ -82,13 +82,16 @@ func (tssn *tssn) notifyLoad() {
 	msg := model.NewScStart(users, 0, tssn.gidcs)
 
 	for i, _ := range tssn.waits {
-		tssn.waits[i] = true
+		// bots have no choose process, use default 0 gidx
+		tssn.waits[i] = tssn.uids[i].IsHuman()
 	}
 
 	for i, uid := range tssn.uids {
-		err := tssn.sendPeer(i, msg)
-		if err != nil {
-			tssn.p.Tell(&ccChoose{Uid: uid, Gidx: 0})
+		if tssn.waits[i] {
+			err := tssn.sendPeer(i, msg)
+			if err != nil {
+				tssn.p.Tell(&ccChoose{Uid: uid, Gidx: 0})
+			}
 		}
 		msg.RightPers()
 	}

@@ -28,15 +28,25 @@ type ScLookAround struct {
 	Type  string
 	Conn  int
 	Water []string
-	Books [4]BookEntry
+	Books [BookTypeKinds]BookEntry
 }
 
-func NewScLookAround(conn int, water []string) *ScLookAround {
-	return &ScLookAround{
+func NewScLookAround(conn int, water []string, dcbaBookable *[4]bool,
+	waits *[BookTypeKinds]int, tables *[BookTypeKinds]int) *ScLookAround {
+	msg := &ScLookAround{
 		Type:  "look-around",
 		Conn:  conn,
 		Water: water,
 	}
+
+	for i := 0; i < BookTypeKinds; i++ {
+		bt := BookType(i)
+		msg.Books[i].Bookable = dcbaBookable[int(bt.Abcd())]
+		msg.Books[i].Book = waits[i]
+		msg.Books[i].Play = tables[i] * bt.NeedUser()
+	}
+
+	return msg
 }
 
 type ScUpdateUser struct {
@@ -132,4 +142,11 @@ func NewScChosen(gids [4]Gid) *ScChosen {
 func (msg *ScChosen) RightPers() {
 	gs := &msg.GirlIds
 	gs[0], gs[1], gs[2], gs[3] = gs[1], gs[2], gs[3], gs[0]
+}
+
+type ScTableEvent struct {
+	Type  string
+	Event string
+	Args  map[string]interface{}
+	Nonce int
 }

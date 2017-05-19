@@ -1,6 +1,8 @@
 package node
 
-import "github.com/AsynkronIT/protoactor-go/actor"
+import (
+	"github.com/AsynkronIT/protoactor-go/actor"
+)
 
 var (
 	Umgr *actor.PID

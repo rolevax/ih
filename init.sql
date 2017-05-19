@@ -16,6 +16,12 @@ create table users (
     rating float(8,3) not null default 1500.0
 );
 
+--- fake password here
+--- change the password if necessary
+insert into users(user_id, username, password) values
+	(501, "ⓝ喵打", "dummy"),
+	(502, "ⓝ打喵", "dummy");
+
 create table girls (
     girl_id int primary key,
     level int(2) unsigned not null default 0,

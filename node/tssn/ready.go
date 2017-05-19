@@ -45,11 +45,14 @@ func (tssn *tssn) notifyChosen() {
 	msg := model.NewScChosen(tssn.gids)
 
 	for w := 0; w < 4; w++ {
-		tssn.waits[w] = true
+		// bots are always ready, wait your sister wait
+		tssn.waits[w] = tssn.uids[w].IsHuman()
 	}
 
 	for w := 0; w < 4; w++ {
-		tssn.sendPeer(w, msg)
+		if tssn.waits[w] {
+			tssn.sendPeer(w, msg)
+		}
 		msg.RightPers()
 	}
 }

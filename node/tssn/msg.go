@@ -30,3 +30,8 @@ type ccChoose struct {
 type ccReady struct {
 	Uid model.Uid
 }
+
+type ccAction struct {
+	BotIndex int
+	Act      *model.CsAction
+}

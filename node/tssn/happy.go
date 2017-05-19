@@ -26,6 +26,8 @@ func (tssn *tssn) Happy(ctx actor.Context) {
 		tssn.kick(i, "tssn.Happy get pcReady")
 	case *pcAction:
 		tssn.handleAction(msg.Uid, msg.Act)
+	case *ccAction:
+		tssn.handleActionI(msg.BotIndex, msg.Act)
 	default:
 		log.Fatalf("tssn.Ready unexpected %T\n", msg)
 	}
@@ -38,7 +40,14 @@ func (tssn *tssn) Happy(ctx actor.Context) {
 }
 
 func (tssn *tssn) handleAction(uid model.Uid, act *model.CsAction) {
-	i, _ := tssn.findUser(uid)
+	i, ok := tssn.findUser(uid)
+	if !ok {
+		log.Fatalf("tssn.handleAction user %d not found\n", uid)
+	}
+	tssn.handleActionI(i, act)
+}
+
+func (tssn *tssn) handleActionI(i int, act *model.CsAction) {
 	if act.ActStr == "RESUME" {
 		tssn.onlines[i] = true
 	} else if act.Nonce != tssn.nonces[i] {
@@ -78,35 +87,42 @@ func (tssn *tssn) handleMails(mails saki.MailVector) {
 	for i := 0; i < size; i++ {
 		toWhom := mails.Get(i).GetTo()
 		str := mails.Get(i).GetMsg()
-		var msg map[string]interface{}
-		if err := json.Unmarshal([]byte(str), &msg); err != nil {
-			log.Fatalln("unmarshal c++ str", err)
-		}
 		if toWhom == -1 {
+			var msg map[string]interface{}
+			if err := json.Unmarshal([]byte(str), &msg); err != nil {
+				log.Fatalln("unmarshal c++ str", err)
+			}
 			tssn.handleSystemMail(msg, str)
 		} else {
-			tssn.sendUserMail(toWhom, msg)
+			var msg model.ScTableEvent
+			if err := json.Unmarshal([]byte(str), &msg); err != nil {
+				log.Fatalln("unmarshal c++ str", err)
+			}
+			tssn.sendUserMail(toWhom, &msg)
 		}
 	}
 }
 
-func (tssn *tssn) sendUserMail(who int, msg map[string]interface{}) {
-	msg["Nonce"] = tssn.nonces[who]
-	if msg["Event"] == "resume" {
-		right := (who + 1) % 4
-		cross := (who + 2) % 4
-		left := (who + 3) % 4
-		rotated := [4]*model.User{
-			tssn.users[who],
-			tssn.users[right],
-			tssn.users[cross],
-			tssn.users[left],
+func (tssn *tssn) sendUserMail(who int, msg *model.ScTableEvent) {
+	msg.Nonce = tssn.nonces[who]
+
+	if tssn.uids[who].IsBot() {
+		if msg.Event == "activated" {
+			tssn.p.Tell(&ccAction{
+				BotIndex: who,
+				Act: &model.CsAction{
+					ActStr: "BOT",
+					Nonce:  msg.Nonce,
+				},
+			})
 		}
-		msg["Args"].(map[string]interface{})["users"] = rotated
+		return
 	}
 
+	tssn.injectResume(who, msg)
+
 	err := tssn.sendPeer(who, msg)
-	if err != nil && msg["Event"] == "activated" {
+	if err != nil && msg.Event == "activated" {
 		if tssn.anyOnline() && !tssn.table.GameOver() {
 			tssn.sweepOne(who)
 		}
@@ -130,7 +146,7 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 		if err != nil {
 			log.Fatalln("table-end-stat unmarshal", err)
 		}
-		tssn.injectUsers(stat.Replay)
+		tssn.injectReplay(stat.Replay)
 		db.UpdateUserGirl(tssn.bookType, tssn.uids, tssn.gids, &stat)
 		for w := 0; w < 4; w++ {
 			node.Umgr.Tell(&node.MuUpdateInfo{Uid: tssn.uids[w]})
@@ -149,7 +165,7 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 	}
 }
 
-func (tssn *tssn) injectUsers(replay map[string]interface{}) {
+func (tssn *tssn) injectReplay(replay map[string]interface{}) {
 	var users [4]map[string]interface{}
 	for w := 0; w < 4; w++ {
 		user := make(map[string]interface{})
@@ -160,6 +176,21 @@ func (tssn *tssn) injectUsers(replay map[string]interface{}) {
 		users[w] = user
 	}
 	replay["users"] = users
+}
+
+func (tssn *tssn) injectResume(who int, msg *model.ScTableEvent) {
+	if msg.Event == "resume" {
+		right := (who + 1) % 4
+		cross := (who + 2) % 4
+		left := (who + 3) % 4
+		rotated := [4]*model.User{
+			tssn.users[who],
+			tssn.users[right],
+			tssn.users[cross],
+			tssn.users[left],
+		}
+		msg.Args["users"] = rotated
+	}
 }
 
 func (tssn *tssn) sweepOne(i int) {
