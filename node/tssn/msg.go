@@ -32,6 +32,6 @@ type ccReady struct {
 }
 
 type ccAction struct {
-	BotIndex int
-	Act      *model.CsAction
+	UserIndex int
+	Act       *model.CsAction
 }

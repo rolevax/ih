@@ -32,6 +32,7 @@ type tssn struct {
 	nonces      [4]int
 	answerTimer *time.Timer
 	table       saki.TableSession
+	waitClient  bool
 }
 
 func Start(bt model.BookType, uids [4]model.Uid) {

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"strings"
 
 	"github.com/mjpancake/hisa/model"
 )
@@ -32,6 +33,10 @@ func Login(username, password string) (*model.User, error) {
 }
 
 func SignUp(username, password string) (*model.User, error) {
+	if !checkName(username) {
+		return nil, errors.New("用户名不可用")
+	}
+
 	var exist bool
 	err := db.QueryRow(
 		"select exists(select 1 from users where username=?)",
@@ -106,4 +111,11 @@ func GetUsers(uids *[4]model.Uid) [4]*model.User {
 	}
 
 	return users
+}
+
+func checkName(name string) bool {
+	if strings.HasPrefix(name, "ⓝ") {
+		return false
+	}
+	return true
 }

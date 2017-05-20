@@ -27,7 +27,7 @@ func (tssn *tssn) Happy(ctx actor.Context) {
 	case *pcAction:
 		tssn.handleAction(msg.Uid, msg.Act)
 	case *ccAction:
-		tssn.handleActionI(msg.BotIndex, msg.Act)
+		tssn.handleActionI(msg.UserIndex, msg.Act)
 	default:
 		log.Fatalf("tssn.Ready unexpected %T\n", msg)
 	}
@@ -101,6 +101,11 @@ func (tssn *tssn) handleMails(mails saki.MailVector) {
 			tssn.sendUserMail(toWhom, &msg)
 		}
 	}
+
+	if tssn.waitClient {
+		tssn.waitClient = false
+		time.Sleep(800 * time.Millisecond)
+	}
 }
 
 func (tssn *tssn) sendUserMail(who int, msg *model.ScTableEvent) {
@@ -109,7 +114,7 @@ func (tssn *tssn) sendUserMail(who int, msg *model.ScTableEvent) {
 	if tssn.uids[who].IsBot() {
 		if msg.Event == "activated" {
 			tssn.p.Tell(&ccAction{
-				BotIndex: who,
+				UserIndex: who,
 				Act: &model.CsAction{
 					ActStr: "BOT",
 					Nonce:  msg.Nonce,
@@ -126,6 +131,12 @@ func (tssn *tssn) sendUserMail(who int, msg *model.ScTableEvent) {
 		if tssn.anyOnline() && !tssn.table.GameOver() {
 			tssn.sweepOne(who)
 		}
+	}
+
+	// not a Hong Kong reporter, don't run so fast
+	// wait for the client's rendering to avoid unintentional timeout
+	if err == nil && msg.Event == "discarded" {
+		tssn.waitClient = true
 	}
 }
 
@@ -152,14 +163,15 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 			node.Umgr.Tell(&node.MuUpdateInfo{Uid: tssn.uids[w]})
 		}
 	case "riichi-auto":
-		time.Sleep(1000 * time.Millisecond)
 		who := int(msg["Who"].(float64))
-		act := &model.CsAction{
-			Nonce:  tssn.nonces[who],
-			ActStr: "SPIN_OUT",
-			ActArg: "-1",
-		}
-		tssn.handleAction(tssn.uids[who], act)
+		tssn.p.Tell(&ccAction{
+			UserIndex: who,
+			Act: &model.CsAction{
+				Nonce:  tssn.nonces[who],
+				ActStr: "SPIN_OUT",
+				ActArg: "-1",
+			},
+		})
 	default:
 		log.Fatalln("unknown system mail", msg)
 	}
