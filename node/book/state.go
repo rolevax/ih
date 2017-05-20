@@ -26,7 +26,9 @@ func (bs *BookState) removeIfAny(uid model.Uid) {
 }
 
 func (bs *BookState) fillByAi() {
-	if bs.Wait == 2 {
+	if bs.Wait == 4 {
+		// do nothing
+	} else if bs.Wait == 2 {
 		bs.Waits[2] = bs.Waits[1]
 		bs.Waits[1] = model.UidAi1
 		bs.Waits[3] = model.UidAi2
