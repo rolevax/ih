@@ -124,7 +124,7 @@ func (ussn *ussn) handleLookAround() {
 
 		user := ussn.user
 		dcbaBookable := [4]bool{
-			user.Level < 13 && user.Rating < 1800.0,
+			user.Level < 13 || user.Rating < 1800.0,
 			user.Level >= 9,
 			user.Level >= 13 && user.Rating >= 1800.0,
 			user.Level >= 16 && user.Rating >= 2000.0,
