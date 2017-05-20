@@ -408,7 +408,15 @@ void TableOpOb::action(int w, const string &actStr, const string &actArg)
 		resume(w);
 	} else {
 		Action action = makeAction(actStr, actArg, w);
-		mTable->action(who, action);
+		if (mTable->getTicketFolder(who).can(action)) {
+			mTable->action(who, action);
+		} else {
+			json args;
+			args["who"] = w;
+			args["actStr"] = actStr;
+			args["actArg"] = actArg;
+			system("cannot", args);
+		}
 	}
 }
 

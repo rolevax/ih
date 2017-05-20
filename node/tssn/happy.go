@@ -172,6 +172,13 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 				ActArg: "-1",
 			},
 		})
+	case "cannot":
+		who := int(msg["who"].(float64))
+		actStr := msg["actStr"].(string)
+		actArg := msg["actArg"].(string)
+		log.Printf("TSSN EEEE %d cannot %d-%s-%s\n",
+			tssn.uids[0], tssn.uids[who], actStr, actArg)
+		tssn.kick(who, "illegal table action")
 	default:
 		log.Fatalln("unknown system mail", msg)
 	}
