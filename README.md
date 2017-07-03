@@ -17,10 +17,10 @@ Requirement:
 Steps:
 
 ```
-go get github.com/mjpancake/hisa
-cd $GOPATH/src/github.com/mjpancake/hisa
+go get github.com/mjpancake/ih
+cd $GOPATH/src/github.com/mjpancake/ih
 cd saki; make clean; make; cd ..
-go build
+cd hisa; go install
 ```
 
 ## Run
@@ -28,13 +28,13 @@ go build
 Requirement:
 
 - A running MySQL server with a well-built database.
-  - To initialize a DB, start `mysql` as root and `source init.sql;`
+  - To initialize a DB, start `mysql` as root and `source mako/init.sql;`
 - A running Redis server with the default configurations
 
 Then run the server:
 
 ```
-./hisa &
+hisa &
 ```
 
 The log will output to stdout and stderr. 

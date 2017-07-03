@@ -1,0 +1,33 @@
+use github.com/rolevax/sp4g package to send json over tcp
+
+a conn is always closed by client in normal cases
+a conn is always closed by server in exceptional cases
+
+client
+	server
+	. peer
+	b broadcast, same msg for all
+	r broadcast, rotate perspective
+
+{ Type: "login", Version: "0.7.3", Username: "...", Password: "..." }
+{ Type: "sign-up", Version: "...", Username: "...", Password: "..." }
+	. { Type: "auth", Ok: false, Reason: "..." } close
+	. { Type: "auth", Ok: true, User: {...} }
+
+{ Type: "look-around" }
+	. { Type: "look-around", ... }
+
+{ Type: "book" }
+	r { Type: "start", Users: [...], GirlIds: [...], TempDealer: ? }
+{ Type: "ready" }
+{ Type: "t-action", ActStr: "...", ActArg: "..." }
+	. { Type: "table", Event: "...", Args: {...} }
+	r { Type: "table", Event: "...", Args: {...} }
+	b { Type: "table", Event: "...", Args: {...} }
+
+server
+	client
+{ Type: "update-user", User: {...} }
+
+
+
