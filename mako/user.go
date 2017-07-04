@@ -1,7 +1,9 @@
 package mako
 
 import (
+	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"log"
 	"strings"
@@ -13,12 +15,13 @@ func Login(username, password string) (*model.User, error) {
 	user := &model.User{}
 
 	if db == nil {
-		log.Fatalln("FUCK")
+		log.Fatalln("db is nil")
 	}
+
 	err := db.QueryRow(
 		`select user_id, username, level, pt, rating
 		from users where username=? && password=?`,
-		username, password).
+		username, hash(password)).
 		Scan(&user.Id, &user.Username, &user.Level,
 			&user.Pt, &user.Rating)
 
@@ -52,7 +55,7 @@ func SignUp(username, password string) (*model.User, error) {
 
 	_, err = db.Exec(
 		"insert into users (username, password) values (?,?)",
-		username, password)
+		username, hash(password))
 
 	if err != nil {
 		log.Fatalln("db.SignUp", err)
@@ -118,4 +121,9 @@ func checkName(name string) bool {
 		return false
 	}
 	return true
+}
+
+func hash(password string) string {
+	sha := sha256.Sum256([]byte(password))
+	return base64.StdEncoding.EncodeToString(sha[:])
 }

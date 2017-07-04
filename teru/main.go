@@ -3,32 +3,17 @@ package main
 import (
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/emicklei/go-restful"
 )
 
-type CsAccountCreate struct {
-	Username string
-	Password string
-}
-
-type CsAccountActivate struct {
-	Username string
-	Password string
-	Answers  string
-}
-
-type Sc struct {
-	Error string // no news is good news
-}
-
-type ScAccountActivate struct {
-	Sc
-	Result string
-}
-
 func main() {
+	addWebService()
+	supportCors()
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func addWebService() {
 	ws := &restful.WebService{}
 	ws.
 		Path("/account").
@@ -39,7 +24,9 @@ func main() {
 	ws.Route(ws.POST("/activate").To(activate))
 
 	restful.Add(ws)
+}
 
+func supportCors() {
 	cors := restful.CrossOriginResourceSharing{
 		ExposeHeaders:  []string{"X-My-Header"},
 		AllowedHeaders: []string{"Content-Type", "Accept"},
@@ -49,45 +36,4 @@ func main() {
 	}
 	restful.Filter(cors.Filter)
 	restful.Filter(restful.OPTIONSFilter())
-
-	log.Fatal(http.ListenAndServe(":8080", nil))
-}
-
-func create(request *restful.Request, response *restful.Response) {
-	slow()
-
-	sc := &Sc{}
-	defer response.WriteEntity(sc)
-
-	cs := &CsAccountCreate{}
-	err := request.ReadEntity(cs)
-	if err != nil {
-		sc.Error = err.Error()
-		return
-	}
-
-	log.Println("create: username", cs.Username)
-	// TODO check and add to db
-}
-
-func activate(request *restful.Request, response *restful.Response) {
-	slow()
-
-	sc := &Sc{}
-	defer response.WriteEntity(sc)
-
-	cs := &CsAccountActivate{}
-	err := request.ReadEntity(cs)
-	if err != nil {
-		sc.Error = err.Error()
-		return
-	}
-
-	// TODO check password and set error
-	log.Println("activate: username", cs.Username, "answers", cs.Answers)
-	// TODO set sc.Result
-}
-
-func slow() {
-	time.Sleep(3 * time.Second)
 }
