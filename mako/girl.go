@@ -1,33 +1,16 @@
 package mako
 
 import (
-	"log"
-
 	"github.com/mjpancake/ih/ako/model"
 )
 
+// deprecated
 func GetRankedGids() []model.Gid {
 	var gids []model.Gid
 
 	// excluding doge
-	rows, err := db.Query(
-		`select girl_id from girls where girl_id<>0 order by rating desc`)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var gid model.Gid
-		err := rows.Scan(&gid)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		gids = append(gids, gid)
-	}
-
-	err = rows.Err()
-	if err != nil {
-		log.Fatalln(err)
+	for i := 0; i < 22; i++ {
+		gids = append(gids, 0)
 	}
 
 	return gids

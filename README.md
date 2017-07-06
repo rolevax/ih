@@ -27,8 +27,8 @@ cd hisa; go install
 
 Requirement:
 
-- A running MySQL server with a well-built database.
-  - To initialize a DB, start `mysql` as root and `source mako/init.sql;`
+- A running PostgreSQL server with required data
+  - To import a dummy dataset, run `psql mako mako < mako/dummy.pgsql`
 - A running Redis server with the default configurations
 
 Then run the server:

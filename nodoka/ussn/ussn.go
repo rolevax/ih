@@ -104,18 +104,9 @@ func (ussn *ussn) auth(breq []byte) error {
 		return errors.New("客户端版本过旧")
 	}
 
-	switch req.Type {
-	case "login":
-		u, err := mako.Login(req.Username, req.Password)
-		ussn.user = u
-		return err
-	case "sign-up":
-		u, err := mako.SignUp(req.Username, req.Password)
-		ussn.user = u
-		return err
-	default:
-		return errors.New("invalid auth req")
-	}
+	u, err := mako.Login(req.Username, req.Password)
+	ussn.user = u
+	return err
 }
 
 func (ussn *ussn) hello() {

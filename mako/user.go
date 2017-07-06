@@ -2,12 +2,12 @@ package mako
 
 import (
 	"crypto/sha256"
-	"database/sql"
 	"encoding/base64"
 	"errors"
 	"log"
 	"strings"
 
+	"github.com/go-pg/pg"
 	"github.com/mjpancake/ih/ako/model"
 )
 
@@ -15,100 +15,86 @@ func Login(username, password string) (*model.User, error) {
 	user := &model.User{}
 
 	if db == nil {
-		log.Fatalln("db is nil")
+		log.Fatalln("mako.Login: db is nil")
 	}
 
-	err := db.QueryRow(
-		`select user_id, username, level, pt, rating
-		from users where username=? && password=?`,
-		username, hash(password)).
-		Scan(&user.Id, &user.Username, &user.Level,
-			&user.Pt, &user.Rating)
+	err := db.Model(user).
+		Where("username=?", username).
+		Where("password=?", hash(password)).
+		Select()
 
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pg.ErrNoRows {
 			return nil, errors.New("用户名或密码错误")
 		}
-		log.Fatalln("db.Login", err)
+		log.Fatalln("mako.Login", err)
 	}
 
 	return user, nil
 }
 
-func SignUp(username, password string) (*model.User, error) {
+func SignUp(username, password string) error {
 	if !checkName(username) {
-		return nil, errors.New("用户名不可用")
+		return errors.New("用户名不可用")
 	}
 
 	var exist bool
-	err := db.QueryRow(
-		"select exists(select 1 from users where username=?)",
-		username).Scan(&exist)
+	// FIXIT: just insert, and check returning conflict error
+	_, err := db.QueryOne(
+		&exist,
+		"SELECT EXISTS(SELECT 1 FROM users WHERE username=?)",
+		username,
+	)
 
 	if err != nil {
 		log.Fatalln("db.SignUp", err)
 	}
 
 	if exist {
-		return nil, errors.New("用户名已存在")
+		return errors.New("用户名已存在")
 	}
 
 	_, err = db.Exec(
-		"insert into users (username, password) values (?,?)",
+		"INSERT INTO users (username, password) VALUES (?,?)",
 		username, hash(password))
 
 	if err != nil {
 		log.Fatalln("db.SignUp", err)
 	}
 
-	return Login(username, password)
+	return nil
 }
 
 func GetUser(uid model.Uid) *model.User {
-	var user model.User
-
-	err := db.QueryRow(
-		`select user_id, username, level, pt, rating
-		from users where user_id=?`, uid).
-		Scan(&user.Id, &user.Username, &user.Level,
-			&user.Pt, &user.Rating)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil
-		}
-		log.Fatalln("cb.GetUser", err)
+	user := &model.User{
+		Id: uid,
 	}
 
-	return &user
+	err := db.Select(user)
+
+	if err != nil {
+		if err == pg.ErrNoRows {
+			return nil
+		}
+		log.Fatalln("mako.GetUser", err)
+	}
+
+	return user
 }
 
 func GetUsers(uids *[4]model.Uid) [4]*model.User {
 	var users [4]*model.User
 
-	rows, err := db.Query(
-		`select user_id, username, level, pt, rating
-		from users where user_id in (?,?,?,?)`,
-		uids[0], uids[1], uids[2], uids[3])
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		user := &model.User{}
-		err := rows.Scan(&user.Id, &user.Username,
-			&user.Level, &user.Pt, &user.Rating)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		for w := 0; w < 4; w++ {
-			if uids[w] == user.Id {
-				users[w] = user
-			}
-		}
-	}
-
-	err = rows.Err()
+	_, err := db.Query(
+		&users,
+		`SELECT user_id, username, level, pt, rating
+		FROM users WHERE user_id in (?)
+		ORDER BY user_id=? DESC,
+		         user_id=? DESC,
+		         user_id=? DESC,
+		         user_id=? DESC`,
+		pg.In(uids), uids[0], uids[1], uids[2], uids[3],
+	)
 	if err != nil {
 		log.Fatalln(err)
 	}

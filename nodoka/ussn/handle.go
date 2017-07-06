@@ -53,7 +53,7 @@ func (ussn *ussn) handleSc(msg interface{}, resp func(interface{})) {
 
 func (ussn *ussn) handleUpdateInfo() {
 	ussn.user = mako.GetUser(ussn.user.Id)
-	sc := sc.NewUpdateUser(ussn.user, mako.GetStats(ussn.user.Id))
+	sc := sc.NewUpdateUser(ussn.user, mako.GetCultis(ussn.user.Id))
 	ussn.handleSc(sc, noResp)
 }
 

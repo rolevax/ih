@@ -7,7 +7,6 @@ type TypeOnly struct {
 }
 
 type Auth struct {
-	Type     string
 	Version  string
 	Username string
 	Password string

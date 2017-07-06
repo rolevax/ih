@@ -55,10 +55,10 @@ func NewLookAround(conn int, water []string, dcbaBookable *[4]bool,
 type UpdateUser struct {
 	Type  string
 	User  *model.User
-	Stats []model.StatRow
+	Stats []model.Culti
 }
 
-func NewUpdateUser(user *model.User, stats []model.StatRow) *UpdateUser {
+func NewUpdateUser(user *model.User, stats []model.Culti) *UpdateUser {
 	resp := &UpdateUser{
 		Type:  "update-user",
 		User:  user,
