@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -16,9 +15,13 @@ type client struct {
 
 var cl *client
 
-func (cl *client) send(cs interface{}) {
-	jsonb, _ := json.Marshal(cs)
-	hayari.Write(cl.conn, jsonb)
+func (cl *client) send(msg interface{}) {
+	if cl == nil {
+		fmt.Println("offline")
+		return
+	}
+
+	hayari.Write(cl.conn, cs.ToJson(msg))
 }
 
 func login(username, password string) error {
@@ -53,26 +56,16 @@ func logout() {
 	}
 }
 
-func getReplayList() {
-	if cl == nil {
-		fmt.Println("offline")
-		return
-	}
+func lookAround() {
+	cl.send(&cs.LookAround{})
+}
 
-	cl.send(&struct{ Type string }{Type: "get-replay-list"})
+func getReplayList() {
+	cl.send(&cs.GetReplayList{})
 }
 
 func getReplay(id uint) {
-	if cl == nil {
-		fmt.Println("offline")
-		return
-	}
-
-	cl.send(&struct {
-		Type     string
-		ReplayId uint
-	}{
-		Type:     "get-replay",
+	cl.send(&cs.GetReplay{
 		ReplayId: id,
 	})
 }

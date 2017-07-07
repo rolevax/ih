@@ -13,6 +13,7 @@ type handler func(rl *readline.Instance, args []string)
 var handlers = map[string]handler{
 	"login":         handleLogin,
 	"logout":        handleLogout,
+	"lookAround":    handleLookAround,
 	"getReplayList": handleGetReplayList,
 	"getReplay":     handleGetReplay,
 }
@@ -36,6 +37,10 @@ func handleLogin(rl *readline.Instance, args []string) {
 
 func handleLogout(rl *readline.Instance, args []string) {
 	logout()
+}
+
+func handleLookAround(rl *readline.Instance, args []string) {
+	lookAround()
 }
 
 func handleGetReplayList(rl *readline.Instance, args []string) {

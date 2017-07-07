@@ -3,6 +3,11 @@ package cs
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"reflect"
+	"strings"
+
+	"github.com/fatih/camelcase"
 )
 
 func FromJson(breq []byte) (interface{}, error) {
@@ -47,4 +52,34 @@ func FromJson(breq []byte) (interface{}, error) {
 	default:
 		return nil, fmt.Errorf("model.From unknown type %s", tonly.Type)
 	}
+}
+
+func ToJson(cs interface{}) []byte {
+	if reflect.TypeOf(cs).Kind() != reflect.Ptr {
+		log.Fatalf("cs.ToJson want pointer get %T", cs)
+	}
+
+	jsonb, err := json.Marshal(cs)
+	if err != nil {
+		log.Fatal("cs.ToJson", err)
+	}
+
+	m := map[string]interface{}{}
+	err = json.Unmarshal(jsonb, &m)
+	if err != nil {
+		log.Fatal("cs.ToJson", err)
+	}
+	m["Type"] = dash(reflect.TypeOf(cs).Elem().Name())
+
+	jsonb, err = json.Marshal(m)
+	if err != nil {
+		log.Fatal("cs.ToJson", err)
+	}
+
+	return jsonb
+}
+
+func dash(camel string) string {
+	sp := camelcase.Split(camel)
+	return strings.ToLower(strings.Join(sp, "-"))
 }
