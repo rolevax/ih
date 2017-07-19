@@ -5,7 +5,7 @@
 #include <bitset>
 
 unsigned createSwapMask(const TileCount &closed,
-                        const std::vector<T37> &choices)
+                        const util::Stactor<T37, 13> &choices)
 {
 	// assume 'choices' is 34-sorted
 	std::bitset<13> mask;
@@ -27,7 +27,7 @@ unsigned createSwapMask(const TileCount &closed,
 	return mask.to_ulong();
 }
 
-std::vector<std::string> createTileStrs(const std::vector<T34> &ts)
+std::vector<std::string> createTileStrs(const util::Range<T34> &ts)
 {
 	std::vector<std::string> res;
 	for (T34 t : ts)
@@ -44,6 +44,14 @@ std::string createTile(const T37 &t, bool lay)
 }
 
 json createTiles(const std::vector<T37> &ts)
+{
+	json res = json::array();
+	for (const T37 &t : ts)
+		res.emplace_back(createTile(t, false));
+	return res;
+}
+
+json createTiles(const util::Range<T37> &ts)
 {
 	json res = json::array();
 	for (const T37 &t : ts)
@@ -75,12 +83,25 @@ json createBark(const M37 &m)
 	return res;
 }
 
-json createBarks(const std::vector<M37> &ms)
+json createBarks(const util::Stactor<M37, 4> &ms)
 {
 	json list = json::array();
 	for (const M37 &m : ms)
 		list.emplace_back(createBark(m));
 	return list;
+}
+
+json createIrsCheckRow(const IrsCheckRow &row)
+{
+    json map;
+
+    map["modelMono"] = row.mono;
+    map["modelIndent"] = row.indent;
+    map["modelText"] = row.name;
+    map["modelAble"] = row.able;
+    map["modelOn"] = row.on;
+
+    return map;
 }
 
 json createReplay(const Replay &replay)
@@ -237,4 +258,30 @@ json createTrack(const Replay::Track &track)
 }
 
 
+
+Action makeAction(const std::string &actStr, int actArg,
+                  const std::string &actTile, int who)
+{
+    using AC = saki::ActCode;
+	AC act = actCodeOf(actStr.c_str());
+
+	switch (act) {
+		case AC::SWAP_OUT:
+		case AC::SWAP_RIICHI:
+			return Action(act, T37(actTile.c_str()));
+		case AC::ANKAN:
+			return Action(act, T34(actTile.c_str()));
+		case AC::CHII_AS_LEFT:
+		case AC::CHII_AS_MIDDLE:
+		case AC::CHII_AS_RIGHT:
+		case AC::PON:
+			return Action(act, actArg, T37(actTile.c_str()));
+		case AC::KAKAN:
+			return Action(act, static_cast<int>(actArg));
+		case AC::IRS_CHECK:
+			return Action(act, static_cast<unsigned>(actArg));
+		default:
+			return Action(act);
+	}
+}
 

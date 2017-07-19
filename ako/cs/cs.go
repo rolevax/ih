@@ -33,9 +33,10 @@ type RoomQuit struct{}
 type Seat struct{}
 
 type Action struct {
-	Nonce  int
-	ActStr string
-	ActArg string
+	Nonce   int
+	ActStr  string
+	ActArg  int
+	ActTile string
 }
 
 type GetReplay struct {

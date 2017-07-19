@@ -59,7 +59,8 @@ public:
 	std::vector<Mail> popMails();
 	bool gameOver() const;
 
-	void action(int who, const string &actStr, const string &actArg);
+	void action(int who, const string &actStr,
+                int argArg, const string &actTile);
 	std::vector<int> sweepAll();
 	void sweepOne(int who);
 	void resume(int who);
@@ -69,6 +70,10 @@ private:
 	void broad(const char *event, const json &msg);
 	void system(const char *type, const json &args);
 	void tableEndStat(const std::array<int, 4> &scores);
+
+    void activateDrawn(json &map, const TableView &view);
+    void activateBark(json &map, const TableView &view);
+    void activateIrsCheck(json &map, const TableView &view);
 
 private:
 	TableStat mStat;

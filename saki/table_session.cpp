@@ -19,9 +19,10 @@ std::vector<Mail> TableSession::Start()
 
 std::vector<Mail> TableSession::Action(int who, 
                                        const std::string &actStr,
-                                       const std::string &actArg) 
+									   int actArg,
+                                       const std::string &actTile) 
 {
-    mOpOb->action(who, actStr, actArg);
+    mOpOb->action(who, actStr, actArg, actTile);
     return mOpOb->popMails();
 }
 

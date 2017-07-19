@@ -53,7 +53,7 @@ func (tssn *tssn) handleActionI(i int, act *cs.Action) {
 		return
 	}
 	tssn.waits[i] = false
-	mails := tssn.table.Action(i, act.ActStr, act.ActArg)
+	mails := tssn.table.Action(i, act.ActStr, act.ActArg, act.ActTile)
 	defer saki.DeleteMailVector(mails)
 	tssn.handleMails(mails)
 }
@@ -170,7 +170,6 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 			Act: &cs.Action{
 				Nonce:  tssn.nonces[who],
 				ActStr: "SPIN_OUT",
-				ActArg: "-1",
 			},
 		})
 	case "cannot":

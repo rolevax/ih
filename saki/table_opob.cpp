@@ -21,31 +21,6 @@ void TableOp::onActivated(Table &table)
 
 
 
-Action makeAction(const string &actStr, const string &actArg, int who)
-{
-	using AC = ActCode;
-
-	AC act = actCodeOf(actStr.c_str());
-	int turn;
-	switch (act) {
-		case AC::SWAP_OUT:
-		case AC::ANKAN:
-			return Action(act, T37(actArg.c_str()));
-		case AC::CHII_AS_LEFT:
-		case AC::CHII_AS_MIDDLE:
-		case AC::CHII_AS_RIGHT:
-		case AC::PON:
-		case AC::KAKAN:
-		case AC::IRS_CHECK:
-			return Action(act, std::stoi(actArg));
-		case AC::IRS_RIVAL:
-			turn = std::stoi(actArg);
-			return Action(act, Who(who).byTurn(turn));
-		default:
-			return Action(act);
-	}
-}
-
 template<typename T>
 void rotate(T &arr)
 {
@@ -83,85 +58,52 @@ TableOpOb::TableOpOb(const std::array<int, 4> &girlIds)
 void TableOpOb::onActivated(Who who, Table &table)
 {
     using AC = ActCode;
-    TableView view = table.getView(who);
+    using Mode = Choices::Mode;
 
-	if (table.riichiEstablished(who) && view.iCanOnlySpin()) {
+    const TableView view = table.getView(who);
+    const Choices &choices = view.myChoices();
+
+    if (table.riichiEstablished(who) && choices.spinOnly()) {
 		json args;
 		args["Who"] = who.index();
 		system("riichi-auto", args);
 		return;
-	}
-
-	int focusWho;
-	if (view.iCan(AC::CHII_AS_LEFT)
-			|| view.iCan(AC::CHII_AS_MIDDLE)
-			|| view.iCan(AC::CHII_AS_RIGHT)
-			|| view.iCan(AC::PON)
-			|| view.iCan(AC::DAIMINKAN)
-			|| view.iCan(AC::RON)) {
-		focusWho = table.getFocus().who().turnFrom(who);
-	} else {
-		focusWho = -1;
-	}
+    }
 
     json map;
+    int focusWho = -1;
 
-	if (view.iCan(AC::SWAP_OUT)) {
-		json mask;
-		const TileCount &closed = table.getHand(who).closed();
-		const auto &choices = view.mySwappables();
-		map[stringOf(AC::SWAP_OUT)] = createSwapMask(closed, choices);
-	}
+    switch (choices.mode()) {
+    case Mode::WATCH:
+        break;
+    case Mode::CUT:
+        activateIrsCheck(map, view);
+        break;
+    case Mode::DICE:
+        map[stringOf(AC::DICE)] = true;
+        break;
+    case Mode::DRAWN:
+        activateDrawn(map, view);
+        break;
+    case Mode::BARK:
+        focusWho = view.getFocus().who().index();
+        activateBark(map, view);
+        break;
+    case Mode::END:
+        if (choices.can(AC::END_TABLE))
+            map[stringOf(AC::END_TABLE)] = true;
+        if (choices.can(AC::NEXT_ROUND))
+            map[stringOf(AC::NEXT_ROUND)] = true;
+        break;
+    }
 
-	if (view.iCan(AC::ANKAN))
-		map[stringOf(AC::ANKAN)] = createTileStrs(view.myAnkanables());
-
-	if (view.iCan(AC::KAKAN))
-		map[stringOf(AC::KAKAN)] = view.myKakanables();
-
-	if (view.iCan(AC::IRS_CHECK)) {
-		const Girl &girl = table.getGirl(who);
-		int prediceCount = girl.irsCheckCount();
-		json list = json::array();
-		for (int i = 0; i < prediceCount; i++) {
-			const IrsCheckRow &row = girl.irsCheckRow(i);
-			json rmap;
-			rmap["modelMono"] = row.mono;
-			rmap["modelIndent"] = row.indent;
-			rmap["modelText"] = row.name;
-			rmap["modelAble"] = row.able;
-			rmap["modelOn"] = row.on;
-			list.emplace_back(rmap);
-		}
-		map[stringOf(AC::IRS_CHECK)] = list;
-	}
-
-	if (view.iCan(AC::IRS_RIVAL)) {
-		const Girl &girl = table.getGirl(who);
-		std::vector<int> tars;
-		for (int i = 0; i < 4; i++)
-			if (girl.irsRivalMask()[i])
-				tars.push_back(Who(i).turnFrom(who));
-		map[stringOf(AC::IRS_RIVAL)] = tars;
-	}
-
-	static const AC just[] = {
-		AC::PASS, AC::SPIN_OUT,
-		AC::CHII_AS_LEFT, AC::CHII_AS_MIDDLE, AC::CHII_AS_RIGHT,
-		AC::PON, AC::DAIMINKAN, AC::RIICHI,
-		AC::RON, AC::TSUMO, AC::RYUUKYOKU,
-		AC::END_TABLE, AC::NEXT_ROUND, AC::DICE, AC::IRS_CLICK
-	};
-
-    for (AC code : just)
-        if (view.iCan(code))
-            map[stringOf(code)] = true;
+    if (choices.can(AC::IRS_CLICK))
+        map[stringOf(AC::NEXT_ROUND)] = true;
 
     json args;
     args["action"] = map;
     args["lastDiscarder"] = focusWho;
-	if (view.iForwardAll())
-		args["green"] = true;
+    args["green"] = view.myChoices().forwardAll();
 	peer(who.index(), "activated", args);
 }
 
@@ -220,9 +162,9 @@ void TableOpOb::onDiced(const Table &table, int die1, int die2)
 void TableOpOb::onDealt(const Table &table)
 {
 	for (int w = 0; w < 4; w++) {
-		const auto &init = table.getHand(Who(w)).closed().t37s(true);
+		const auto &init = table.getHand(Who(w)).closed().t37s13(true);
 		json args;
-		args["init"] = createTiles(init);
+		args["init"] = createTiles(init.range());
 		peer(w, "dealt", args);
 	}
 }
@@ -313,7 +255,7 @@ void TableOpOb::onRoundEnded(const Table &table, RoundResult result,
 		const Hand &hand = table.getHand(who);
 
 		json handMap;
-		handMap["closed"] = createTiles(hand.closed().t37s(true));
+		handMap["closed"] = createTiles(hand.closed().t37s13(true).range());
 		handMap["barks"] = createBarks(hand.barks());
 
 		if (result == RR::TSUMO || result == RR::KSKP)
@@ -336,7 +278,7 @@ void TableOpOb::onRoundEnded(const Table &table, RoundResult result,
 	args["result"] = stringOf(result);
 	args["hands"] = handsList;
 	args["forms"] = formsList;
-	args["urids"] = createTiles(table.getMount().getUrids());
+	args["urids"] = createTiles(table.getMount().getUrids().range());
 	for (int w = 0; w < 4; w++) {
 		args["openers"] = json::array();
 		for (Who who : openers)
@@ -394,7 +336,8 @@ bool TableOpOb::gameOver() const
 	return mEnd;
 }
 
-void TableOpOb::action(int w, const string &actStr, const string &actArg)
+void TableOpOb::action(int w, const string &actStr,
+                       int actArg, const string &actTile)
 {
 	Who who(w);
 
@@ -407,8 +350,8 @@ void TableOpOb::action(int w, const string &actStr, const string &actArg)
 	} else if (actStr == "RESUME") {
 		resume(w);
 	} else {
-		Action action = makeAction(actStr, actArg, w);
-		if (mTable->getTicketFolder(who).can(action)) {
+		Action action = makeAction(actStr, actArg, actTile, w);
+		if (mTable->check(who, action)) {
 			mTable->action(who, action);
 		} else {
 			json args;
@@ -423,8 +366,8 @@ void TableOpOb::action(int w, const string &actStr, const string &actArg)
 void TableOpOb::sweepOne(int w)
 {
 	Who who(w);
-	const auto &tifo = mTable->getTicketFolder(who);
-	Action act = tifo.sweep();
+	const auto &choices = mTable->getChoices(who);
+	Action act = choices.sweep();
 	if (act.act() == ActCode::NOTHING)
 		return;
 	mTable->action(who, act);
@@ -435,8 +378,8 @@ std::vector<int> TableOpOb::sweepAll()
 	std::array<Action, 4> actions;
 	using AC = ActCode;
 	for (int w = 0; w < 4; w++) {
-		const auto &tifo = mTable->getTicketFolder(Who(w));
-		actions[w] = tifo.sweep();
+		const auto &choices = mTable->getChoices(Who(w));
+		actions[w] = choices.sweep();
 	}
 
 	std::vector<int> res;
@@ -472,12 +415,12 @@ void TableOpOb::resume(int c)
 					args["drawn"] = createTile(hand.drawn());
 			}
 			if (w == c)
-				args["myHand"] = createTiles(hand.closed().t37s(true));
+				args["myHand"] = createTiles(hand.closed().t37s13(true).range());
 			args["barkss"][pers] = createBarks(hand.barks());
-			args["rivers"][pers] = createTiles(mTable->getRiver(Who(w)));
+			args["rivers"][pers] = createTiles(mTable->getRiver(Who(w)).range());
 			args["riichiBars"][pers] = mTable->riichiEstablished(Who(w));
 		}
-		args["drids"] = createTiles(mTable->getMount().getDrids());
+		args["drids"] = createTiles(mTable->getMount().getDrids().range());
 	}
 
 	const auto &pts = mTable->getPoints();
@@ -569,6 +512,61 @@ void TableOpOb::system(const char *type, const json &args)
 	const auto &s = msg.dump();
 	mMails.emplace_back(-1, s);
 }
+
+void TableOpOb::activateDrawn(json &map, const TableView &view)
+{
+    using AC = ActCode;
+
+    for (AC ac : { AC::SPIN_OUT, AC::SPIN_RIICHI, AC::TSUMO, AC::RYUUKYOKU })
+        if (view.myChoices().can(ac))
+            map[stringOf(ac)] = true;
+
+    const Choices::ModeDrawn &mode = view.myChoices().drawn();
+
+    if (mode.swapOut)
+        map[stringOf(AC::SWAP_OUT)] = (1 << 13) - 1;
+
+    if (!mode.swapRiichis.empty()) {
+		const auto &closed = view.myHand().closed();
+        map[stringOf(AC::SWAP_RIICHI)] = createSwapMask(closed, mode.swapRiichis);
+	}
+
+    if (!mode.ankans.empty())
+        map[stringOf(AC::ANKAN)] = createTileStrs(mode.ankans.range());
+
+    if (!mode.kakans.empty()) {
+		std::vector<int> kakans;
+		for (int i : mode.kakans)
+			kakans.push_back(i);
+        map[stringOf(AC::KAKAN)] = kakans;
+    }
+}
+
+void TableOpOb::activateBark(json &map, const TableView &view)
+{
+    using AC = saki::ActCode;
+
+    std::array<AC, 7> just {
+        AC::PASS,
+        AC::CHII_AS_LEFT, AC::CHII_AS_MIDDLE, AC::CHII_AS_RIGHT,
+        AC::PON, AC::DAIMINKAN, AC::RON
+    };
+
+    for (AC ac : just)
+        if (view.myChoices().can(ac))
+            map[stringOf(ac)] = true;
+}
+
+void TableOpOb::activateIrsCheck(json &map, const TableView &view)
+{
+    const Girl &girl = view.me();
+    int prediceCount = girl.irsCheckCount();
+    json list;
+    for (int i = 0; i < prediceCount; i++)
+        list.push_back(createIrsCheckRow(girl.irsCheckRow(i)));
+    map[stringOf(saki::ActCode::IRS_CHECK)] = list;
+}
+
 
 
 
