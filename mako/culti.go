@@ -19,7 +19,7 @@ func GetCultis(uid model.Uid) []model.Culti {
 	return cs
 }
 
-func UpdateUserGirl(bt model.BookType, uids [4]model.Uid,
+func UpdateUserGirl(uids [4]model.Uid,
 	gids [4]model.Gid, args *model.EndTableStat) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -32,7 +32,7 @@ func UpdateUserGirl(bt model.BookType, uids [4]model.Uid,
 		log.Fatalln(err)
 	}
 
-	err = updateUserRank(tx, uids, args.Ranks, bt)
+	err = updateUserRank(tx, uids, args.Ranks)
 	if err != nil {
 		tx.Rollback()
 		log.Fatalln(err)
@@ -126,8 +126,7 @@ func updateUserGirlStat(tx *pg.Tx, uids [4]model.Uid,
 // using ostrich algorithm:
 // - read-modify-write cycle
 // - assume there is no race condition
-func updateUserRank(tx *pg.Tx, uids [4]model.Uid,
-	ranks [4]int, bt model.BookType) error {
+func updateUserRank(tx *pg.Tx, uids [4]model.Uid, ranks [4]int) error {
 	var res []struct {
 		model.User
 		Play int
@@ -162,7 +161,7 @@ func updateUserRank(tx *pg.Tx, uids [4]model.Uid,
 		plays[i] = res[i].Play
 	}
 
-	updateLpr(&lprs, ranks, plays, bt)
+	updateLpr(&lprs, ranks, plays)
 
 	_, err = db.Model(&res[0].User, &res[1].User, &res[2].User, &res[3].User).
 		Column("level").Column("pt").Column("rating").

@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 
 	"github.com/mjpancake/ih/ako/cs"
+	"github.com/mjpancake/ih/ako/model"
 	"github.com/mjpancake/ih/hayari"
 )
 
@@ -17,7 +17,7 @@ var cl *client
 
 func (cl *client) send(msg interface{}) {
 	if cl == nil {
-		fmt.Println("offline")
+		log.Println("offline")
 		return
 	}
 
@@ -38,7 +38,7 @@ func login(username, password string) error {
 	cl.conn = conn
 
 	reqLogin := &cs.Auth{
-		Version:  "0.8.2",
+		Version:  "0.8.3",
 		Username: username,
 		Password: password,
 	}
@@ -60,6 +60,24 @@ func lookAround() {
 	cl.send(&cs.LookAround{})
 }
 
+func roomCreate() {
+	cl.send(&cs.RoomCreate{
+		AiNum:  model.Ai3,
+		Bans:   []model.Gid{},
+		AiGids: []model.Gid{0, 0, 0},
+	})
+}
+
+func roomJoin(rid int) {
+	cl.send(&cs.RoomJoin{
+		RoomId: model.Rid(rid),
+	})
+}
+
+func roomQuit() {
+	cl.send(&cs.RoomQuit{})
+}
+
 func getReplayList() {
 	cl.send(&cs.GetReplayList{})
 }
@@ -77,6 +95,6 @@ func readLoop(conn net.Conn) {
 			log.Println("LOGGED OUT", err)
 			return
 		}
-		log.Println(string(b))
+		onRecv(b)
 	}
 }

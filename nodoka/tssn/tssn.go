@@ -8,7 +8,6 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/mjpancake/ih/ako/model"
-	"github.com/mjpancake/ih/mako"
 	"github.com/mjpancake/ih/nodoka"
 	"github.com/mjpancake/ih/saki"
 )
@@ -22,11 +21,7 @@ func init() {
 
 type tssn struct {
 	p           *actor.PID
-	bookType    model.BookType
-	uids        [4]model.Uid
-	users       [4]*model.User
-	gids        [4]model.Gid
-	gidcs       [12]model.Gid
+	room        *model.Room
 	waits       [4]bool
 	onlines     [4]bool
 	nonces      [4]int
@@ -35,21 +30,15 @@ type tssn struct {
 	waitClient  bool
 }
 
-func Start(bt model.BookType, uids [4]model.Uid) {
-	users := mako.GetUsers(&uids)
-	for i, user := range users {
-		if user == nil {
-			log.Fatalln("uid", uids[i], "not in DB")
-		}
+func Start(room *model.Room) {
+	if !room.Four() {
+		log.Fatal("tssn.Start room not 4")
 	}
 
 	tssn := &tssn{
-		bookType: bt,
-		uids:     uids,
-		users:    users,
-		onlines:  [4]bool{true, true, true, true},
+		room:    room,
+		onlines: [4]bool{true, true, true, true},
 	}
-	tssn.genIds()
 
 	props := actor.FromInstance(tssn)
 	pid, err := actor.SpawnPrefix(props, "tssn")
@@ -64,9 +53,13 @@ func (tssn *tssn) Receive(ctx actor.Context) {
 	switch ctx.Message().(type) {
 	case *actor.Started:
 		ctx.SetReceiveTimeout(recvTimeout)
-		ctx.SetBehavior(tssn.Choose)
-		log.Println("TSSN ++++", tssn.bookType, tssn.uids)
-		tssn.notifyLoad()
+		ctx.SetBehavior(tssn.Seat)
+		uids := []model.Uid{}
+		for _, u := range tssn.room.Users {
+			uids = append(uids, u.Id)
+		}
+		log.Println("TSSN ++++", uids)
+		tssn.notifySeat()
 	default:
 		log.Fatalf("tssn.Recv unexpected %T\n", ctx.Message())
 	}
@@ -74,23 +67,23 @@ func (tssn *tssn) Receive(ctx actor.Context) {
 
 func (tssn *tssn) sendPeer(i int, msg interface{}) error {
 	if tssn.onlines[i] {
-		err := (&nodoka.MuSc{To: tssn.uids[i], Msg: msg}).Req()
+		err := (&nodoka.MuSc{To: tssn.room.Users[i].Id, Msg: msg}).Req()
 		if err != nil {
 			tssn.kick(i, "write err")
 		}
 		return err
 	}
-	return fmt.Errorf("tssn.sendPeer: %d not online", tssn.uids[i])
+	return fmt.Errorf("tssn.sendPeer: %d not online", tssn.room.Users[i].Id)
 }
 
 func (tssn *tssn) kick(uidx int, reason string) {
 	tssn.onlines[uidx] = false
-	nodoka.Umgr.Tell(&nodoka.MuKick{tssn.uids[uidx], reason})
+	nodoka.Umgr.Tell(&nodoka.MuKick{tssn.room.Users[uidx].Id, reason})
 }
 
 func (tssn *tssn) findUser(uid model.Uid) (int, bool) {
-	for i, u := range tssn.uids {
-		if u == uid {
+	for i, u := range tssn.room.Users {
+		if u.Id == uid {
 			return i, true
 		}
 	}
@@ -119,5 +112,10 @@ func (tssn *tssn) bye(ctx actor.Context) {
 		saki.DeleteTableSession(tssn.table)
 	}
 	ctx.SetBehavior(func(ctx actor.Context) {}) // clear bahavior
-	log.Println("TSSN ----", tssn.bookType, tssn.uids)
+
+	uids := []model.Uid{}
+	for _, u := range tssn.room.Users {
+		uids = append(uids, u.Id)
+	}
+	log.Println("TSSN ----", uids)
 }

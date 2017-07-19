@@ -5,11 +5,10 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/mjpancake/ih/ako/model"
+	"github.com/mjpancake/ih/ako/sc"
 	"github.com/mjpancake/ih/nodoka"
 	"github.com/mjpancake/ih/nodoka/tssn"
 )
-
-var states [model.BookTypeKinds]BookState
 
 func Init() {
 	props := actor.FromFunc(Receive)
@@ -26,62 +25,78 @@ func Receive(ctx actor.Context) {
 	case *actor.Stopping:
 	case *actor.Stopped:
 	case *actor.Restarting:
-	case *nodoka.MbBook:
-		handleBook(msg.Uid, msg.BookType)
-	case *nodoka.MbUnbook:
-		handleUnbook(msg.Uid)
-	case *nodoka.MbCtBooks:
-		handleCtBooks(ctx.Respond)
+	case *nodoka.MbRoomCreate:
+		handleRoomCreate(msg)
+	case *nodoka.MbRoomJoin:
+		handleRoomJoin(msg)
+	case *nodoka.MbRoomQuit:
+		handleRoomQuit(msg)
+	case *nodoka.MbGetRooms:
+		resp := handleGetRooms()
+		ctx.Respond(resp)
 	default:
 		log.Fatalf("Bmgr.Recv unexpected %T\n", msg)
 	}
 }
 
-func handleBook(uid model.Uid, bookType model.BookType) {
-	state := &states[bookType.Index()]
-
-	for i := 0; i < state.Wait; i++ {
-		if state.Waits[i] == uid {
-			return
-		}
-	}
+func handleRoomCreate(msg *nodoka.MbRoomCreate) {
+	uid := msg.Creator.Id
 
 	playing, err := (&nodoka.MtHasUser{Uid: uid}).Req()
 	if err != nil {
-		log.Println("Bmgr:", err)
+		log.Println("Bmgr.handleRoomCreate:", err)
+		nodoka.Umgr.Tell(&nodoka.MuKick{uid, err.Error()})
 		return
 	}
 	if playing {
+		nodoka.Umgr.Tell(&nodoka.MuKick{uid, "create but playing"})
 		return
 	}
 
-	state.Waits[state.Wait] = uid
-	state.Wait++
-	if state.Wait == bookType.NeedUser() {
-		state.fillByAi()
-		handleStart(bookType)
+	room, err := roomCreate(msg)
+	if err != nil {
+		nodoka.Umgr.Tell(&nodoka.MuKick{uid, err.Error()})
+	}
+	if room != nil {
+		tssn.Start(room)
 	}
 }
 
-func handleUnbook(uid model.Uid) {
-	for i := range states {
-		states[i].removeIfAny(uid)
+func handleRoomJoin(msg *nodoka.MbRoomJoin) {
+	room, err := roomJoin(msg)
+	if err != nil {
+		if err == errRoomTan90 {
+			nodoka.Umgr.Tell(&nodoka.MuSc{
+				To:  msg.User.Id,
+				Msg: &sc.RoomJoin{Error: "来晚一步，房间已开"},
+			})
+		} else {
+			nodoka.Umgr.Tell(&nodoka.MuKick{msg.User.Id, err.Error()})
+		}
+		return
+	}
+
+	nodoka.Umgr.Tell(&nodoka.MuSc{
+		To:  msg.User.Id,
+		Msg: &sc.RoomJoin{Error: ""},
+	})
+
+	if room != nil {
+		tssn.Start(room)
 	}
 }
 
-func handleStart(bt model.BookType) {
-	state := &states[bt.Index()]
-	uids := state.Waits // copy
-	for _, uid := range uids {
-		handleUnbook(uid)
-	}
-	tssn.Start(bt, uids)
+func handleRoomQuit(msg *nodoka.MbRoomQuit) {
+	roomQuit(msg.Uid)
 }
 
-func handleCtBooks(resp func(interface{})) {
-	var cts [model.BookTypeKinds]int
-	for i, v := range states {
-		cts[i] = v.Wait
+func handleGetRooms() []*model.Room {
+	res := []*model.Room{}
+
+	for _, r := range rooms {
+		v := *r // copy
+		res = append(res, &v)
 	}
-	resp(cts)
+
+	return res
 }

@@ -16,23 +16,27 @@ type LookAround struct{}
 
 type HeartBeat struct{}
 
-type Choose struct {
-	GirlIndex int
+type RoomCreate struct {
+	GirlId model.Gid
+	AiNum  model.AiNum
+	Bans   []model.Gid
+	AiGids []model.Gid
 }
 
-type Ready struct{}
+type RoomJoin struct {
+	GirlId model.Gid
+	RoomId model.Rid
+}
+
+type RoomQuit struct{}
+
+type Seat struct{}
 
 type Action struct {
 	Nonce  int
 	ActStr string
 	ActArg string
 }
-
-type Book struct {
-	BookType model.BookType
-}
-
-type Unbook struct{}
 
 type GetReplay struct {
 	ReplayId uint

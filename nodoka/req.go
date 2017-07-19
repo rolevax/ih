@@ -23,21 +23,21 @@ func (msg *MtHasUser) Req() (bool, error) {
 	}
 }
 
-func (msg *MtCtPlays) Req() ([model.BookTypeKinds]int, error) {
+func (msg *MtCtPlays) Req() (int, error) {
 	res, err := Req(Tmgr, msg)
 	if err != nil {
-		return [model.BookTypeKinds]int{}, err
+		return 0, err
 	} else {
-		return res.([model.BookTypeKinds]int), nil
+		return res.(int), nil
 	}
 }
 
-func (msg *MbCtBooks) Req() ([model.BookTypeKinds]int, error) {
+func (msg *MbGetRooms) Req() ([]*model.Room, error) {
 	res, err := Req(Bmgr, msg)
 	if err != nil {
-		return [model.BookTypeKinds]int{}, err
+		return nil, err
 	} else {
-		return res.([model.BookTypeKinds]int), nil
+		return res.([]*model.Room), nil
 	}
 }
 

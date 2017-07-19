@@ -9,8 +9,7 @@ import (
 )
 
 var (
-	rec    map[model.Uid]*tssn = make(map[model.Uid]*tssn)
-	btStat [model.BookTypeKinds]int
+	rec map[model.Uid]*tssn = make(map[model.Uid]*tssn)
 )
 
 func Init() {
@@ -32,10 +31,8 @@ func Receive(ctx actor.Context) {
 		handleHasUser(msg.Uid, ctx.Respond)
 	case *nodoka.MtCtPlays:
 		handleCtPlays(ctx.Respond)
-	case *nodoka.MtChoose:
-		handleChoose(msg)
-	case *nodoka.MtReady:
-		handleReady(msg)
+	case *nodoka.MtSeat:
+		handleSeat(msg)
 	case *nodoka.MtAction:
 		handleAction(msg)
 	case *cpReg:
@@ -51,32 +48,24 @@ func handleHasUser(uid model.Uid, resp func(interface{})) {
 }
 
 func handleCtPlays(resp func(interface{})) {
-	resp(btStat) // pass by value
+	resp(len(rec))
 }
 
 func handleReg(add bool, tssn *tssn) {
 	if add {
 		for w := 0; w < 4; w++ {
-			rec[tssn.uids[w]] = tssn
+			rec[tssn.room.Users[w].Id] = tssn
 		}
-		btStat[tssn.bookType.Index()]++
 	} else {
 		for w := 0; w < 4; w++ {
-			delete(rec, tssn.uids[w])
+			delete(rec, tssn.room.Users[w].Id)
 		}
-		btStat[tssn.bookType.Index()]--
 	}
 }
 
-func handleReady(msg *nodoka.MtReady) {
+func handleSeat(msg *nodoka.MtSeat) {
 	if tssn, ok := rec[msg.Uid]; ok {
-		tssn.p.Tell(&pcReady{msg})
-	}
-}
-
-func handleChoose(msg *nodoka.MtChoose) {
-	if tssn, ok := rec[msg.Uid]; ok {
-		tssn.p.Tell(&pcChoose{msg})
+		tssn.p.Tell(&pcSeat{msg})
 	}
 }
 

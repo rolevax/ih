@@ -1,7 +1,6 @@
 package ussn
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -17,8 +16,9 @@ import (
 const uuReqTmot = 1 * time.Second
 
 func (ussn *ussn) handleReject(msg error) {
-	// good bye, no need to check error anymore
-	jsonb, _ := json.Marshal(sc.NewAuthFail(msg.Error()))
+	jsonb := sc.ToJson(&sc.Auth{
+		Error: msg.Error(),
+	})
 	hayari.Write(ussn.conn, jsonb)
 	ussn.handleError(fmt.Errorf("rejected: %v", msg))
 }
@@ -33,12 +33,8 @@ func (ussn *ussn) handleError(msg error) {
 }
 
 func (ussn *ussn) handleSc(msg interface{}, resp func(interface{})) {
-	jsonb, err := json.Marshal(msg)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	err = hayari.Write(ussn.conn, jsonb)
+	jsonb := sc.ToJson(msg)
+	err := hayari.Write(ussn.conn, jsonb)
 	if err != nil {
 		if e, ok := err.(*net.OpError); ok {
 			err = e.Err
@@ -53,7 +49,10 @@ func (ussn *ussn) handleSc(msg interface{}, resp func(interface{})) {
 
 func (ussn *ussn) handleUpdateInfo() {
 	ussn.user = mako.GetUser(ussn.user.Id)
-	sc := sc.NewUpdateUser(ussn.user, mako.GetCultis(ussn.user.Id))
+	sc := &sc.UpdateUser{
+		User:  ussn.user,
+		Stats: mako.GetCultis(ussn.user.Id),
+	}
 	ussn.handleSc(sc, noResp)
 }
 
@@ -73,21 +72,18 @@ func (ussn *ussn) handleCs(i interface{}) {
 		ussn.handleLookAround()
 	case *cs.HeartBeat:
 		// do nothing
-	case *cs.Book:
-		nodoka.Bmgr.Tell(&nodoka.MbBook{
-			Uid:      ussn.user.Id,
-			BookType: msg.BookType,
-		})
-	case *cs.Unbook:
-		nodoka.Bmgr.Tell(&nodoka.MbUnbook{Uid: ussn.user.Id})
+	case *cs.RoomCreate:
+		ussn.handleRoomCreate(msg)
+	case *cs.RoomJoin:
+		ussn.handleRoomJoin(msg)
+	case *cs.RoomQuit:
+		ussn.handleRoomQuit()
 	case *cs.GetReplayList:
 		ussn.handleGetReplayList()
 	case *cs.GetReplay:
 		ussn.handleGetReplay(msg.ReplayId)
-	case *cs.Choose:
-		ussn.handleChoose(msg.GirlIndex)
-	case *cs.Ready:
-		ussn.handleReady()
+	case *cs.Seat:
+		ussn.handleSeat()
 	case *cs.Action:
 		ussn.handleAction(msg)
 	default:
@@ -95,51 +91,61 @@ func (ussn *ussn) handleCs(i interface{}) {
 	}
 }
 
+func (ussn *ussn) handleRoomCreate(msg *cs.RoomCreate) {
+	// TODO check gid pcs-ed
+	nodoka.Bmgr.Tell(&nodoka.MbRoomCreate{
+		Creator:    *ussn.user,
+		RoomCreate: *msg,
+	})
+}
+
+func (ussn *ussn) handleRoomJoin(msg *cs.RoomJoin) {
+	nodoka.Bmgr.Tell(&nodoka.MbRoomJoin{
+		User:     *ussn.user,
+		RoomJoin: *msg,
+	})
+}
+
+func (ussn *ussn) handleRoomQuit() {
+	nodoka.Bmgr.Tell(&nodoka.MbRoomQuit{Uid: ussn.user.Id})
+}
+
 func (ussn *ussn) handleLookAround() {
-	playing, err := (&nodoka.MtHasUser{Uid: ussn.user.Id}).Req()
+	// TODO
+	// all user have same result, no need to compute individually
+	// Umgr periodically gather data from other Mgr's
+	// ussn tell Umgr cpLookAround, Umgr tell ussn pcSc
+	res, err := nodoka.Umgr.RequestFuture(&cpWater{}, uuReqTmot).Result()
+	if err != nil {
+		ussn.handleError(err)
+		return
+	}
+	water := res.(*pcWater)
+
+	playCt, err := (&nodoka.MtCtPlays{}).Req()
 	if err != nil {
 		ussn.handleError(err)
 		return
 	}
 
-	if playing {
-		ussn.handleSc(&sc.TypeOnly{"resume"}, noResp)
-	} else {
-		res, err := nodoka.Umgr.RequestFuture(&cpWater{}, uuReqTmot).Result()
-		if err != nil {
-			ussn.handleError(err)
-			return
-		}
-		water := res.(*pcWater)
-
-		tables, err := (&nodoka.MtCtPlays{}).Req()
-		if err != nil {
-			ussn.handleError(err)
-			return
-		}
-		waits, err := (&nodoka.MbCtBooks{}).Req()
-		if err != nil {
-			ussn.handleError(err)
-			return
-		}
-
-		user := ussn.user
-		dcbaBookable := [4]bool{
-			user.Level < 13 || user.Rating < 1800.0,
-			user.Level >= 9,
-			user.Level >= 13 && user.Rating >= 1800.0,
-			user.Level >= 16 && user.Rating >= 2000.0,
-		}
-
-		msg := sc.NewLookAround(water.ct, water.water,
-			&dcbaBookable, &waits, &tables)
-		ussn.handleSc(msg, noResp)
+	rooms, err := (&nodoka.MbGetRooms{}).Req()
+	if err != nil {
+		ussn.handleError(err)
+		return
 	}
+
+	msg := &sc.LookAround{
+		Conn:  water.ct,
+		Play:  playCt,
+		Water: water.water,
+		Rooms: rooms,
+	}
+	ussn.handleSc(msg, noResp)
 }
 
 func (ussn *ussn) handleGetReplayList() {
 	ids := mako.GetReplayList(ussn.user.Id)
-	ussn.handleSc(sc.NewGetReplayList(ids), noResp)
+	ussn.handleSc(&sc.GetReplayList{ids}, noResp)
 }
 
 func (ussn *ussn) handleGetReplay(replayId uint) {
@@ -149,15 +155,11 @@ func (ussn *ussn) handleGetReplay(replayId uint) {
 		return
 	}
 	time.Sleep(2 * time.Second) // no reason, just wanna sleep
-	ussn.handleSc(sc.NewGetReplay(replayId, text), noResp)
+	ussn.handleSc(&sc.GetReplay{replayId, text}, noResp)
 }
 
-func (ussn *ussn) handleChoose(gidx int) {
-	nodoka.Tmgr.Tell(&nodoka.MtChoose{Uid: ussn.user.Id, Gidx: gidx})
-}
-
-func (ussn *ussn) handleReady() {
-	nodoka.Tmgr.Tell(&nodoka.MtReady{Uid: ussn.user.Id})
+func (ussn *ussn) handleSeat() {
+	nodoka.Tmgr.Tell(&nodoka.MtSeat{Uid: ussn.user.Id})
 }
 
 func (ussn *ussn) handleAction(msg *cs.Action) {

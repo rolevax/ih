@@ -180,3 +180,6 @@ BEGIN
 END;
 $$ language plpgsql;
 
+insert into user_girl(user_id,girl_id) (select user_id, 0 from users)
+  on conflict do nothing;
+

@@ -13,7 +13,7 @@ import (
 	"github.com/mjpancake/ih/nodoka/ussn"
 )
 
-const Version = "0.8.2"
+const Version = "0.8.3"
 
 type logWriter struct{}
 

@@ -27,11 +27,24 @@ func main() {
 }
 
 func startReadline() *readline.Instance {
-	l, err := readline.New("\033[31m»\033[0m ")
+	children := []readline.PrefixCompleterInterface{}
+	for key, _ := range handlers {
+		children = append(children, readline.PcItem(key))
+	}
+	comp := readline.NewPrefixCompleter()
+	comp.SetChildren(children)
+
+	l, err := readline.NewEx(&readline.Config{
+		Prompt:       "\033[31mkaori»\033[0m ",
+		AutoComplete: comp,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	log.SetOutput(l.Stderr())
+	l.SetVimMode(true)
+
 	return l
 }
 

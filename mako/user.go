@@ -38,27 +38,47 @@ func SignUp(username, password string) error {
 		return errors.New("用户名不可用")
 	}
 
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatalln("db.SignUp", err)
+	}
+
 	var exist bool
-	// FIXIT: just insert, and check returning conflict error
-	_, err := db.QueryOne(
+	_, err = tx.QueryOne(
 		&exist,
 		"SELECT EXISTS(SELECT 1 FROM users WHERE username=?)",
 		username,
 	)
 
 	if err != nil {
+		tx.Rollback()
 		log.Fatalln("db.SignUp", err)
 	}
 
 	if exist {
+		tx.Rollback()
 		return errors.New("用户名已存在")
 	}
 
-	_, err = db.Exec(
-		"INSERT INTO users (username, password) VALUES (?,?)",
-		username, hash(password))
+	var uid model.Uid
+	_, err = tx.QueryOne(
+		&uid,
+		"INSERT INTO users(username, password) VALUES (?,?) RETURNING user_id",
+		username, hash(password),
+	)
 
 	if err != nil {
+		tx.Rollback()
+		log.Fatalln("db.SignUp", err)
+	}
+
+	_, err = tx.Exec(
+		"INSERT INTO user_girl(user_id, girl_id) VALUES (?, 0)",
+		uid,
+	)
+
+	if err != nil {
+		tx.Rollback()
 		log.Fatalln("db.SignUp", err)
 	}
 

@@ -11,24 +11,15 @@ type cpReg struct {
 	tssn *tssn
 }
 
-type pcChoose struct {
-	*nodoka.MtChoose
-}
-
-type pcReady struct {
-	*nodoka.MtReady
+type pcSeat struct {
+	*nodoka.MtSeat
 }
 
 type pcAction struct {
 	*nodoka.MtAction
 }
 
-type ccChoose struct {
-	Uid  model.Uid
-	Gidx int
-}
-
-type ccReady struct {
+type ccSeat struct {
 	Uid model.Uid
 }
 

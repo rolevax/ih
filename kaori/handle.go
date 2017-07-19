@@ -11,11 +11,14 @@ import (
 type handler func(rl *readline.Instance, args []string)
 
 var handlers = map[string]handler{
-	"login":         handleLogin,
-	"logout":        handleLogout,
-	"lookAround":    handleLookAround,
-	"getReplayList": handleGetReplayList,
-	"getReplay":     handleGetReplay,
+	"login":           handleLogin,
+	"logout":          handleLogout,
+	"look-around":     handleLookAround,
+	"get-replay-list": handleGetReplayList,
+	"get-replay":      handleGetReplay,
+	"room-create":     handleRoomCreate,
+	"room-join":       handleRoomJoin,
+	"room-quit":       handleRoomQuit,
 }
 
 func handleLogin(rl *readline.Instance, args []string) {
@@ -60,4 +63,27 @@ func handleGetReplay(rl *readline.Instance, args []string) {
 	}
 
 	getReplay(uint(id))
+}
+
+func handleRoomCreate(rl *readline.Instance, args []string) {
+	roomCreate()
+}
+
+func handleRoomJoin(rl *readline.Instance, args []string) {
+	if len(args) != 1 {
+		fmt.Println("usage: room-join <rid>")
+		return
+	}
+
+	rid, err := strconv.Atoi(args[0])
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	roomJoin(rid)
+}
+
+func handleRoomQuit(rl *readline.Instance, args []string) {
+	roomQuit()
 }

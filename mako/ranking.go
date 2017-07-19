@@ -10,8 +10,7 @@ func average(d *[4]float64) float64 {
 	return (d[0] + d[1] + d[2] + d[3]) / 4.0
 }
 
-func updateLpr(lprs *[4]*model.Lpr, ranks [4]int,
-	plays [4]int, bt model.BookType) {
+func updateLpr(lprs *[4]*model.Lpr, ranks [4]int, plays [4]int) {
 	sumRating := 0.0
 	for w := 0; w < 4; w++ {
 		if lprs[w] == nil {
@@ -36,9 +35,9 @@ func updateLpr(lprs *[4]*model.Lpr, ranks [4]int,
 	for w := 0; w < 4; w++ {
 		switch ranks[w] {
 		case 1:
-			updateTopPt(&lprs[w].Pt, &lprs[w].Level, bt)
+			updateTopPt(&lprs[w].Pt, &lprs[w].Level)
 		case 2:
-			update2ndPt(&lprs[w].Pt, &lprs[w].Level, bt)
+			update2ndPt(&lprs[w].Pt, &lprs[w].Level)
 		case 3:
 			// no change
 		case 4:
@@ -49,31 +48,13 @@ func updateLpr(lprs *[4]*model.Lpr, ranks [4]int,
 	}
 }
 
-func updateTopPt(pt *int, level *int, bookType model.BookType) {
-	switch bookType.Abcd() {
-	case model.BookD:
-		*pt += 45
-	case model.BookC:
-		*pt += 60
-	case model.BookB:
-		*pt += 75
-	case model.BookA:
-		*pt += 90
-	}
+func updateTopPt(pt *int, level *int) {
+	*pt += 75
 	updateLevel(pt, level)
 }
 
-func update2ndPt(pt *int, level *int, bookType model.BookType) {
-	switch bookType.Abcd() {
-	case model.BookD:
-		*pt += 0
-	case model.BookC:
-		*pt += 15
-	case model.BookB:
-		*pt += 30
-	case model.BookA:
-		*pt += 45
-	}
+func update2ndPt(pt *int, level *int) {
+	*pt += 30
 	updateLevel(pt, level)
 }
 

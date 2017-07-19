@@ -21,16 +21,16 @@ func init() {
 }
 
 func AddAcceptingVersion(ver string) {
-	err := rclient.SAdd("accepting.versions", ver).Err()
+	err := rclient.SAdd("mako.vers", ver).Err()
 	if err != nil {
 		log.Fatalln("redis", err)
 	}
 }
 
 func AcceptVersion(ver string) bool {
-	res, err := rclient.SIsMember("accepting.versions", ver).Result()
+	res, err := rclient.SIsMember("mako.vers", ver).Result()
 	if err != nil {
-		log.Fatalln("db.AcptVer", err)
+		log.Fatalln("mako.AcptVer", err)
 	}
 	return res
 }

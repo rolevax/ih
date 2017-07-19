@@ -101,7 +101,7 @@ func (ussn *ussn) auth(breq []byte) error {
 	}
 
 	if !mako.AcceptVersion(req.Version) {
-		return errors.New("客户端版本过旧")
+		return errors.New("请更新客户端")
 	}
 
 	u, err := mako.Login(req.Username, req.Password)
@@ -111,14 +111,30 @@ func (ussn *ussn) auth(breq []byte) error {
 
 func (ussn *ussn) hello() {
 	log.Println(ussn.user.Id, "++++", ussn.conn.RemoteAddr())
-	ussn.handleSc(sc.NewAuthOk(ussn.user), noResp)
-	ussn.handleUpdateInfo()
+	nodoka.Umgr.Tell(&cpReg{add: true, ussn: ussn})
+
+	ussn.sendHello()
+
 	onRead := func(breq []byte) { ussn.p.Tell(breq) }
 	onReadErr := func(err error) {
 		nodoka.Umgr.Tell(&nodoka.MuKick{ussn.user.Id, err.Error()})
 	}
 	go readLoop(ussn.conn, onRead, onReadErr)
-	nodoka.Umgr.Tell(&cpReg{add: true, ussn: ussn})
+}
+
+func (ussn *ussn) sendHello() {
+	playing, err := (&nodoka.MtHasUser{Uid: ussn.user.Id}).Req()
+	if err != nil {
+		ussn.handleError(err)
+		return
+	}
+
+	ussn.handleSc(&sc.Auth{
+		Error:  "",
+		Resume: playing,
+		User:   ussn.user,
+		Stats:  mako.GetCultis(ussn.user.Id),
+	}, noResp)
 }
 
 func (ussn *ussn) bye() {

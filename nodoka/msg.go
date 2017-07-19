@@ -16,25 +16,25 @@ type MtAction struct {
 	Act *cs.Action
 }
 
-type MtChoose struct {
-	Uid  model.Uid
-	Gidx int
-}
-
-type MtReady struct {
+type MtSeat struct {
 	Uid model.Uid
 }
 
-type MbBook struct {
-	Uid      model.Uid
-	BookType model.BookType
+type MbRoomCreate struct {
+	Creator model.User
+	cs.RoomCreate
 }
 
-type MbUnbook struct {
+type MbRoomJoin struct {
+	User model.User
+	cs.RoomJoin
+}
+
+type MbRoomQuit struct {
 	Uid model.Uid
 }
 
-type MbCtBooks struct{}
+type MbGetRooms struct{}
 
 type MuSc struct {
 	To  model.Uid
