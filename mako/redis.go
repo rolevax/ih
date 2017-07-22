@@ -1,6 +1,7 @@
 package mako
 
 import (
+	"fmt"
 	"log"
 
 	"gopkg.in/redis.v5"
@@ -33,4 +34,28 @@ func AcceptVersion(ver string) bool {
 		log.Fatalln("mako.AcptVer", err)
 	}
 	return res
+}
+
+func checkAnswer(answer string) ([]int, error) {
+	corr, err := rclient.Get("mako.answer").Result()
+	if err != nil {
+		// should prepare 'mako.answer' manualy in redis
+		log.Fatal("mako.Answer", err)
+	}
+
+	as := []byte(answer)
+	cas := []byte(corr)
+	if len(as) != len(cas) {
+		str := "wrong answer len %d, want %d"
+		return nil, fmt.Errorf(str, len(as), len(cas))
+	}
+
+	res := []int{}
+	for i, _ := range as {
+		if as[i] != cas[i] {
+			res = append(res, i)
+		}
+	}
+
+	return res, nil
 }

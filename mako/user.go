@@ -4,7 +4,9 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/go-pg/pg"
@@ -80,6 +82,36 @@ func SignUp(username, password string) error {
 	if err != nil {
 		tx.Rollback()
 		log.Fatalln("db.SignUp", err)
+	}
+
+	tx.Commit()
+
+	return nil
+}
+
+func Activate(username, password, answer string) error {
+	user, err := Login(username, password)
+	if err != nil {
+		return err
+	}
+
+	wrongs, err := checkAnswer(answer)
+	if err != nil {
+		return err // evil client
+	}
+
+	if len(wrongs) > 0 {
+		qids := []string{}
+		for _, qid := range wrongs {
+			// question numbers start from 1
+			qids = append(qids, strconv.Itoa(qid+1))
+		}
+		return fmt.Errorf("第%s题答错", strings.Join(qids, ","))
+	}
+
+	_, err = db.Model(user).Set("activated = TRUE").Update()
+	if err != nil {
+		log.Fatal("db.Activate", err)
 	}
 
 	return nil

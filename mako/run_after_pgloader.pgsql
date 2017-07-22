@@ -183,3 +183,6 @@ $$ language plpgsql;
 insert into user_girl(user_id,girl_id) (select user_id, 0 from users)
   on conflict do nothing;
 
+alter table users add column
+  activated boolean not null default FALSE;
+

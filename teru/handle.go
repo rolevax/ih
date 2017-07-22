@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/emicklei/go-restful"
+	"github.com/mjpancake/ih/mako"
 )
 
 func create(request *restful.Request, response *restful.Response) {
@@ -21,7 +22,11 @@ func create(request *restful.Request, response *restful.Response) {
 	}
 
 	log.Println("account/create", cs.Username)
-	// TODO check and add to db
+
+	err = mako.SignUp(cs.Username, cs.Password)
+	if err != nil {
+		sc.Error = err.Error()
+	}
 }
 
 func activate(request *restful.Request, response *restful.Response) {
@@ -37,9 +42,11 @@ func activate(request *restful.Request, response *restful.Response) {
 		return
 	}
 
-	// TODO check password and set error
 	log.Println("account/activate", cs.Username, "answers", cs.Answers)
-	// TODO set sc.Result
+	err = mako.Activate(cs.Username, cs.Password, cs.Answers)
+	if err != nil {
+		sc.Error = err.Error()
+	}
 }
 
 func slow() {

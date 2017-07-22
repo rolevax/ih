@@ -251,7 +251,8 @@ CREATE TABLE users (
     password character(44) NOT NULL,
     level smallint DEFAULT 0 NOT NULL,
     pt smallint DEFAULT 0 NOT NULL,
-    rating double precision DEFAULT '1500'::double precision NOT NULL
+    rating double precision DEFAULT '1500'::double precision NOT NULL,
+    activated boolean DEFAULT false NOT NULL
 );
 
 
@@ -350,6 +351,7 @@ SELECT pg_catalog.setval('replays_replay_id_seq', 2112, true);
 --
 
 COPY user_girl (user_id, girl_id, avg_point, a_top, a_last, round, win, gun, bark, riichi, win_point, gun_point, bark_point, riichi_point, ready, ready_turn, win_turn, yaku_rci, yaku_ipt, yaku_tmo, yaku_tny, yaku_pnf, yaku_y1y, yaku_y2y, yaku_y3y, yaku_jk1, yaku_jk2, yaku_jk3, yaku_jk4, yaku_bk1, yaku_bk2, yaku_bk3, yaku_bk4, yaku_ipk, yaku_rns, yaku_hai, yaku_hou, yaku_ckn, yaku_ss1, yaku_it1, yaku_ct1, yaku_wri, yaku_ss2, yaku_it2, yaku_ct2, yaku_toi, yaku_ctt, yaku_sak, yaku_skt, yaku_stk, yaku_hrt, yaku_s3g, yaku_h1t, yaku_jc2, yaku_mnh, yaku_jc3, yaku_rpk, yaku_c1t, yaku_mnc, yaku_x13, yaku_xd3, yaku_x4a, yaku_xt1, yaku_xs4, yaku_xd4, yaku_xcr, yaku_xr1, yaku_xth, yaku_xch, yaku_x4k, yaku_x9r, yaku_w13, yaku_w4a, yaku_w9r, kzeykm, han_rci, han_ipt, han_tmo, han_tny, han_pnf, han_y1y, han_y2y, han_y3y, han_jk1, han_jk2, han_jk3, han_jk4, han_bk1, han_bk2, han_bk3, han_bk4, han_ipk, han_rns, han_hai, han_hou, han_ckn, han_ss1, han_it1, han_ct1, han_wri, han_ss2, han_it2, han_ct2, han_toi, han_ctt, han_sak, han_skt, han_stk, han_hrt, han_s3g, han_h1t, han_jc2, han_mnh, han_jc3, han_rpk, han_c1t, han_mnc, yaku_dora, yaku_uradora, yaku_akadora, yaku_kandora, yaku_kanuradora, ranks) FROM stdin;
+1914	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	{0,0,0,0}
 \.
 
 
@@ -357,9 +359,10 @@ COPY user_girl (user_id, girl_id, avg_point, a_top, a_last, round, win, gun, bar
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: mako
 --
 
-COPY users (user_id, username, password, level, pt, rating) FROM stdin;
-501	ⓝ喵打	iMqwzWh78q4vOGkh7ALsA6ohvh25OQ/VMDNFICkTarc=	10	200	1304.68499999999995
-502	ⓝ打喵	iMqwzWh78q4vOGkh7ALsA6ohvh25OQ/VMDNFICkTarc=	9	45	1235.60599999999999
+COPY users (user_id, username, password, level, pt, rating, activated) FROM stdin;
+501	ⓝ喵打	iMqwzWh78q4vOGkh7ALsA6ohvh25OQ/VMDNFICkTarc=	10	200	1304.68499999999995	f
+502	ⓝ打喵	iMqwzWh78q4vOGkh7ALsA6ohvh25OQ/VMDNFICkTarc=	9	45	1235.60599999999999	f
+1914	test	iMqwzWh78q4vOGkh7ALsA6ohvh25OQ/VMDNFICkTarc=	0	0	1500	f
 \.
 
 
@@ -367,7 +370,7 @@ COPY users (user_id, username, password, level, pt, rating) FROM stdin;
 -- Name: users_user_id_seq; Type: SEQUENCE SET; Schema: public; Owner: mako
 --
 
-SELECT pg_catalog.setval('users_user_id_seq', 1912, true);
+SELECT pg_catalog.setval('users_user_id_seq', 1914, true);
 
 
 --
