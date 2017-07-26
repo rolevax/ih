@@ -8,7 +8,7 @@ import (
 
 var decoder = ako.NewDecoder([]interface{}{
 	LookAround{},
-	HeartBeat{},
+	Heartbeat{},
 	RoomCreate{},
 	RoomJoin{},
 	RoomQuit{},

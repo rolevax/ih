@@ -14,7 +14,7 @@ type Auth struct {
 
 type LookAround struct{}
 
-type HeartBeat struct{}
+type Heartbeat struct{}
 
 type RoomCreate struct {
 	GirlId model.Gid

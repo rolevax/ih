@@ -11,6 +11,7 @@ Requirement:
 
 - Unix-like environment with common build tools
 - Go 1.8 or above
+- [Proto Actor](https://github.com/AsynkronIT/protoactor-go)
 - SWIG 3.0
 - All the other dependencies are go-gettable
 
@@ -19,7 +20,7 @@ Steps:
 ```
 go get github.com/mjpancake/ih
 cd $GOPATH/src/github.com/mjpancake/ih
-cd saki; make clean; make; cd ..
+cd saki; make; cd ..
 cd hisa; go install
 ```
 
@@ -28,8 +29,8 @@ cd hisa; go install
 Requirement:
 
 - A running PostgreSQL server with required data
-  - To import a dummy dataset, run `psql mako mako < mako/dummy.pgsql`
-- A running Redis server with the default configurations
+  - To import a dummy dataset, run `psql mako mako < mako/schema.pgsql`
+- A running Redis server with the default configuration
 
 Then run the server:
 

@@ -70,7 +70,7 @@ func (ussn *ussn) handleCs(i interface{}) {
 	switch msg := i.(type) {
 	case *cs.LookAround:
 		ussn.handleLookAround()
-	case *cs.HeartBeat:
+	case *cs.Heartbeat:
 		// do nothing
 	case *cs.RoomCreate:
 		ussn.handleRoomCreate(msg)
