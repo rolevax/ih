@@ -113,13 +113,23 @@ func (tssn *tssn) sendUserMail(who int, msg *sc.TableEvent) {
 
 	if tssn.room.Users[who].Id.IsBot() {
 		if msg.Event == "activated" {
-			tssn.p.Tell(&ccAction{
-				UserIndex: who,
-				Act: &cs.Action{
-					ActStr: "BOT",
-					Nonce:  msg.Nonce,
-				},
-			})
+			go func() {
+				// simulate ai thinking time
+				hesi := 300 * time.Millisecond
+				actMap := msg.Args["action"].(map[string]interface{})
+				if _, ok := actMap["PASS"]; ok {
+					hesi = 100 * time.Millisecond
+				}
+				time.Sleep(hesi)
+
+				tssn.p.Tell(&ccAction{
+					UserIndex: who,
+					Act: &cs.Action{
+						ActStr: "BOT",
+						Nonce:  msg.Nonce,
+					},
+				})
+			}()
 		}
 		return
 	}
