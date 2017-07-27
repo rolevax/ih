@@ -1,6 +1,7 @@
 # Pancake Mahjong Server
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/mjpancake)
+[![Build Status](https://travis-ci.org/mjpancake/ih.svg?branch=develop)](https://travis-ci.org/mjpancake/ih)
 
 See the [client repository](https://github.com/mjpancake/mjpancake)
 for an introduction to Pancake Mahjong.

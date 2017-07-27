@@ -1,0 +1,16 @@
+language: go
+sudo: required
+
+go:
+  - 1.8.x
+
+install:
+  - wget https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3.3.0-linux-x86_64.zip
+  - unzip protoc-3.3.0-linux-x86_64.zip   
+  - sudo cp ./bin/protoc /usr/bin/protoc
+  - go get github.com/AsynkronIT/protoactor-go/...
+  - cd $GOPATH/src/github.com/AsynkronIT/protoactor-go
+  - go get ./...
+  - make
+  - sudo apt-get -y install -qq swig3.0
+
