@@ -2,8 +2,8 @@
 # Makefile of Pancake Mahjong Server
 #
 
-HISA=hisa/hisa
-TERU=teru/teru
+BIN_HISA=hisa/hisa
+BIN_TERU=teru/teru
 
 all: hisa teru
 
@@ -11,19 +11,25 @@ all: hisa teru
 .PHONY: hisa
 .PHONY: teru
 
-hisa: ${HISA}
+hisa: ${BIN_HISA}
 
-teru: ${TERU}
+teru: ${BIN_TERU}
 
 saki:
 	${MAKE} -C saki
 
-${HISA}: saki
+${BIN_HISA}: saki
 	cd hisa;\
 		go build;
 
-${TERU}: saki
-	pwd
+${BIN_TERU}: saki
 	cd teru;\
 		go build;
+
+.PHONY: clean
+
+clean:
+	${MAKE} -C saki clean
+	rm -f ${BIN_HISA} ${BIN_TERU}
+
 

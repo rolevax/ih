@@ -10,33 +10,33 @@ for an introduction to Pancake Mahjong.
 
 Requirement:
 
-- Unix-like environment with common build tools
+- Unix-like environment with common tools
 - Go 1.8 or above
 - [Proto Actor](https://github.com/AsynkronIT/protoactor-go)
 - SWIG 3.0
-- All the other dependencies are go-gettable
+- Other dependencies are go-gettable
 
 Steps:
 
 ```
 go get github.com/mjpancake/ih
 cd $GOPATH/src/github.com/mjpancake/ih
-cd saki; make; cd ..
-cd hisa; go install
+make
+go install ./hisa
 ```
 
 ## Run
 
 Requirement:
 
-- A running PostgreSQL server with required data
+- A PostgreSQL server running locally with some required data
   - To import a dummy dataset, run `psql mako mako < mako/schema.pgsql`
-- A running Redis server with the default configuration
+- A Redis server running locally with the default configuration
 
-Then run the server:
+Then run the server, simply type:
 
 ```
-hisa &
+hisa
 ```
 
 The log will output to stdout and stderr. 
