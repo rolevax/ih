@@ -19,14 +19,18 @@ func GetCultis(uid model.Uid) []model.Culti {
 	return cs
 }
 
-func UpdateUserGirl(uids [4]model.Uid,
-	gids [4]model.Gid, args *model.EndTableStat) {
+func EndTable(room *model.Room, args *model.EndTableStat) {
+	uids := [4]model.Uid{
+		room.Users[0].Id, room.Users[1].Id,
+		room.Users[2].Id, room.Users[3].Id,
+	}
+
 	tx, err := db.Begin()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	err = updateUserGirlStat(tx, uids, gids, args)
+	err = updateUserGirlStat(tx, room, args)
 	if err != nil {
 		tx.Rollback()
 		log.Fatalln(err)
@@ -47,8 +51,8 @@ func UpdateUserGirl(uids [4]model.Uid,
 	tx.Commit()
 }
 
-func updateUserGirlStat(tx *pg.Tx, uids [4]model.Uid,
-	gids [4]model.Gid, args *model.EndTableStat) error {
+func updateUserGirlStat(tx *pg.Tx, room *model.Room,
+	args *model.EndTableStat) error {
 	for i := 0; i < 4; i++ {
 		var aTop, aLast int // fuck golang, cannot cast bool to int
 		if args.ATop && args.Ranks[i] == 1 {
@@ -111,8 +115,8 @@ func updateUserGirlStat(tx *pg.Tx, uids [4]model.Uid,
 		}
 
 		_, err := query.
-			Where("user_id=?", uids[i]).
-			Where("girl_id=?", gids[i]).
+			Where("user_id=?", room.Users[i].Id).
+			Where("girl_id=?", room.Gids[i]).
 			Update()
 
 		if err != nil {
@@ -127,10 +131,10 @@ func updateUserGirlStat(tx *pg.Tx, uids [4]model.Uid,
 // - read-modify-write cycle
 // - assume there is no race condition
 func updateUserRank(tx *pg.Tx, uids [4]model.Uid, ranks [4]int) error {
-	var res []struct {
+	res := []struct {
 		model.User
 		Play int
-	}
+	}{}
 
 	_, err := tx.Query(
 		&res,

@@ -42,7 +42,7 @@ TableOpOb::TableOpOb(const std::array<int, 4> &girlIds)
 	}
 {
 	RuleInfo rule;
-	rule.roundLimit = 8;
+	rule.roundLimit = 1;
 	std::array<int, 4> points { 25000, 25000, 25000, 25000 };
 	std::array<TableOperator*, 4> ops {
 		&mOps[0], &mOps[1], &mOps[2], &mOps[3]

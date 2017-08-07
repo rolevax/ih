@@ -9,6 +9,7 @@ import (
 	"github.com/mjpancake/ih/ako/cs"
 	"github.com/mjpancake/ih/ako/model"
 	"github.com/mjpancake/ih/ako/sc"
+	"github.com/mjpancake/ih/mako"
 	"github.com/mjpancake/ih/nodoka"
 	"github.com/mjpancake/ih/saki"
 )
@@ -167,9 +168,8 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 		if err != nil {
 			log.Fatalln("table-end-stat unmarshal", err)
 		}
-		//tssn.injectReplay(stat.Replay)
-		//TODO
-		//mako.UpdateUserGirl(tssn.abcd, tssn.uids, tssn.gids, &stat)
+		tssn.injectReplay(stat.Replay)
+		mako.EndTable(tssn.room, &stat)
 		for w := 0; w < 4; w++ {
 			nodoka.Umgr.Tell(&nodoka.MuUpdateInfo{Uid: tssn.room.Users[w].Id})
 		}
@@ -194,20 +194,9 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 	}
 }
 
-/* TODO merge into mako.EndTable(...)
 func (tssn *tssn) injectReplay(replay map[string]interface{}) {
-	var users [4]map[string]interface{}
-	for w := 0; w < 4; w++ {
-		user := make(map[string]interface{})
-		user["Id"] = tssn.uids[w]
-		user["Username"] = tssn.users[w].Username
-		user["Level"] = tssn.users[w].Level
-		user["Rating"] = tssn.users[w].Rating
-		users[w] = user
-	}
-	replay["users"] = users
+	replay["users"] = tssn.room.Users
 }
-*/
 
 func (tssn *tssn) injectResume(who int, msg *sc.TableEvent) {
 	/* TODO get users from Umgr
