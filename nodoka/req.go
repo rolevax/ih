@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/mjpancake/ih/ako/model"
+	"github.com/rolevax/ih/ako/model"
 )
 
 const reqTimeOut = 500 * time.Millisecond

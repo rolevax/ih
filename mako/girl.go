@@ -1,7 +1,7 @@
 package mako
 
 import (
-	"github.com/mjpancake/ih/ako/model"
+	"github.com/rolevax/ih/ako/model"
 )
 
 // deprecated

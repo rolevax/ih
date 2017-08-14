@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/go-pg/pg"
-	"github.com/mjpancake/ih/ako/model"
+	"github.com/rolevax/ih/ako/model"
 )
 
 func Login(username, password string) (*model.User, error) {

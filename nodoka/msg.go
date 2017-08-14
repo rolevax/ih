@@ -1,8 +1,8 @@
 package nodoka
 
 import (
-	"github.com/mjpancake/ih/ako/cs"
-	"github.com/mjpancake/ih/ako/model"
+	"github.com/rolevax/ih/ako/cs"
+	"github.com/rolevax/ih/ako/model"
 )
 
 type MtHasUser struct {

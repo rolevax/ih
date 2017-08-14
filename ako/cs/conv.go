@@ -3,7 +3,7 @@ package cs
 import (
 	"fmt"
 
-	"github.com/mjpancake/ih/ako"
+	"github.com/rolevax/ih/ako"
 )
 
 var decoder = ako.NewDecoder([]interface{}{

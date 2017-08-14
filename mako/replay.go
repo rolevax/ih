@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/go-pg/pg"
-	"github.com/mjpancake/ih/ako/model"
+	"github.com/rolevax/ih/ako/model"
 )
 
 func GetReplayList(uid model.Uid) []uint {

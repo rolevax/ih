@@ -1,6 +1,6 @@
 package cs
 
-import "github.com/mjpancake/ih/ako/model"
+import "github.com/rolevax/ih/ako/model"
 
 type TypeOnly struct {
 	Type string

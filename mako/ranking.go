@@ -3,7 +3,7 @@ package mako
 import (
 	"log"
 
-	"github.com/mjpancake/ih/ako/model"
+	"github.com/rolevax/ih/ako/model"
 )
 
 func average(d *[4]float64) float64 {

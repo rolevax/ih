@@ -6,11 +6,11 @@ import (
 	"net"
 	"time"
 
-	"github.com/mjpancake/ih/ako/cs"
-	"github.com/mjpancake/ih/ako/sc"
-	"github.com/mjpancake/ih/hayari"
-	"github.com/mjpancake/ih/mako"
-	"github.com/mjpancake/ih/nodoka"
+	"github.com/rolevax/ih/ako/cs"
+	"github.com/rolevax/ih/ako/sc"
+	"github.com/rolevax/ih/hayari"
+	"github.com/rolevax/ih/mako"
+	"github.com/rolevax/ih/nodoka"
 )
 
 const uuReqTmot = 1 * time.Second

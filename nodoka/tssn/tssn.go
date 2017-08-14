@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/mjpancake/ih/ako/model"
-	"github.com/mjpancake/ih/nodoka"
-	"github.com/mjpancake/ih/saki"
+	"github.com/rolevax/ih/ako/model"
+	"github.com/rolevax/ih/nodoka"
+	"github.com/rolevax/ih/saki"
 )
 
 const recvTimeout = 15 * time.Second

@@ -4,8 +4,8 @@ import (
 	"log"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/mjpancake/ih/ako/model"
-	"github.com/mjpancake/ih/ako/sc"
+	"github.com/rolevax/ih/ako/model"
+	"github.com/rolevax/ih/ako/sc"
 )
 
 func (tssn *tssn) Seat(ctx actor.Context) {

@@ -3,7 +3,7 @@ package sc
 import (
 	"log"
 
-	"github.com/mjpancake/ih/ako"
+	"github.com/rolevax/ih/ako"
 )
 
 var decoder = ako.NewDecoder([]interface{}{

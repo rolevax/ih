@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/howeyc/gopass"
-	"github.com/mjpancake/hisa/model"
-	"github.com/mjpancake/hisa/netio"
+	"github.com/rolevax/hisa/model"
+	"github.com/rolevax/hisa/netio"
 )
 
 func main() {

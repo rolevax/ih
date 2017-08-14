@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 
-	"github.com/mjpancake/ih/ako/cs"
-	"github.com/mjpancake/ih/ako/model"
-	"github.com/mjpancake/ih/ako/sc"
+	"github.com/rolevax/ih/ako/cs"
+	"github.com/rolevax/ih/ako/model"
+	"github.com/rolevax/ih/ako/sc"
 )
 
 func onRecv(b []byte) {

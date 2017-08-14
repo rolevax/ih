@@ -7,12 +7,12 @@ import (
 	"net"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/mjpancake/ih/ako/cs"
-	"github.com/mjpancake/ih/ako/model"
-	"github.com/mjpancake/ih/ako/sc"
-	"github.com/mjpancake/ih/hayari"
-	"github.com/mjpancake/ih/mako"
-	"github.com/mjpancake/ih/nodoka"
+	"github.com/rolevax/ih/ako/cs"
+	"github.com/rolevax/ih/ako/model"
+	"github.com/rolevax/ih/ako/sc"
+	"github.com/rolevax/ih/hayari"
+	"github.com/rolevax/ih/mako"
+	"github.com/rolevax/ih/nodoka"
 )
 
 type ussn struct {

@@ -7,10 +7,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/mjpancake/ih/mako"
-	"github.com/mjpancake/ih/nodoka/book"
-	"github.com/mjpancake/ih/nodoka/tssn"
-	"github.com/mjpancake/ih/nodoka/ussn"
+	"github.com/rolevax/ih/mako"
+	"github.com/rolevax/ih/nodoka/book"
+	"github.com/rolevax/ih/nodoka/tssn"
+	"github.com/rolevax/ih/nodoka/ussn"
 )
 
 const Version = "0.8.3"

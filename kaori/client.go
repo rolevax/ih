@@ -4,9 +4,9 @@ import (
 	"log"
 	"net"
 
-	"github.com/mjpancake/ih/ako/cs"
-	"github.com/mjpancake/ih/ako/model"
-	"github.com/mjpancake/ih/hayari"
+	"github.com/rolevax/ih/ako/cs"
+	"github.com/rolevax/ih/ako/model"
+	"github.com/rolevax/ih/hayari"
 )
 
 type client struct {

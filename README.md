@@ -1,9 +1,9 @@
 # Pancake Mahjong Server
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/mjpancake)
-[![Build Status](https://travis-ci.org/mjpancake/ih.svg?branch=develop)](https://travis-ci.org/mjpancake/ih)
+[![Build Status](https://travis-ci.org/rolevax/ih.svg?branch=develop)](https://travis-ci.org/rolevax/ih)
 
-See the [client repository](https://github.com/mjpancake/mjpancake)
+See the [client repository](https://github.com/rolevax/mjpancake)
 for an introduction to Pancake Mahjong.
 
 ## Build
@@ -19,8 +19,8 @@ Requirement:
 Steps:
 
 ```
-go get github.com/mjpancake/ih
-cd $GOPATH/src/github.com/mjpancake/ih
+go get github.com/rolevax/ih
+cd $GOPATH/src/github.com/rolevax/ih
 make
 go install ./hisa
 ```

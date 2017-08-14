@@ -1,6 +1,6 @@
 package sc
 
-import "github.com/mjpancake/ih/ako/model"
+import "github.com/rolevax/ih/ako/model"
 
 type Auth struct {
 	Error  string

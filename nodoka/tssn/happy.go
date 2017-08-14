@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
-	"github.com/mjpancake/ih/ako/cs"
-	"github.com/mjpancake/ih/ako/model"
-	"github.com/mjpancake/ih/ako/sc"
-	"github.com/mjpancake/ih/nodoka"
-	"github.com/mjpancake/ih/saki"
+	"github.com/rolevax/ih/ako/cs"
+	"github.com/rolevax/ih/ako/model"
+	"github.com/rolevax/ih/ako/sc"
+	"github.com/rolevax/ih/nodoka"
+	"github.com/rolevax/ih/saki"
 )
 
 func (tssn *tssn) Happy(ctx actor.Context) {

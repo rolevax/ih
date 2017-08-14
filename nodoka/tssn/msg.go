@@ -1,9 +1,9 @@
 package tssn
 
 import (
-	"github.com/mjpancake/ih/ako/cs"
-	"github.com/mjpancake/ih/ako/model"
-	"github.com/mjpancake/ih/nodoka"
+	"github.com/rolevax/ih/ako/cs"
+	"github.com/rolevax/ih/ako/model"
+	"github.com/rolevax/ih/nodoka"
 )
 
 type cpReg struct {
