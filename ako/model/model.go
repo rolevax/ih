@@ -37,3 +37,9 @@ type Girl struct {
 	Id Gid
 	Lpr
 }
+
+type CpointEntry struct {
+	tableName struct{} `sql:"users"`
+	Username  string
+	Cpoint    int
+}

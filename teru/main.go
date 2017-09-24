@@ -14,6 +14,11 @@ func main() {
 }
 
 func addWebService() {
+	addWebServiceAccount()
+	addWebServiceQuery()
+}
+
+func addWebServiceAccount() {
 	ws := &restful.WebService{}
 	ws.
 		Path("/account").
@@ -22,6 +27,18 @@ func addWebService() {
 
 	ws.Route(ws.POST("/create").To(create))
 	ws.Route(ws.POST("/activate").To(activate))
+
+	restful.Add(ws)
+}
+
+func addWebServiceQuery() {
+	ws := &restful.WebService{}
+	ws.
+		Path("/query").
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.GET("/cpoints").To(getCpoints))
 
 	restful.Add(ws)
 }

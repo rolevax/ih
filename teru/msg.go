@@ -1,5 +1,7 @@
 package main
 
+import "github.com/rolevax/ih/ako/model"
+
 type CsAccountCreate struct {
 	Username string
 	Password string
@@ -15,7 +17,7 @@ type Sc struct {
 	Error string // no news is good news
 }
 
-type ScAccountActivate struct {
+type ScCpoints struct {
 	Sc
-	Result string
+	Entries []model.CpointEntry
 }

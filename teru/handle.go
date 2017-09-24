@@ -49,6 +49,14 @@ func activate(request *restful.Request, response *restful.Response) {
 	}
 }
 
+func getCpoints(request *restful.Request, response *restful.Response) {
+	sc := &ScCpoints{}
+	defer response.WriteEntity(sc)
+
+	log.Println("query/getCpoints")
+	sc.Entries = mako.GetCpoints()
+}
+
 func slow() {
 	time.Sleep(3 * time.Second)
 }
