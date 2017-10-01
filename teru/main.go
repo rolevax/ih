@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/emicklei/go-restful"
+	"github.com/rolevax/ih/teru/account"
+	"github.com/rolevax/ih/teru/admin"
 )
 
 func main() {
@@ -15,7 +17,7 @@ func main() {
 
 func addWebService() {
 	addWebServiceAccount()
-	addWebServiceQuery()
+	addWebServiceAdmin()
 }
 
 func addWebServiceAccount() {
@@ -25,20 +27,22 @@ func addWebServiceAccount() {
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.POST("/create").To(create))
-	ws.Route(ws.POST("/activate").To(activate))
+	ws.Route(ws.POST("/create").To(account.PostCreate))
+	ws.Route(ws.POST("/activate").To(account.PostActivate))
+
+	ws.Route(ws.GET("/c-points").To(account.GetCPoints))
 
 	restful.Add(ws)
 }
 
-func addWebServiceQuery() {
+func addWebServiceAdmin() {
 	ws := &restful.WebService{}
 	ws.
-		Path("/query").
+		Path("/admin").
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
-	ws.Route(ws.GET("/cpoints").To(getCpoints))
+	ws.Route(ws.POST("/c-point").To(admin.PostCPoint))
 
 	restful.Add(ws)
 }

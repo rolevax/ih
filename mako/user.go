@@ -154,6 +154,17 @@ func GetUsers(uids *[4]model.Uid) [4]*model.User {
 	return users
 }
 
+func GetCPoints() []model.CPointEntry {
+	var res []model.CPointEntry
+
+	err := db.Model(&res).Order("c_point DESC").Select()
+	if err != nil {
+		log.Fatalln("mako.GetCPoints", err)
+	}
+
+	return res
+}
+
 func checkName(name string) bool {
 	if strings.HasPrefix(name, "ⓝ") {
 		return false

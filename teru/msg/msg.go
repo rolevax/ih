@@ -1,4 +1,4 @@
-package main
+package msg
 
 import "github.com/rolevax/ih/ako/model"
 
@@ -13,11 +13,17 @@ type CsAccountActivate struct {
 	Answers  string
 }
 
+type CsAdminCPoint struct {
+	Token       string
+	Username    string
+	CPointDelta int
+}
+
 type Sc struct {
 	Error string // no news is good news
 }
 
 type ScCpoints struct {
 	Sc
-	Entries []model.CpointEntry
+	Entries []model.CPointEntry
 }

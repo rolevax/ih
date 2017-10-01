@@ -38,8 +38,8 @@ type Girl struct {
 	Lpr
 }
 
-type CpointEntry struct {
+type CPointEntry struct {
 	tableName struct{} `sql:"users"`
 	Username  string
-	Cpoint    int
+	CPoint    int
 }

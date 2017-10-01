@@ -1,20 +1,21 @@
-package main
+package account
 
 import (
 	"log"
 	"time"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"github.com/rolevax/ih/mako"
+	"github.com/rolevax/ih/teru/msg"
 )
 
-func create(request *restful.Request, response *restful.Response) {
+func PostCreate(request *restful.Request, response *restful.Response) {
 	slow()
 
-	sc := &Sc{}
+	sc := &msg.Sc{}
 	defer response.WriteEntity(sc)
 
-	cs := &CsAccountCreate{}
+	cs := &msg.CsAccountCreate{}
 	err := request.ReadEntity(cs)
 	if err != nil {
 		sc.Error = err.Error()
@@ -29,13 +30,13 @@ func create(request *restful.Request, response *restful.Response) {
 	}
 }
 
-func activate(request *restful.Request, response *restful.Response) {
+func PostActivate(request *restful.Request, response *restful.Response) {
 	slow()
 
-	sc := &Sc{}
+	sc := &msg.Sc{}
 	defer response.WriteEntity(sc)
 
-	cs := &CsAccountActivate{}
+	cs := &msg.CsAccountActivate{}
 	err := request.ReadEntity(cs)
 	if err != nil {
 		sc.Error = err.Error()
@@ -49,12 +50,12 @@ func activate(request *restful.Request, response *restful.Response) {
 	}
 }
 
-func getCpoints(request *restful.Request, response *restful.Response) {
-	sc := &ScCpoints{}
+func GetCPoints(request *restful.Request, response *restful.Response) {
+	sc := &msg.ScCpoints{}
 	defer response.WriteEntity(sc)
 
-	log.Println("query/getCpoints")
-	sc.Entries = mako.GetCpoints()
+	log.Println("account/getCPoints")
+	sc.Entries = mako.GetCPoints()
 }
 
 func slow() {
