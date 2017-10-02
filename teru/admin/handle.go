@@ -5,6 +5,7 @@ import (
 	"time"
 
 	restful "github.com/emicklei/go-restful"
+	"github.com/rolevax/ih/mako"
 	"github.com/rolevax/ih/teru/msg"
 )
 
@@ -21,21 +22,17 @@ func PostCPoint(request *restful.Request, response *restful.Response) {
 		return
 	}
 
-	/*
-		if !mako.CheckAdminToken(cs.Token) {
-			sc.Error = "wrong token"
-			return
-		}
-	*/
+	if !mako.CheckAdminToken(cs.Token) {
+		sc.Error = "wrong token"
+		return
+	}
 
 	log.Println("admin/c-point", cs.Username, cs.CPointDelta)
 
-	/* FUCK temp
 	err = mako.UpdateCPoint(cs.Username, cs.CPointDelta)
 	if err != nil {
 		sc.Error = err.Error()
 	}
-	*/
 }
 
 func slow() {

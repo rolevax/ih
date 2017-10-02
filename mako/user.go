@@ -142,9 +142,9 @@ func GetUsers(uids *[4]model.Uid) [4]*model.User {
 		`SELECT user_id, username, level, pt, rating
 		FROM users WHERE user_id in (?)
 		ORDER BY user_id=? DESC,
-		         user_id=? DESC,
-		         user_id=? DESC,
-		         user_id=? DESC`,
+				 user_id=? DESC,
+				 user_id=? DESC,
+				 user_id=? DESC`,
 		pg.In(uids), uids[0], uids[1], uids[2], uids[3],
 	)
 	if err != nil {
@@ -163,6 +163,22 @@ func GetCPoints() []model.CPointEntry {
 	}
 
 	return res
+}
+
+func UpdateCPoint(username string, delta int) error {
+	res, err := db.Model(&model.CPointEntry{}).
+		Set("c_point=c_point+?", delta).
+		Where("username=?", username).
+		Update()
+
+	if err == nil {
+		aff := res.RowsAffected()
+		if aff != 1 {
+			err = fmt.Errorf("%d row(s) affected", aff)
+		}
+	}
+
+	return err
 }
 
 func checkName(name string) bool {

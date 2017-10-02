@@ -24,16 +24,24 @@ func init() {
 func AddAcceptingVersion(ver string) {
 	err := rclient.SAdd("mako.vers", ver).Err()
 	if err != nil {
-		log.Fatalln("redis", err)
+		log.Fatal("redis", err)
 	}
 }
 
 func AcceptVersion(ver string) bool {
 	res, err := rclient.SIsMember("mako.vers", ver).Result()
 	if err != nil {
-		log.Fatalln("mako.AcptVer", err)
+		log.Fatal("mako.AcptVer", err)
 	}
 	return res
+}
+
+func CheckAdminToken(token string) bool {
+	res, err := rclient.Get("mako.admin.token").Result()
+	if err != nil {
+		log.Fatal("mako.CheckAdminToken", err)
+	}
+	return token == res
 }
 
 func checkAnswer(answer string) ([]int, error) {
