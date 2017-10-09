@@ -157,7 +157,10 @@ func GetUsers(uids *[4]model.Uid) [4]*model.User {
 func GetCPoints() []model.CPointEntry {
 	var res []model.CPointEntry
 
-	err := db.Model(&res).Order("c_point DESC").Select()
+	err := db.Model(&res).
+		Where("c_point > 0").
+		Order("c_point DESC").
+		Select()
 	if err != nil {
 		log.Fatalln("mako.GetCPoints", err)
 	}
