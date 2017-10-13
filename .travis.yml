@@ -8,6 +8,7 @@ install:
   - wget https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3.3.0-linux-x86_64.zip
   - unzip protoc-3.3.0-linux-x86_64.zip   
   - sudo cp ./bin/protoc /usr/bin/protoc
+  - sudo cp -r ./include/google /usr/local/include/google
   - go get github.com/AsynkronIT/protoactor-go/...
   - cd $GOPATH/src/github.com/AsynkronIT/protoactor-go
   - go get ./...
