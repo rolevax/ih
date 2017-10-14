@@ -22,23 +22,14 @@ Steps:
 go get github.com/rolevax/ih
 cd $GOPATH/src/github.com/rolevax/ih
 make
-go install ./hisa
 ```
 
 ## Run
 
-Requirement:
-
-- A PostgreSQL server running locally with some required data
-  - To import a dummy dataset, run `psql mako mako < mako/schema.pgsql`
-- A Redis server running locally with the default configuration
-
-Then run the server, simply type:
-
 ```
-hisa
+docker-compose up -d
 ```
 
-The log will output to stdout and stderr. 
-Use `&>` to redirect if necessary.
+This will pull a pre-built image if their is no local build.
+
 

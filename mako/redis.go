@@ -3,6 +3,7 @@ package mako
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"gopkg.in/redis.v5"
 )
@@ -11,14 +12,23 @@ var rclient *redis.Client
 
 func init() {
 	rclient = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     "redis:6379", // hostname in docker net
 		Password: "",
-		DB:       0})
+		DB:       0,
+	})
 
-	_, err := rclient.Ping().Result()
-	if err != nil {
-		log.Fatalln("redis", err)
+	for i := 0; i < 5; i++ {
+		_, err := rclient.Ping().Result()
+		if err == nil {
+			log.Println("mako.init redis: Ok")
+			return
+		}
+
+		log.Println("mako.init redis", err)
+		time.Sleep(3 * time.Second)
 	}
+
+	log.Fatal("mako.init redis: tried too many times")
 }
 
 func AddAcceptingVersion(ver string) {

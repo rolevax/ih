@@ -4,15 +4,21 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"github.com/rolevax/ih/teru/account"
 	"github.com/rolevax/ih/teru/admin"
+)
+
+const (
+	Port        = ":8080"
+	CertPath    = "/srv/cert.pem"
+	PrivKeyPath = "/srv/key.pem"
 )
 
 func main() {
 	addWebService()
 	supportCors()
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServeTLS(Port, CertPath, PrivKeyPath, nil))
 }
 
 func addWebService() {
