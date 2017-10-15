@@ -6,30 +6,10 @@
 See the [client repository](https://github.com/rolevax/mjpancake)
 for an introduction to Pancake Mahjong.
 
-## Build
+## Build & Run
 
-Requirement:
-
-- Unix-like environment with common tools
-- Go 1.8 or above
-- [Proto Actor](https://github.com/AsynkronIT/protoactor-go)
-- SWIG 3.0
-- Other dependencies are go-gettable
-
-Steps:
-
-```
-go get github.com/rolevax/ih
-cd $GOPATH/src/github.com/rolevax/ih
-make
-```
-
-## Run
-
-```
-docker-compose up -d
-```
-
-This will pull a pre-built image if their is no local build.
-
+1. Install [Docker](https://docs.docker.com/engine/installation/)
+   and [Docker Compose](https://docs.docker.com/compose/install/)
+2. Build the Docker image by `make mihoko`
+3. Start the server by `docker-compuse up -d`
 

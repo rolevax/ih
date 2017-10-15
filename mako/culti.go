@@ -32,12 +32,6 @@ func UpdateUserGirl(uids [4]model.Uid,
 		log.Fatalln(err)
 	}
 
-	err = updateUserRank(tx, uids, args.Ranks)
-	if err != nil {
-		tx.Rollback()
-		log.Fatalln(err)
-	}
-
 	err = updateReplay(tx, uids, args.Replay)
 	if err != nil {
 		tx.Rollback()
@@ -121,51 +115,4 @@ func updateUserGirlStat(tx *pg.Tx, uids [4]model.Uid,
 	}
 
 	return nil
-}
-
-// using ostrich algorithm:
-// - read-modify-write cycle
-// - assume there is no race condition
-func updateUserRank(tx *pg.Tx, uids [4]model.Uid, ranks [4]int) error {
-	var res []struct {
-		model.User
-		Play int
-	}
-
-	_, err := tx.Query(
-		&res,
-		`SELECT users.user_id, level, pt, rating, plays.play
-		FROM users JOIN (
-		    SELECT user_id, SUM(play(ranks)) AS play
-		    FROM user_girl GROUP BY user_id
-		) AS plays ON users.user_id=plays.user_id
-		WHERE users.user_id in (?)
-		ORDER BY users.user_id=? DESC,
-		         users.user_id=? DESC,
-		         users.user_id=? DESC,
-		         users.user_id=? DESC`,
-		pg.In(uids), uids[0], uids[1], uids[2], uids[3],
-	)
-	if err != nil {
-		return err
-	}
-
-	if len(res) != 4 {
-		return fmt.Errorf("updateUserRank: res len %d", len(res))
-	}
-
-	var lprs [4]*model.Lpr
-	var plays [4]int
-	for i := 0; i < 4; i++ {
-		lprs[i] = &res[i].Lpr
-		plays[i] = res[i].Play
-	}
-
-	updateLpr(&lprs, ranks, plays)
-
-	_, err = db.Model(&res[0].User, &res[1].User, &res[2].User, &res[3].User).
-		Column("level").Column("pt").Column("rating").
-		Update()
-
-	return err
 }

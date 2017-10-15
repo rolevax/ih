@@ -73,11 +73,6 @@ func (r *Room) fillAi(uid Uid, gid Gid) {
 	r.Users = append(r.Users, User{
 		Id:       uid,
 		Username: "ⓝ喵打",
-		Lpr: Lpr{
-			Level:  10,
-			Pt:     0,
-			Rating: 1234,
-		},
 	})
 	r.Gids = append(r.Gids, gid)
 }

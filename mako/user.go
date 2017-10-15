@@ -74,21 +74,12 @@ func SignUp(username, password string) error {
 		log.Fatalln("db.SignUp", err)
 	}
 
-	_, err = tx.Exec(
-		"INSERT INTO user_girl(user_id, girl_id) VALUES (?, 0)",
-		uid,
-	)
-
-	if err != nil {
-		tx.Rollback()
-		log.Fatalln("db.SignUp", err)
-	}
-
 	tx.Commit()
 
 	return nil
 }
 
+// unused yet
 func Activate(username, password, answer string) error {
 	user, err := Login(username, password)
 	if err != nil {

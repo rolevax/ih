@@ -1,13 +1,49 @@
 package account
 
 import (
-	"log"
+	"fmt"
 	"time"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	restful "github.com/emicklei/go-restful"
 	"github.com/rolevax/ih/mako"
 	"github.com/rolevax/ih/teru/msg"
 )
+
+func PostAuth(request *restful.Request, response *restful.Response) {
+	slow()
+
+	sc := &msg.ScAuth{}
+	defer response.WriteEntity(sc)
+
+	cs := &msg.CsAccountAuth{}
+	err := request.ReadEntity(cs)
+	if err != nil {
+		sc.Error = err.Error()
+		return
+	}
+
+	user, err := mako.Login(cs.Username, cs.Password)
+	if err != nil {
+		sc.Error = err.Error()
+		return
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
+		Audience:  fmt.Sprint(user.Id),
+		ExpiresAt: time.Now().Add(7 * 24 * time.Hour).Unix(),
+		IssuedAt:  time.Now().Unix(),
+		Issuer:    jwtIssuer,
+	})
+
+	signed, err := token.SignedString([]byte(mako.GetAdminToken()))
+	if err != nil {
+		sc.Error = err.Error()
+		return
+	}
+
+	sc.Jwt = signed
+}
 
 func PostCreate(request *restful.Request, response *restful.Response) {
 	slow()
@@ -22,29 +58,7 @@ func PostCreate(request *restful.Request, response *restful.Response) {
 		return
 	}
 
-	log.Println("account/create", cs.Username)
-
 	err = mako.SignUp(cs.Username, cs.Password)
-	if err != nil {
-		sc.Error = err.Error()
-	}
-}
-
-func PostActivate(request *restful.Request, response *restful.Response) {
-	slow()
-
-	sc := &msg.Sc{}
-	defer response.WriteEntity(sc)
-
-	cs := &msg.CsAccountActivate{}
-	err := request.ReadEntity(cs)
-	if err != nil {
-		sc.Error = err.Error()
-		return
-	}
-
-	log.Println("account/activate", cs.Username, "answers", cs.Answers)
-	err = mako.Activate(cs.Username, cs.Password, cs.Answers)
 	if err != nil {
 		sc.Error = err.Error()
 	}
@@ -54,7 +68,6 @@ func GetCPoints(request *restful.Request, response *restful.Response) {
 	sc := &msg.ScCpoints{}
 	defer response.WriteEntity(sc)
 
-	log.Println("account/getCPoints")
 	sc.Entries = mako.GetCPoints()
 }
 

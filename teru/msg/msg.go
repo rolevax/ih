@@ -2,6 +2,11 @@ package msg
 
 import "github.com/rolevax/ih/ako/model"
 
+type CsAccountAuth struct {
+	Username string
+	Password string
+}
+
 type CsAccountCreate struct {
 	Username string
 	Password string
@@ -21,6 +26,11 @@ type CsAdminCPoint struct {
 
 type Sc struct {
 	Error string // no news is good news
+}
+
+type ScAuth struct {
+	Sc
+	Jwt string
 }
 
 type ScCpoints struct {

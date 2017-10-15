@@ -7,6 +7,7 @@ import (
 	restful "github.com/emicklei/go-restful"
 	"github.com/rolevax/ih/teru/account"
 	"github.com/rolevax/ih/teru/admin"
+	"github.com/rolevax/ih/teru/my"
 )
 
 const (
@@ -22,8 +23,15 @@ func main() {
 }
 
 func addWebService() {
+	restful.Filter(globalLogging)
 	addWebServiceAccount()
 	addWebServiceAdmin()
+	addWebServiceMy()
+}
+
+func globalLogging(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
+	log.Printf("%s %s %v\n", req.Request.Method, req.Request.URL, req.Request.RemoteAddr)
+	chain.ProcessFilter(req, resp)
 }
 
 func addWebServiceAccount() {
@@ -33,8 +41,8 @@ func addWebServiceAccount() {
 		Consumes(restful.MIME_JSON).
 		Produces(restful.MIME_JSON)
 
+	ws.Route(ws.POST("/auth").To(account.PostAuth))
 	ws.Route(ws.POST("/create").To(account.PostCreate))
-	ws.Route(ws.POST("/activate").To(account.PostActivate))
 
 	ws.Route(ws.GET("/c-points").To(account.GetCPoints))
 
@@ -53,10 +61,22 @@ func addWebServiceAdmin() {
 	restful.Add(ws)
 }
 
+func addWebServiceMy() {
+	ws := &restful.WebService{}
+	ws.
+		Path("/my").
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(ws.GET("/null").Filter(account.FilterAuth).To(my.GetNull))
+
+	restful.Add(ws)
+}
+
 func supportCors() {
 	cors := restful.CrossOriginResourceSharing{
 		ExposeHeaders:  []string{"X-My-Header"},
-		AllowedHeaders: []string{"Content-Type", "Accept"},
+		AllowedHeaders: []string{"Content-Type", "Accept", "Authorization"},
 		AllowedMethods: []string{"GET", "POST"},
 		CookiesAllowed: false,
 		Container:      restful.DefaultContainer,

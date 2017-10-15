@@ -1,7 +1,6 @@
 package admin
 
 import (
-	"log"
 	"time"
 
 	restful "github.com/emicklei/go-restful"
@@ -26,8 +25,6 @@ func PostCPoint(request *restful.Request, response *restful.Response) {
 		sc.Error = "wrong token"
 		return
 	}
-
-	log.Println("admin/c-point", cs.Username, cs.CPointDelta)
 
 	err = mako.UpdateCPoint(cs.Username, cs.CPointDelta)
 	if err != nil {

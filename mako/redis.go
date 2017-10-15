@@ -8,6 +8,10 @@ import (
 	"gopkg.in/redis.v5"
 )
 
+const (
+	DefaultAdminToken = "111111"
+)
+
 var rclient *redis.Client
 
 func init() {
@@ -21,6 +25,9 @@ func init() {
 		_, err := rclient.Ping().Result()
 		if err == nil {
 			log.Println("mako.init redis: Ok")
+			if CheckAdminToken(DefaultAdminToken) {
+				log.Println("mako.init WARNING: using default admin token")
+			}
 			return
 		}
 
@@ -47,11 +54,19 @@ func AcceptVersion(ver string) bool {
 }
 
 func CheckAdminToken(token string) bool {
+	return token == GetAdminToken()
+}
+
+func GetAdminToken() string {
 	res, err := rclient.Get("mako.admin.token").Result()
 	if err != nil {
-		log.Fatal("mako.CheckAdminToken", err)
+		if err == redis.Nil {
+			res = DefaultAdminToken
+		} else {
+			log.Fatal("mako.GetAdminToken", err)
+		}
 	}
-	return token == res
+	return res
 }
 
 func checkAnswer(answer string) ([]int, error) {

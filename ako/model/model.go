@@ -30,9 +30,10 @@ type Lpr struct {
 type User struct {
 	Id       Uid `sql:"user_id,pk"`
 	Username string
-	Lpr
+	CPoint   int
 }
 
+// deprecated
 type Girl struct {
 	Id Gid
 	Lpr
