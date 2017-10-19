@@ -11,6 +11,7 @@ services:
     image: redis
     volumes:
       - /etc/localtime:/etc/localtime:ro
+      - ./harue/cache:/data
   teru:
     image: rolevax/teru
     ports:

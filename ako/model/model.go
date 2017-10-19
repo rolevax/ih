@@ -44,3 +44,22 @@ type CPointEntry struct {
 	Username  string
 	CPoint    int
 }
+
+type TaskState int
+
+const (
+	TaskStateToDo    TaskState = 0
+	TaskStateDoing   TaskState = 1
+	TaskStateToCheck TaskState = 2
+	TaskStateClosed  TaskState = 3
+)
+
+type Task struct {
+	Id         int `sql:"task_id,pk"`
+	Title      string
+	Content    string
+	State      TaskState
+	AssigneeId Uid
+	Assignee   *User
+	CPoint     int
+}

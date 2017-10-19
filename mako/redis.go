@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"gopkg.in/redis.v5"
+	"github.com/go-redis/redis"
 )
 
 const (
@@ -65,6 +65,21 @@ func GetAdminToken() string {
 		} else {
 			log.Fatal("mako.GetAdminToken", err)
 		}
+	}
+	return res
+}
+
+func AddTaskWater(water string) {
+	err := rclient.LPush("mako.task.water", water).Err()
+	if err != nil {
+		log.Fatalln("mako.AddTaskWater", err)
+	}
+}
+
+func GetTaskWaters(ct int) []string {
+	res, err := rclient.LRange("mako.task.water", 0, int64(ct)).Result()
+	if err != nil {
+		log.Fatalln("mako.GetTaskWaters", err)
 	}
 	return res
 }

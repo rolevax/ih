@@ -2,16 +2,24 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 9.5.9
--- Dumped by pg_dump version 9.5.9
+-- Dumped from database version 10.0
+-- Dumped by pg_dump version 10.0
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
-SET client_encoding = 'SQL_ASCII';
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SET check_function_bodies = false;
 SET client_min_messages = warning;
 SET row_security = off;
+
+--
+-- Name: postgres; Type: COMMENT; Schema: -; Owner: postgres
+--
+
+COMMENT ON DATABASE postgres IS 'default administrative connection database';
+
 
 --
 -- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
@@ -94,6 +102,22 @@ ALTER SEQUENCE replays_replay_id_seq OWNED BY replays.replay_id;
 
 
 --
+-- Name: tasks; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE tasks (
+    task_id integer NOT NULL,
+    title character varying(64) NOT NULL,
+    content text NOT NULL,
+    state integer DEFAULT 0 NOT NULL,
+    assignee_id bigint,
+    c_point integer DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE tasks OWNER TO postgres;
+
+--
 -- Name: users; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -129,14 +153,14 @@ ALTER SEQUENCE users_user_id_seq OWNED BY users.user_id;
 
 
 --
--- Name: replay_id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: replays replay_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY replays ALTER COLUMN replay_id SET DEFAULT nextval('replays_replay_id_seq'::regclass);
 
 
 --
--- Name: user_id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: users user_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY users ALTER COLUMN user_id SET DEFAULT nextval('users_user_id_seq'::regclass);
@@ -159,10 +183,14 @@ COPY replays (replay_id, content) FROM stdin;
 
 
 --
--- Name: replays_replay_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Data for Name: tasks; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('replays_replay_id_seq', 1, true);
+COPY tasks (task_id, title, content, state, assignee_id, c_point) FROM stdin;
+1021	haha, update	the content...\n\nis updated!!\n\nagain.~~	1	1976	201
+111222133	呵呵	人人人	3	\N	212
+111222111	fdfsd	wefdf\n\n- ldjfalsdf\n- lasdkjfsdljf\n\nsee [link](haha) to fuck	3	\N	21
+\.
 
 
 --
@@ -170,21 +198,28 @@ SELECT pg_catalog.setval('replays_replay_id_seq', 1, true);
 --
 
 COPY users (user_id, username, password, c_point) FROM stdin;
-501	ⓝ喵打	iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii=	0
-502	ⓝ打喵	iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii=	0
-1000	rolevax	DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD=	0
+501	ⓝ喵打	iMqwzWh78q4vOGkh7ALsA6ohvh25OQ/VMDNFICkTarc=	0
+502	ⓝ打喵	iMqwzWh78q4vOGkh7ALsA6ohvh25OQ/VMDNFICkTarc=	0
+1000	rolevax	Ddddddddddddddddddddddddddddddddddddddddddd=	0
 \.
+
+
+--
+-- Name: replays_replay_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('replays_replay_id_seq', 1, true);
 
 
 --
 -- Name: users_user_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('users_user_id_seq', 1975, true);
+SELECT pg_catalog.setval('users_user_id_seq', 1976, true);
 
 
 --
--- Name: idx_17506_primary; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: replays idx_17506_primary; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY replays
@@ -192,7 +227,7 @@ ALTER TABLE ONLY replays
 
 
 --
--- Name: idx_17515_primary; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: users idx_17515_primary; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY users
@@ -200,11 +235,19 @@ ALTER TABLE ONLY users
 
 
 --
--- Name: replay_of_user_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: replay_of_user replay_of_user_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY replay_of_user
     ADD CONSTRAINT replay_of_user_pkey PRIMARY KEY (user_id);
+
+
+--
+-- Name: tasks tasks_pk; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY tasks
+    ADD CONSTRAINT tasks_pk PRIMARY KEY (task_id);
 
 
 --
@@ -215,7 +258,7 @@ CREATE UNIQUE INDEX idx_17515_username ON users USING btree (username);
 
 
 --
--- Name: replay_of_user_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: replay_of_user replay_of_user_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY replay_of_user
@@ -223,58 +266,11 @@ ALTER TABLE ONLY replay_of_user
 
 
 --
--- Name: public; Type: ACL; Schema: -; Owner: postgres
+-- Name: tasks tasks_assignee_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-REVOKE ALL ON SCHEMA public FROM PUBLIC;
-REVOKE ALL ON SCHEMA public FROM postgres;
-GRANT ALL ON SCHEMA public TO postgres;
-GRANT ALL ON SCHEMA public TO PUBLIC;
-
-
---
--- Name: replay_of_user; Type: ACL; Schema: public; Owner: postgres
---
-
-REVOKE ALL ON TABLE replay_of_user FROM PUBLIC;
-REVOKE ALL ON TABLE replay_of_user FROM postgres;
-GRANT ALL ON TABLE replay_of_user TO postgres;
-
-
---
--- Name: replays; Type: ACL; Schema: public; Owner: postgres
---
-
-REVOKE ALL ON TABLE replays FROM PUBLIC;
-REVOKE ALL ON TABLE replays FROM postgres;
-GRANT ALL ON TABLE replays TO postgres;
-
-
---
--- Name: replays_replay_id_seq; Type: ACL; Schema: public; Owner: postgres
---
-
-REVOKE ALL ON SEQUENCE replays_replay_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE replays_replay_id_seq FROM postgres;
-GRANT ALL ON SEQUENCE replays_replay_id_seq TO postgres;
-
-
---
--- Name: users; Type: ACL; Schema: public; Owner: postgres
---
-
-REVOKE ALL ON TABLE users FROM PUBLIC;
-REVOKE ALL ON TABLE users FROM postgres;
-GRANT ALL ON TABLE users TO postgres;
-
-
---
--- Name: users_user_id_seq; Type: ACL; Schema: public; Owner: postgres
---
-
-REVOKE ALL ON SEQUENCE users_user_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE users_user_id_seq FROM postgres;
-GRANT ALL ON SEQUENCE users_user_id_seq TO postgres;
+ALTER TABLE ONLY tasks
+    ADD CONSTRAINT tasks_assignee_fkey FOREIGN KEY (assignee_id) REFERENCES users(user_id);
 
 
 --

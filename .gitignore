@@ -1,6 +1,7 @@
 hisa/hisa
 teru/teru
 harue/persist
+harue/cache
 saki/saki.go
 saki/saki_wrap.cxx
 saki/build

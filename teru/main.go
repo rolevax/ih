@@ -1,13 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	restful "github.com/emicklei/go-restful"
 	"github.com/rolevax/ih/teru/account"
 	"github.com/rolevax/ih/teru/admin"
 	"github.com/rolevax/ih/teru/my"
+	"github.com/rolevax/ih/teru/task"
 )
 
 const (
@@ -16,7 +19,17 @@ const (
 	PrivKeyPath = "/srv/key.pem"
 )
 
+type logWriter struct{}
+
+func (w logWriter) Write(bytes []byte) (int, error) {
+	prefix := time.Now().Format("01/02 15:04:05")
+	return fmt.Print(prefix, " ", string(bytes))
+}
+
 func main() {
+	log.SetFlags(0)
+	log.SetOutput(&logWriter{})
+
 	addWebService()
 	supportCors()
 	log.Fatal(http.ListenAndServeTLS(Port, CertPath, PrivKeyPath, nil))
@@ -27,6 +40,7 @@ func addWebService() {
 	addWebServiceAccount()
 	addWebServiceAdmin()
 	addWebServiceMy()
+	addWebServiceTask()
 }
 
 func globalLogging(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
@@ -57,6 +71,8 @@ func addWebServiceAdmin() {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.POST("/c-point").To(admin.PostCPoint))
+	ws.Route(ws.POST("/upsert-task").To(admin.PostUpsertTask))
+	ws.Route(ws.POST("/check-task").To(admin.PostCheckTask))
 
 	restful.Add(ws)
 }
@@ -69,6 +85,31 @@ func addWebServiceMy() {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/null").Filter(account.FilterAuth).To(my.GetNull))
+
+	restful.Add(ws)
+}
+
+func addWebServiceTask() {
+	ws := &restful.WebService{}
+	ws.
+		Path("/task").
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON)
+
+	ws.Route(
+		ws.GET("/").
+			To(task.GetRoot),
+	)
+	ws.Route(
+		ws.POST("/start/{task-id}").
+			Filter(account.FilterAuth).
+			To(task.PostStart),
+	)
+	ws.Route(
+		ws.POST("/pr/{task-id}").
+			Filter(account.FilterAuth).
+			To(task.PostPr),
+	)
 
 	restful.Add(ws)
 }

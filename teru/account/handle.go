@@ -43,6 +43,7 @@ func PostAuth(request *restful.Request, response *restful.Response) {
 	}
 
 	sc.Jwt = signed
+	sc.User = user
 }
 
 func PostCreate(request *restful.Request, response *restful.Response) {
@@ -72,5 +73,5 @@ func GetCPoints(request *restful.Request, response *restful.Response) {
 }
 
 func slow() {
-	time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 }
