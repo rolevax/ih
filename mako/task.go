@@ -22,6 +22,7 @@ func GetTasks() ([]model.Task, error) {
 	err := db.Model(&res).
 		Column("task.*", "Assignee").
 		Where("task.state <= 2").
+		Order("task.task_id").
 		Select()
 	if err != nil {
 		return nil, err
