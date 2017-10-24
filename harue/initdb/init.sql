@@ -187,9 +187,6 @@ COPY replays (replay_id, content) FROM stdin;
 --
 
 COPY tasks (task_id, title, content, state, assignee_id, c_point) FROM stdin;
-1021	haha, update	the content...\n\nis updated!!\n\nagain.~~	1	1976	201
-111222133	呵呵	人人人	3	\N	212
-111222111	fdfsd	wefdf\n\n- ldjfalsdf\n- lasdkjfsdljf\n\nsee [link](haha) to fuck	3	\N	21
 \.
 
 

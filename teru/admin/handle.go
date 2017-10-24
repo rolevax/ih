@@ -93,20 +93,33 @@ func PostCheckTask(req *restful.Request, resp *restful.Response) {
 		}
 		waterStr = "未通过，求改进"
 	case "fire":
-		if err := mako.FireAssigneeFromTask(cs.TaskId); err != nil {
+		if err := mako.FireAssigneeFromTask(cs.TaskId, false); err != nil {
 			sc.Error = err.Error()
 			return
 		}
 		waterStr = "未通过，任务重新发布"
+	case "fire-doing":
+		if err := mako.FireAssigneeFromTask(cs.TaskId, true); err != nil {
+			sc.Error = err.Error()
+			return
+		}
 	default:
 		sc.Error = fmt.Sprintf("unexpected op %s", cs.Op)
 		return
 	}
 
-	mako.AddTaskWater(fmt.Sprintf(
-		"%v 任务[%v]验收结果: %v",
-		time.Now().Format("2006-01-02 15:04"),
-		cs.TaskId,
-		waterStr,
-	))
+	if cs.Op == "fire-doing" {
+		mako.AddTaskWater(fmt.Sprintf(
+			"%v 任务[%v]被强制撤回",
+			time.Now().Format("2006-01-02 15:04"),
+			cs.TaskId,
+		))
+	} else {
+		mako.AddTaskWater(fmt.Sprintf(
+			"%v 任务[%v]验收结果: %v",
+			time.Now().Format("2006-01-02 15:04"),
+			cs.TaskId,
+			waterStr,
+		))
+	}
 }

@@ -55,3 +55,8 @@ type ScTaskRoot struct {
 	Tasks  []model.Task
 	Waters []string
 }
+
+type ScTask struct {
+	Sc
+	Task *model.Task
+}

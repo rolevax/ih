@@ -101,6 +101,10 @@ func addWebServiceTask() {
 			To(task.GetRoot),
 	)
 	ws.Route(
+		ws.GET("/{task-id}").
+			To(task.GetTask),
+	)
+	ws.Route(
 		ws.POST("/start/{task-id}").
 			Filter(account.FilterAuth).
 			To(task.PostStart),

@@ -26,6 +26,25 @@ func GetRoot(req *restful.Request, resp *restful.Response) {
 	sc.Waters = mako.GetTaskWaters(30)
 }
 
+func GetTask(req *restful.Request, resp *restful.Response) {
+	sc := &msg.ScTask{}
+	defer resp.WriteEntity(sc)
+
+	taskId, err := getTaskId(req)
+	if err != nil {
+		sc.Error = err.Error()
+		return
+	}
+
+	task, err := mako.GetTask(taskId)
+	if err != nil {
+		sc.Error = err.Error()
+		return
+	}
+
+	sc.Task = task
+}
+
 func PostStart(req *restful.Request, resp *restful.Response) {
 	time.Sleep(1 * time.Second)
 	sc := &msg.Sc{}

@@ -29,6 +29,12 @@ func GetTasks() ([]model.Task, error) {
 	return res, nil
 }
 
+func GetTask(taskId int) (*model.Task, error) {
+	res := &model.Task{Id: taskId}
+	err := db.Select(res)
+	return res, err
+}
+
 func StartTask(uid model.Uid, taskId int) error {
 	ct, err := db.Model(&model.Task{}).
 		Where("assignee_id=?", uid).
@@ -106,11 +112,18 @@ func ExpectAssigneeOnTask(taskId int) error {
 	return nil
 }
 
-func FireAssigneeFromTask(taskId int) error {
+func FireAssigneeFromTask(taskId int, isDoing bool) error {
+	var currState model.TaskState
+	if isDoing {
+		currState = model.TaskStateDoing
+	} else {
+		currState = model.TaskStateToCheck
+	}
+
 	res, err := db.Model(&model.Task{}).
 		Set("state=?", model.TaskStateToDo).
 		Set("assignee_id=NULL").
-		Where("task_id=? AND state=?", taskId, model.TaskStateToCheck).
+		Where("task_id=? AND state=?", taskId, currState).
 		Update()
 
 	if err != nil {
