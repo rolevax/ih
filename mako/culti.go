@@ -8,6 +8,7 @@ import (
 	"github.com/rolevax/ih/ako/model"
 )
 
+// deprecated
 func GetCultis(uid model.Uid) []model.Culti {
 	var cs []model.Culti
 

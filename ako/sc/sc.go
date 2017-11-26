@@ -6,7 +6,6 @@ type Auth struct {
 	Error  string
 	Resume bool
 	User   *model.User
-	Stats  []model.Culti
 }
 
 type LookAround struct {

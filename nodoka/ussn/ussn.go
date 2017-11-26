@@ -133,7 +133,6 @@ func (ussn *ussn) sendHello() {
 		Error:  "",
 		Resume: playing,
 		User:   ussn.user,
-		Stats:  mako.GetCultis(ussn.user.Id),
 	}, noResp)
 }
 

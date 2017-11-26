@@ -22,4 +22,13 @@ services:
     depends_on:
       - db
       - redis
+  hisa:
+    image: rolevax/hisa
+    ports:
+      - 6171:6171
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    depends_on:
+      - db
+      - redis
 

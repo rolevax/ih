@@ -24,7 +24,7 @@ mihoko:
 	           -v ${PWD}:/go/src/github.com/rolevax/ih \
 	           -v /tmp/cache/rolevax/ih:/go/pkg/linux_amd64/github.com/rolevax/ih \
 	           rolevax/ih-builder \
-	           make teru
+	           make
 	${MAKE} -C mihoko
 
 ${BIN_HISA}: saki
