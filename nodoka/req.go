@@ -41,6 +41,15 @@ func (msg *MbGetRooms) Req() ([]*model.Room, error) {
 	}
 }
 
+func (msg *MbGetMatchWaits) Req() ([]int, error) {
+	res, err := Req(Bmgr, msg)
+	if err != nil {
+		return nil, err
+	} else {
+		return res.([]int), nil
+	}
+}
+
 func (msg *MuSc) Req() error {
 	res, err := Req(Umgr, msg)
 	if err != nil {

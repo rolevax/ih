@@ -1,6 +1,6 @@
 #include "s11n.h"
 
-#include "libsaki/string_enum.h"
+#include "libsaki/util/string_enum.h"
 
 #include <bitset>
 
@@ -128,7 +128,7 @@ json createReplay(const Replay &replay)
 
 }
 
-json createRule(const RuleInfo &rule)
+json createRule(const Rule &rule)
 {
 	json obj;
 
@@ -159,7 +159,7 @@ json createRound(const Replay::Round &round)
     obj["state"] = std::to_string(round.state);
     obj["die1"] = round.die1;
     obj["die2"] = round.die2;
-    obj["result"] = stringOf(round.result);
+    obj["result"] = util::stringOf(round.result);
     obj["resultPoints"] = round.resultPoints;
 
     obj["spells"] = round.spells;
@@ -263,7 +263,7 @@ Action makeAction(const std::string &actStr, int actArg,
                   const std::string &actTile, int who)
 {
     using AC = saki::ActCode;
-	AC act = actCodeOf(actStr.c_str());
+	AC act = util::actCodeOf(actStr.c_str());
 
 	switch (act) {
 		case AC::SWAP_OUT:

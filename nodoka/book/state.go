@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	idGen          = 0
+	roomIdGen      = 0
 	rooms          = map[model.Rid]*model.Room{}
 	ridOfUid       = map[model.Uid]model.Rid{}
 	errRoomTan90   = fmt.Errorf("room tan90")
@@ -108,9 +108,9 @@ func roomQuit(uid model.Uid) {
 }
 
 func genId() model.Rid {
-	rid := model.Rid(idGen)
-	idGen++
-	idGen %= 1000 // assume 0~999 is enough
+	rid := model.Rid(roomIdGen)
+	roomIdGen++
+	roomIdGen %= 1000 // assume 0~999 is enough
 	return rid
 }
 

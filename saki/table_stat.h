@@ -1,7 +1,7 @@
 #ifndef SAKI_TABLE_STAT_H
 #define SAKI_TABLE_STAT_H
 
-#include "libsaki/tableobserver.h"
+#include "libsaki/table/table_observer.h"
 
 #include <map>
 

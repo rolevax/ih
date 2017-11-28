@@ -34,6 +34,13 @@ func Receive(ctx actor.Context) {
 	case *nodoka.MbGetRooms:
 		resp := handleGetRooms()
 		ctx.Respond(resp)
+	case *nodoka.MbGetMatchWaits:
+		resp := handleGetMatchWaits()
+		ctx.Respond(resp)
+	case *nodoka.MbMatchJoin:
+		handleMatchJoin(msg)
+	case *nodoka.MbMatchCancel:
+		handleMatchCancel(msg)
 	default:
 		log.Fatalf("Bmgr.Recv unexpected %T\n", msg)
 	}
@@ -58,7 +65,8 @@ func handleRoomCreate(msg *nodoka.MbRoomCreate) {
 		nodoka.Umgr.Tell(&nodoka.MuKick{uid, err.Error()})
 	}
 	if room != nil {
-		tssn.Start(room)
+		//tssn.Start(room)
+		log.Println("book: start room create")
 	}
 }
 
@@ -82,7 +90,8 @@ func handleRoomJoin(msg *nodoka.MbRoomJoin) {
 	})
 
 	if room != nil {
-		tssn.Start(room)
+		//tssn.Start(room)
+		log.Println("book: start room join")
 	}
 }
 
@@ -99,4 +108,30 @@ func handleGetRooms() []*model.Room {
 	}
 
 	return res
+}
+
+func handleGetMatchWaits() []int {
+	res := []int{}
+
+	for _, ms := range matchStates {
+		res = append(res, ms.UserCt)
+	}
+
+	return res
+}
+
+func handleMatchJoin(msg *nodoka.MbMatchJoin) {
+	res := matchStates[msg.RuleId].Add(msg)
+	if res != nil {
+		for _, user := range res.Users {
+			handleMatchCancel(&nodoka.MbMatchCancel{Uid: user.Id})
+		}
+		tssn.Start(res)
+	}
+}
+
+func handleMatchCancel(msg *nodoka.MbMatchCancel) {
+	for i, _ := range matchStates {
+		matchStates[i].RemoveUid(msg.Uid)
+	}
 }

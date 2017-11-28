@@ -9,10 +9,11 @@ type Auth struct {
 }
 
 type LookAround struct {
-	Conn  int
-	Play  int
-	Water []string
-	Rooms []*model.Room
+	Conn       int
+	Play       int
+	Water      []string
+	Rooms      []*model.Room
+	MatchWaits []int
 }
 
 type UpdateUser struct {
@@ -33,19 +34,37 @@ type GetReplay struct {
 	ReplayJson string
 }
 
-type Seat struct {
-	Room       model.Room
+type TableInit struct {
+	MatchResult model.MatchResult
+	Choices     [3]model.Gid
+}
+
+func (msg *TableInit) RightPers() *TableInit {
+	next := &TableInit{}
+
+	*next = *msg
+	next.MatchResult = *msg.MatchResult.RightPers()
+
+	// choices are assigned, not rotated
+
+	return next
+}
+
+type TableSeat struct {
+	Gids       [4]model.Gid
 	TempDealer int
 }
 
 // rotate perspective
-func (msg *Seat) RightPers() *Seat {
-	next := &Seat{}
+func (msg *TableSeat) RightPers() *TableSeat {
+	next := &TableSeat{}
 
 	*next = *msg
 	next.TempDealer = (msg.TempDealer + 3) % 4
-	next.Room.Users = append(msg.Room.Users[1:4], msg.Room.Users[0])
-	next.Room.Gids = append(msg.Room.Gids[1:4], msg.Room.Gids[0])
+	next.Gids[0] = msg.Gids[1]
+	next.Gids[1] = msg.Gids[2]
+	next.Gids[2] = msg.Gids[3]
+	next.Gids[3] = msg.Gids[0]
 
 	return next
 }

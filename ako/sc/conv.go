@@ -11,7 +11,9 @@ var decoder = ako.NewDecoder([]interface{}{
 	UpdateUser{},
 	LookAround{},
 	RoomJoin{},
-	Seat{},
+	TableInit{},
+	TableSeat{},
+	TableEvent{},
 	GetReplayList{},
 	GetReplay{},
 })

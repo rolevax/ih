@@ -30,9 +30,19 @@ type RoomJoin struct {
 
 type RoomQuit struct{}
 
-type Seat struct{}
+type MatchJoin struct {
+	RuleId model.RuleId
+}
 
-type Action struct {
+type MatchCancel struct{}
+
+type TableChoose struct {
+	Gidx int
+}
+
+type TableSeat struct{}
+
+type TableAction struct {
 	Nonce   int
 	ActStr  string
 	ActArg  int

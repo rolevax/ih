@@ -16,6 +16,10 @@ func (w logWriter) Write(bytes []byte) (int, error) {
 	return fmt.Print(prefix, " ", string(bytes))
 }
 
+type handle func(rl *readline.Instance, line string)
+
+var currHandle handle
+
 func main() {
 	log.SetFlags(0)
 	log.SetOutput(&logWriter{})
@@ -23,6 +27,7 @@ func main() {
 	l := startReadline()
 	defer l.Close()
 
+	currHandle = handleTop
 	loop(l)
 }
 
@@ -60,16 +65,6 @@ func loop(rl *readline.Instance) {
 			continue
 		}
 
-		handle(rl, line)
-	}
-}
-
-func handle(rl *readline.Instance, line string) {
-	args := strings.Split(line, " ")
-	h, ok := handlers[args[0]]
-	if ok {
-		h(rl, args[1:])
-	} else {
-		fmt.Println("what?")
+		currHandle(rl, line)
 	}
 }

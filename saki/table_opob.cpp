@@ -2,9 +2,9 @@
 
 #include "json.hpp"
 
-#include "libsaki/string_enum.h"
-#include "libsaki/ai.h"
-#include "libsaki/util.h"
+#include "libsaki/util/string_enum.h"
+#include "libsaki/ai/ai.h"
+#include "libsaki/util/misc.h"
 
 
 
@@ -41,7 +41,7 @@ TableOpOb::TableOpOb(const std::array<int, 4> &girlIds)
 		TableOp(*this, Who(3))
 	}
 {
-	RuleInfo rule;
+	Rule rule;
 	rule.roundLimit = 8;
 	std::array<int, 4> points { 25000, 25000, 25000, 25000 };
 	std::array<TableOperator*, 4> ops {
@@ -50,7 +50,7 @@ TableOpOb::TableOpOb(const std::array<int, 4> &girlIds)
 	std::vector<TableObserver*> obs { this, &mStat, &mReplay };
 	Who td(0);
 
-	mTable.reset(new Table(points, girlIds, ops, obs, rule, td));
+	mTable.reset(new Table(points, girlIds, ops, obs, rule, td, mEnv));
 
     mTable->start();
 }
@@ -60,8 +60,8 @@ void TableOpOb::onActivated(Who who, Table &table)
     using AC = ActCode;
     using Mode = Choices::Mode;
 
-    const TableView view = table.getView(who);
-    const Choices &choices = view.myChoices();
+    const auto view = table.getView(who);
+    const Choices &choices = view->myChoices();
 
     if (table.riichiEstablished(who) && choices.spinOnly()) {
 		json args;
@@ -77,33 +77,33 @@ void TableOpOb::onActivated(Who who, Table &table)
     case Mode::WATCH:
         break;
     case Mode::CUT:
-        activateIrsCheck(map, view);
+        activateIrsCheck(map, *view);
         break;
     case Mode::DICE:
-        map[stringOf(AC::DICE)] = true;
+        map[util::stringOf(AC::DICE)] = true;
         break;
     case Mode::DRAWN:
-        activateDrawn(map, view);
+        activateDrawn(map, *view);
         break;
     case Mode::BARK:
-        focusWho = view.getFocus().who().index();
-        activateBark(map, view);
+        focusWho = view->getFocus().who().index();
+        activateBark(map, *view);
         break;
     case Mode::END:
         if (choices.can(AC::END_TABLE))
-            map[stringOf(AC::END_TABLE)] = true;
+            map[util::stringOf(AC::END_TABLE)] = true;
         if (choices.can(AC::NEXT_ROUND))
-            map[stringOf(AC::NEXT_ROUND)] = true;
+            map[util::stringOf(AC::NEXT_ROUND)] = true;
         break;
     }
 
     if (choices.can(AC::IRS_CLICK))
-        map[stringOf(AC::NEXT_ROUND)] = true;
+        map[util::stringOf(AC::NEXT_ROUND)] = true;
 
     json args;
     args["action"] = map;
     args["lastDiscarder"] = focusWho;
-    args["green"] = view.myChoices().forwardAll();
+    args["green"] = view->myChoices().forwardAll();
 	peer(who.index(), "activated", args);
 }
 
@@ -229,7 +229,7 @@ void TableOpOb::onBarked(const Table &table, Who who,
 	Who from = bark.isCpdmk() ? table.getFocus().who() : Who();
 
 	json args;
-	args["actStr"] = stringOf(bark.type());
+	args["actStr"] = util::stringOf(bark.type());
 	args["bark"] = createBark(bark);
 	args["spin"] = spin;
 	for (int w = 0; w < 4; w++) {
@@ -275,7 +275,7 @@ void TableOpOb::onRoundEnded(const Table &table, RoundResult result,
 	}
 
 	json args;
-	args["result"] = stringOf(result);
+	args["result"] = util::stringOf(result);
 	args["hands"] = handsList;
 	args["forms"] = formsList;
 	args["urids"] = createTiles(table.getMount().getUrids().range());
@@ -519,26 +519,26 @@ void TableOpOb::activateDrawn(json &map, const TableView &view)
 
     for (AC ac : { AC::SPIN_OUT, AC::SPIN_RIICHI, AC::TSUMO, AC::RYUUKYOKU })
         if (view.myChoices().can(ac))
-            map[stringOf(ac)] = true;
+            map[util::stringOf(ac)] = true;
 
     const Choices::ModeDrawn &mode = view.myChoices().drawn();
 
     if (mode.swapOut)
-        map[stringOf(AC::SWAP_OUT)] = (1 << 13) - 1;
+        map[util::stringOf(AC::SWAP_OUT)] = (1 << 13) - 1;
 
     if (!mode.swapRiichis.empty()) {
 		const auto &closed = view.myHand().closed();
-        map[stringOf(AC::SWAP_RIICHI)] = createSwapMask(closed, mode.swapRiichis);
+        map[util::stringOf(AC::SWAP_RIICHI)] = createSwapMask(closed, mode.swapRiichis);
 	}
 
     if (!mode.ankans.empty())
-        map[stringOf(AC::ANKAN)] = createTileStrs(mode.ankans.range());
+        map[util::stringOf(AC::ANKAN)] = createTileStrs(mode.ankans.range());
 
     if (!mode.kakans.empty()) {
 		std::vector<int> kakans;
 		for (int i : mode.kakans)
 			kakans.push_back(i);
-        map[stringOf(AC::KAKAN)] = kakans;
+        map[util::stringOf(AC::KAKAN)] = kakans;
     }
 }
 
@@ -554,7 +554,7 @@ void TableOpOb::activateBark(json &map, const TableView &view)
 
     for (AC ac : just)
         if (view.myChoices().can(ac))
-            map[stringOf(ac)] = true;
+            map[util::stringOf(ac)] = true;
 }
 
 void TableOpOb::activateIrsCheck(json &map, const TableView &view)
@@ -564,7 +564,7 @@ void TableOpOb::activateIrsCheck(json &map, const TableView &view)
     json list;
     for (int i = 0; i < prediceCount; i++)
         list.push_back(createIrsCheckRow(girl.irsCheckRow(i)));
-    map[stringOf(saki::ActCode::IRS_CHECK)] = list;
+    map[util::stringOf(saki::ActCode::IRS_CHECK)] = list;
 }
 
 

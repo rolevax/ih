@@ -12,8 +12,11 @@ var decoder = ako.NewDecoder([]interface{}{
 	RoomCreate{},
 	RoomJoin{},
 	RoomQuit{},
-	Seat{},
-	Action{},
+	MatchJoin{},
+	MatchCancel{},
+	TableChoose{},
+	TableSeat{},
+	TableAction{},
 	GetReplayList{},
 	GetReplay{},
 })
@@ -29,6 +32,10 @@ func FromJson(breq []byte) (interface{}, error) {
 		if !cs.AiNum.Valid() ||
 			cs.AiNum.NeedUser()+len(cs.AiGids) > 4 ||
 			len(cs.AiGids) != cs.AiNum.NeedAi() {
+			err = fmt.Errorf("invalid %T %v", cs, cs)
+		}
+	case *MatchJoin:
+		if !cs.RuleId.Valid() {
 			err = fmt.Errorf("invalid %T %v", cs, cs)
 		}
 	default:

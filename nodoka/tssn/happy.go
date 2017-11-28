@@ -37,7 +37,7 @@ func (tssn *tssn) Happy(ctx actor.Context) {
 	}
 }
 
-func (tssn *tssn) handleAction(uid model.Uid, act *cs.Action) {
+func (tssn *tssn) handleAction(uid model.Uid, act *cs.TableAction) {
 	i, ok := tssn.findUser(uid)
 	if !ok {
 		log.Fatalf("tssn.handleAction user %d not found\n", uid)
@@ -45,7 +45,7 @@ func (tssn *tssn) handleAction(uid model.Uid, act *cs.Action) {
 	tssn.handleActionI(i, act)
 }
 
-func (tssn *tssn) handleActionI(i int, act *cs.Action) {
+func (tssn *tssn) handleActionI(i int, act *cs.TableAction) {
 	if act.ActStr == "RESUME" {
 		tssn.onlines[i] = true
 	} else if act.Nonce != tssn.nonces[i] {
@@ -59,7 +59,7 @@ func (tssn *tssn) handleActionI(i int, act *cs.Action) {
 }
 
 func (tssn *tssn) start() {
-	gids := tssn.room.Gids
+	gids := &tssn.gids
 	log.Println("TSSN ****", gids)
 	tssn.table = saki.NewTableSession(
 		int(gids[0]), int(gids[1]),
@@ -111,7 +111,7 @@ func (tssn *tssn) handleMails(mails saki.MailVector) {
 func (tssn *tssn) sendUserMail(who int, msg *sc.TableEvent) {
 	msg.Nonce = tssn.nonces[who]
 
-	if tssn.room.Users[who].Id.IsBot() {
+	if tssn.match.Users[who].Id.IsBot() {
 		if msg.Event == "activated" {
 			go func() {
 				// simulate ai thinking time
@@ -124,7 +124,7 @@ func (tssn *tssn) sendUserMail(who int, msg *sc.TableEvent) {
 
 				tssn.p.Tell(&ccAction{
 					UserIndex: who,
-					Act: &cs.Action{
+					Act: &cs.TableAction{
 						ActStr: "BOT",
 						Nonce:  msg.Nonce,
 					},
@@ -159,7 +159,7 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 		if msg["allLast"].(bool) {
 			al = "a"
 		}
-		log.Printf(fmt, tssn.room.Id, msg["round"], msg["extra"], al,
+		log.Printf(fmt, tssn.match.Id, msg["round"], msg["extra"], al,
 			msg["dealer"], msg["deposit"], uint(msg["seed"].(float64)))
 	case "table-end-stat":
 		var stat model.EndTableStat
@@ -171,13 +171,13 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 		//TODO
 		//mako.UpdateUserGirl(tssn.abcd, tssn.uids, tssn.gids, &stat)
 		for w := 0; w < 4; w++ {
-			nodoka.Umgr.Tell(&nodoka.MuUpdateInfo{Uid: tssn.room.Users[w].Id})
+			nodoka.Umgr.Tell(&nodoka.MuUpdateInfo{Uid: tssn.match.Users[w].Id})
 		}
 	case "riichi-auto":
 		who := int(msg["Who"].(float64))
 		tssn.p.Tell(&ccAction{
 			UserIndex: who,
-			Act: &cs.Action{
+			Act: &cs.TableAction{
 				Nonce:  tssn.nonces[who],
 				ActStr: "SPIN_OUT",
 			},
@@ -187,7 +187,7 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 		actStr := msg["actStr"].(string)
 		actArg := msg["actArg"].(string)
 		log.Printf("TSSN EEEE %d cannot %d-%s-%s\n",
-			tssn.room.Id, tssn.room.Users[who].Id, actStr, actArg)
+			tssn.match.Id, tssn.match.Users[who].Id, actStr, actArg)
 		tssn.kick(who, "illegal table action")
 	default:
 		log.Fatalln("unknown system mail", msg)
@@ -210,20 +210,18 @@ func (tssn *tssn) injectReplay(replay map[string]interface{}) {
 */
 
 func (tssn *tssn) injectResume(who int, msg *sc.TableEvent) {
-	/* TODO get users from Umgr
 	if msg.Event == "resume" {
 		right := (who + 1) % 4
 		cross := (who + 2) % 4
 		left := (who + 3) % 4
 		rotated := [4]*model.User{
-			tssn.users[who],
-			tssn.users[right],
-			tssn.users[cross],
-			tssn.users[left],
+			&tssn.match.Users[who],
+			&tssn.match.Users[right],
+			&tssn.match.Users[cross],
+			&tssn.match.Users[left],
 		}
 		msg.Args["users"] = rotated
 	}
-	*/
 }
 
 func (tssn *tssn) sweepOne(i int) {

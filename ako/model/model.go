@@ -20,6 +20,18 @@ func (uid Uid) IsHuman() bool {
 // girl id, signed-int for compatibility to libsaki
 type Gid int
 
+type RuleId int
+
+const (
+	RuleFourDoges RuleId = 0
+	RuleMax       RuleId = 1
+)
+
+func (ri RuleId) Valid() bool {
+	i := int(ri)
+	return 0 <= i && i < int(RuleMax)
+}
+
 // level, pt, and rating
 type Lpr struct {
 	Level  int

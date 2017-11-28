@@ -1,9 +1,9 @@
 #ifndef SAKI_S11N_H
 #define SAKI_S11N_H
 
-#include "libsaki/tile_count.h"
-#include "libsaki/meld.h"
-#include "libsaki/replay.h"
+#include "libsaki/form/tile_count.h"
+#include "libsaki/unit/meld.h"
+#include "libsaki/app/replay.h"
 
 using namespace saki;
 
@@ -22,7 +22,7 @@ json createBarks(const util::Stactor<M37, 4> &ms);
 json createIrsCheckRow(const IrsCheckRow &row);
 
 json createReplay(const Replay &replay);
-json createRule(const RuleInfo &rule);
+json createRule(const Rule &rule);
 json createRound(const Replay::Round &round);
 json createTrack(const Replay::Track &track);
 

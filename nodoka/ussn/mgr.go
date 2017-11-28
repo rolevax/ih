@@ -62,7 +62,6 @@ func handleReg(add bool, ussn *ussn) {
 		}
 		rec[ussn.user.Id] = ussn
 	} else {
-		nodoka.Bmgr.Tell(&nodoka.MbRoomQuit{Uid: ussn.user.Id})
 		if prev, ok := rec[ussn.user.Id]; ok && prev == ussn {
 			delete(rec, ussn.user.Id)
 			addWater(ussn.user.Username, "下线")

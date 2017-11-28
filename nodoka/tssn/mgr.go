@@ -31,6 +31,8 @@ func Receive(ctx actor.Context) {
 		handleHasUser(msg.Uid, ctx.Respond)
 	case *nodoka.MtCtPlays:
 		handleCtPlays(ctx.Respond)
+	case *nodoka.MtChoose:
+		handleChoose(msg)
 	case *nodoka.MtSeat:
 		handleSeat(msg)
 	case *nodoka.MtAction:
@@ -54,12 +56,18 @@ func handleCtPlays(resp func(interface{})) {
 func handleReg(add bool, tssn *tssn) {
 	if add {
 		for w := 0; w < 4; w++ {
-			rec[tssn.room.Users[w].Id] = tssn
+			rec[tssn.match.Users[w].Id] = tssn
 		}
 	} else {
 		for w := 0; w < 4; w++ {
-			delete(rec, tssn.room.Users[w].Id)
+			delete(rec, tssn.match.Users[w].Id)
 		}
+	}
+}
+
+func handleChoose(msg *nodoka.MtChoose) {
+	if tssn, ok := rec[msg.Uid]; ok {
+		tssn.p.Tell(&pcChoose{msg})
 	}
 }
 

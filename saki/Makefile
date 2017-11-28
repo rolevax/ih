@@ -14,8 +14,8 @@ BUILD_DIR=./build
 
 CXX=g++
 CXXFLAGS=-std=c++11 -c -fPIC -O2
-CXXSRC=./libsaki/*.cpp
-CXXHDR=./libsaki/*.h
+CXXSRC=$(shell find $$PWD/libsaki -name "*.cpp")
+CXXHDR=$(shell find $$PWD/libsaki -name "*.h")
 
 AR=ar
 ARFLAGS=cr
@@ -50,7 +50,7 @@ ${GO_SAKI_PKG}: ${BUILD_DIR}/libsaki.a\
 ${BUILD_DIR}/libsaki.a: ${CXXHDR} ${CXXSRC} | ${BUILD_DIR}
 	@echo -n 'compile ./build/libsaki.a... '
 	@cd ${BUILD_DIR};\
-		${CXX} ${CXXFLAGS} ../${CXXSRC};\
+		${CXX} ${CXXFLAGS} ${CXXSRC};\
 		${AR} ${ARFLAGS} libsaki.a *.o;
 	@echo 'done'
 

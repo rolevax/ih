@@ -78,13 +78,17 @@ func (ussn *ussn) handleCs(i interface{}) {
 		ussn.handleRoomJoin(msg)
 	case *cs.RoomQuit:
 		ussn.handleRoomQuit()
+	case *cs.MatchJoin:
+		ussn.handleMatchJoin(msg)
 	case *cs.GetReplayList:
 		ussn.handleGetReplayList()
 	case *cs.GetReplay:
 		ussn.handleGetReplay(msg.ReplayId)
-	case *cs.Seat:
+	case *cs.TableChoose:
+		ussn.handleChoose(msg)
+	case *cs.TableSeat:
 		ussn.handleSeat()
-	case *cs.Action:
+	case *cs.TableAction:
 		ussn.handleAction(msg)
 	default:
 		ussn.handleError(fmt.Errorf("unexpected CsMsg %T\n", msg))
@@ -110,9 +114,17 @@ func (ussn *ussn) handleRoomQuit() {
 	nodoka.Bmgr.Tell(&nodoka.MbRoomQuit{Uid: ussn.user.Id})
 }
 
+func (ussn *ussn) handleMatchJoin(msg *cs.MatchJoin) {
+	nodoka.Bmgr.Tell(&nodoka.MbMatchJoin{
+		User:      *ussn.user,
+		MatchJoin: *msg,
+	})
+}
+
 func (ussn *ussn) handleLookAround() {
 	// TODO
-	// all user have same result, no need to compute individually
+	// all user have the same result,
+	// no need to compute individually
 	// Umgr periodically gather data from other Mgr's
 	// ussn tell Umgr cpLookAround, Umgr tell ussn pcSc
 	res, err := nodoka.Umgr.RequestFuture(&cpWater{}, uuReqTmot).Result()
@@ -128,7 +140,15 @@ func (ussn *ussn) handleLookAround() {
 		return
 	}
 
+	/* feature hidden
 	rooms, err := (&nodoka.MbGetRooms{}).Req()
+	if err != nil {
+		ussn.handleError(err)
+		return
+	}
+	*/
+
+	waits, err := (&nodoka.MbGetMatchWaits{}).Req()
 	if err != nil {
 		ussn.handleError(err)
 		return
@@ -138,7 +158,8 @@ func (ussn *ussn) handleLookAround() {
 		Conn:  water.ct,
 		Play:  playCt,
 		Water: water.water,
-		Rooms: rooms,
+		//Rooms: rooms,
+		MatchWaits: waits,
 	}
 	ussn.handleSc(msg, noResp)
 }
@@ -158,10 +179,14 @@ func (ussn *ussn) handleGetReplay(replayId uint) {
 	ussn.handleSc(&sc.GetReplay{replayId, text}, noResp)
 }
 
+func (ussn *ussn) handleChoose(msg *cs.TableChoose) {
+	nodoka.Tmgr.Tell(&nodoka.MtChoose{Uid: ussn.user.Id, TableChoose: msg})
+}
+
 func (ussn *ussn) handleSeat() {
 	nodoka.Tmgr.Tell(&nodoka.MtSeat{Uid: ussn.user.Id})
 }
 
-func (ussn *ussn) handleAction(msg *cs.Action) {
+func (ussn *ussn) handleAction(msg *cs.TableAction) {
 	nodoka.Tmgr.Tell(&nodoka.MtAction{Uid: ussn.user.Id, Act: msg})
 }

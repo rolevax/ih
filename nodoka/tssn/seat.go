@@ -44,12 +44,12 @@ func (tssn *tssn) notifySeat() {
 
 	for w := 0; w < 4; w++ {
 		// bots are always ready, wait your sister wait
-		tssn.waits[w] = tssn.room.Users[w].Id.IsHuman()
+		tssn.waits[w] = tssn.match.Users[w].Id.IsHuman()
 	}
 
-	msg := &sc.Seat{
+	msg := &sc.TableSeat{
 		TempDealer: 0,
-		Room:       *tssn.room,
+		Gids:       tssn.gids,
 	}
 	for w := 0; w < 4; w++ {
 		if tssn.waits[w] {
@@ -73,7 +73,7 @@ func (tssn *tssn) handleSeat(uid model.Uid, onNext func()) {
 func (tssn *tssn) handleSeatTimeout() {
 	for w := 0; w < 4; w++ {
 		if tssn.waits[w] {
-			tssn.p.Tell(&ccSeat{Uid: tssn.room.Users[w].Id})
+			tssn.p.Tell(&ccSeat{Uid: tssn.match.Users[w].Id})
 			tssn.kick(w, "seat timeout")
 		}
 	}

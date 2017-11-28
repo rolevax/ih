@@ -5,10 +5,9 @@
 #include "table_stat.h"
 #include "s11n.h"
 
-#include "libsaki/tableoperator.h"
-#include "libsaki/tableobserver.h"
-#include "libsaki/table.h"
-#include "libsaki/replay.h"
+#include "libsaki/table/table.h"
+#include "libsaki/table/table_env_stub.h" // temp
+#include "libsaki/app/replay.h"
 
 #include <memory>
 
@@ -77,6 +76,7 @@ private:
 
 private:
 	TableStat mStat;
+	TableEnvStub mEnv; // temp
 	Replay mReplay;
 	std::vector<Mail> mMails;
 	std::unique_ptr<Table> mTable;

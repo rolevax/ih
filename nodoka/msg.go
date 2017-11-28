@@ -13,7 +13,12 @@ type MtCtPlays struct{}
 
 type MtAction struct {
 	Uid model.Uid
-	Act *cs.Action
+	Act *cs.TableAction
+}
+
+type MtChoose struct {
+	Uid model.Uid
+	*cs.TableChoose
 }
 
 type MtSeat struct {
@@ -35,6 +40,17 @@ type MbRoomQuit struct {
 }
 
 type MbGetRooms struct{}
+
+type MbGetMatchWaits struct{}
+
+type MbMatchJoin struct {
+	User model.User
+	cs.MatchJoin
+}
+
+type MbMatchCancel struct {
+	Uid model.Uid
+}
 
 type MuSc struct {
 	To  model.Uid

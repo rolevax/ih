@@ -138,6 +138,8 @@ func (ussn *ussn) sendHello() {
 
 func (ussn *ussn) bye() {
 	ussn.conn.Close()
+	nodoka.Bmgr.Tell(&nodoka.MbMatchCancel{Uid: ussn.user.Id})
+	nodoka.Bmgr.Tell(&nodoka.MbRoomQuit{Uid: ussn.user.Id})
 	nodoka.Umgr.Tell(&cpReg{add: false, ussn: ussn})
 }
 

@@ -21,7 +21,9 @@ func init() {
 
 type tssn struct {
 	p           *actor.PID
-	room        *model.Room
+	match       *model.MatchResult
+	choices     *choices
+	gids        [4]model.Gid
 	waits       [4]bool
 	onlines     [4]bool
 	nonces      [4]int
@@ -30,13 +32,10 @@ type tssn struct {
 	waitClient  bool
 }
 
-func Start(room *model.Room) {
-	if !room.Four() {
-		log.Fatal("tssn.Start room not 4")
-	}
-
+func Start(mr *model.MatchResult) {
 	tssn := &tssn{
-		room:    room,
+		match:   mr,
+		choices: newChoices(),
 		onlines: [4]bool{true, true, true, true},
 	}
 
@@ -53,13 +52,9 @@ func (tssn *tssn) Receive(ctx actor.Context) {
 	switch ctx.Message().(type) {
 	case *actor.Started:
 		ctx.SetReceiveTimeout(recvTimeout)
-		ctx.SetBehavior(tssn.Seat)
-		uids := []model.Uid{}
-		for _, u := range tssn.room.Users {
-			uids = append(uids, u.Id)
-		}
-		log.Println("TSSN ++++", uids)
-		tssn.notifySeat()
+		ctx.SetBehavior(tssn.Choose)
+		tssn.notifyChoose()
+		log.Println("TSSN ++++", tssn.match.Uids())
 	default:
 		log.Fatalf("tssn.Recv unexpected %T\n", ctx.Message())
 	}
@@ -67,22 +62,22 @@ func (tssn *tssn) Receive(ctx actor.Context) {
 
 func (tssn *tssn) sendPeer(i int, msg interface{}) error {
 	if tssn.onlines[i] {
-		err := (&nodoka.MuSc{To: tssn.room.Users[i].Id, Msg: msg}).Req()
+		err := (&nodoka.MuSc{To: tssn.match.Users[i].Id, Msg: msg}).Req()
 		if err != nil {
 			tssn.kick(i, "write err")
 		}
 		return err
 	}
-	return fmt.Errorf("tssn.sendPeer: %d not online", tssn.room.Users[i].Id)
+	return fmt.Errorf("tssn.sendPeer: %d not online", tssn.match.Users[i].Id)
 }
 
 func (tssn *tssn) kick(uidx int, reason string) {
 	tssn.onlines[uidx] = false
-	nodoka.Umgr.Tell(&nodoka.MuKick{tssn.room.Users[uidx].Id, reason})
+	nodoka.Umgr.Tell(&nodoka.MuKick{tssn.match.Users[uidx].Id, reason})
 }
 
 func (tssn *tssn) findUser(uid model.Uid) (int, bool) {
-	for i, u := range tssn.room.Users {
+	for i, u := range tssn.match.Users {
 		if u.Id == uid {
 			return i, true
 		}
@@ -113,9 +108,5 @@ func (tssn *tssn) bye(ctx actor.Context) {
 	}
 	ctx.SetBehavior(func(ctx actor.Context) {}) // clear bahavior
 
-	uids := []model.Uid{}
-	for _, u := range tssn.room.Users {
-		uids = append(uids, u.Id)
-	}
-	log.Println("TSSN ----", uids)
+	log.Println("TSSN ----", tssn.match.Uids())
 }
