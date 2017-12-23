@@ -35,7 +35,7 @@ type tssn struct {
 func Start(mr *model.MatchResult) {
 	tssn := &tssn{
 		match:   mr,
-		choices: newChoices(),
+		choices: newChoices(mr.RuleId),
 		onlines: [4]bool{true, true, true, true},
 	}
 

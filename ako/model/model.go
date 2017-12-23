@@ -23,8 +23,9 @@ type Gid int
 type RuleId int
 
 const (
-	RuleFourDoges RuleId = 0
-	RuleMax       RuleId = 1
+	RuleFourDoges   RuleId = 0
+	RuleClassic1In2 RuleId = 1
+	RuleMax         RuleId = 2
 )
 
 func (ri RuleId) Valid() bool {

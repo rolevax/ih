@@ -2,19 +2,44 @@ package tssn
 
 import (
 	"log"
+	"math/rand"
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/rolevax/ih/ako/model"
 	"github.com/rolevax/ih/ako/sc"
 )
 
+var availIds = []model.Gid{
+	710113, 710114, 710115,
+	712411, 712412, 712413,
+	712611, 712613,
+	712714, 712715,
+	712915,
+	713311, 713314,
+	713301,
+	713811, 713815,
+	714915,
+	715212,
+	990001, 990002, 990003, 990011,
+	990024,
+}
+
 type choices struct {
 	gidcs [4][3]model.Gid
 }
 
-func newChoices() *choices {
+func newChoices(ruleId model.RuleId) *choices {
 	c := &choices{}
-	// FUCK
+	switch ruleId {
+	case model.RuleFourDoges:
+		// all zero
+	case model.RuleClassic1In2:
+		for i, n := range rand.Perm(len(availIds)) {
+			who := i / 4
+			what := i % 4
+			c.gidcs[who][what] = availIds[n]
+		}
+	}
 	return c
 }
 

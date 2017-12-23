@@ -15,6 +15,12 @@ var (
 	matchIdGen  int
 )
 
+func init() {
+	for i, _ := range matchStates {
+		matchStates[i].Result.RuleId = model.RuleId(i)
+	}
+}
+
 func (ms *MatchState) Add(msg *nodoka.MbMatchJoin) *model.MatchResult {
 	res := (*model.MatchResult)(nil)
 
