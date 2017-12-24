@@ -125,7 +125,9 @@ CREATE TABLE users (
     user_id bigint NOT NULL,
     username character varying(64) NOT NULL,
     password character(44) NOT NULL,
-    c_point integer DEFAULT 0 NOT NULL
+    c_point integer DEFAULT 0 NOT NULL,
+	got_food_at timestamptz,
+	food integer DEFAULT 0 NOT NULL
 );
 
 
