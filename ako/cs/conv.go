@@ -17,6 +17,7 @@ var decoder = ako.NewDecoder([]interface{}{
 	TableChoose{},
 	TableSeat{},
 	TableAction{},
+	ClaimFood{},
 	GetReplayList{},
 	GetReplay{},
 })

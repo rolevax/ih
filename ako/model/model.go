@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 // user id
 type Uid uint
 
@@ -41,9 +43,11 @@ type Lpr struct {
 }
 
 type User struct {
-	Id       Uid `sql:"user_id,pk"`
-	Username string
-	CPoint   int
+	Id        Uid `sql:"user_id,pk"`
+	Username  string
+	CPoint    int
+	GotFoodAt *time.Time
+	Food      int
 }
 
 // deprecated

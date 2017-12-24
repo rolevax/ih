@@ -49,6 +49,8 @@ type TableAction struct {
 	ActTile string
 }
 
+type ClaimFood struct{}
+
 type GetReplay struct {
 	ReplayId uint
 }

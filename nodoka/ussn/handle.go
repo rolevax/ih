@@ -50,8 +50,7 @@ func (ussn *ussn) handleSc(msg interface{}, resp func(interface{})) {
 func (ussn *ussn) handleUpdateInfo() {
 	ussn.user = mako.GetUser(ussn.user.Id)
 	sc := &sc.UpdateUser{
-		User:  ussn.user,
-		Stats: mako.GetCultis(ussn.user.Id),
+		User: ussn.user,
 	}
 	ussn.handleSc(sc, noResp)
 }
@@ -90,6 +89,8 @@ func (ussn *ussn) handleCs(i interface{}) {
 		ussn.handleSeat()
 	case *cs.TableAction:
 		ussn.handleAction(msg)
+	case *cs.ClaimFood:
+		ussn.handleClaimFood(msg)
 	default:
 		ussn.handleError(fmt.Errorf("unexpected CsMsg %T\n", msg))
 	}
@@ -189,4 +190,24 @@ func (ussn *ussn) handleSeat() {
 
 func (ussn *ussn) handleAction(msg *cs.TableAction) {
 	nodoka.Tmgr.Tell(&nodoka.MtAction{Uid: ussn.user.Id, Act: msg})
+}
+
+func (ussn *ussn) handleClaimFood(msg *cs.ClaimFood) {
+	if ussn.user.GotFoodAt != nil {
+		pass := time.Since(*ussn.user.GotFoodAt)
+		if int(pass.Hours()) < 7*24 {
+			ussn.handleError(fmt.Errorf("claim in cd"))
+			return
+		}
+	}
+
+	cPoint := ussn.user.CPoint
+	delta := 50 * cPoint
+	log.Println(ussn.user.Id, "food", ussn.user.Food, "+", delta)
+	ussn.user.Food += delta
+	now := time.Now()
+	ussn.user.GotFoodAt = &now
+	mako.UpdateFood(ussn.user)
+
+	ussn.handleSc(&sc.UpdateUser{User: ussn.user}, noResp)
 }

@@ -175,6 +175,23 @@ func UpdateCPoint(username string, delta int) error {
 	return err
 }
 
+func UpdateFood(user *model.User) error {
+	res, err := db.Model(user).
+		Set("food=?", user.Food).
+		Set("got_food_at=?", user.GotFoodAt).
+		Where("user_id=?", user.Id).
+		Update()
+
+	if err == nil {
+		aff := res.RowsAffected()
+		if aff != 1 {
+			err = fmt.Errorf("%d row(s) affected", aff)
+		}
+	}
+
+	return err
+}
+
 func checkName(name string) bool {
 	if strings.HasPrefix(name, "ⓝ") {
 		return false

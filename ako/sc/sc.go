@@ -17,8 +17,7 @@ type LookAround struct {
 }
 
 type UpdateUser struct {
-	User  *model.User
-	Stats []model.Culti
+	User *model.User
 }
 
 type RoomJoin struct {
