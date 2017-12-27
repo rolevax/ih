@@ -8,6 +8,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-pg/pg"
 	"github.com/rolevax/ih/ako/model"
@@ -175,11 +176,11 @@ func UpdateCPoint(username string, delta int) error {
 	return err
 }
 
-func UpdateFood(user *model.User) error {
-	res, err := db.Model(user).
-		Set("food=?", user.Food).
-		Set("got_food_at=?", user.GotFoodAt).
-		Where("user_id=?", user.Id).
+func ClaimFood(uid model.Uid, gotAt *time.Time) error {
+	res, err := db.Model(&model.User{}).
+		Set("food=food+(50*c_point)").
+		Set("got_food_at=?", gotAt).
+		Where("user_id=?", uid).
 		Update()
 
 	if err == nil {

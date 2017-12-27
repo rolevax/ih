@@ -201,13 +201,13 @@ func (ussn *ussn) handleClaimFood(msg *cs.ClaimFood) {
 		}
 	}
 
-	cPoint := ussn.user.CPoint
-	delta := 50 * cPoint
-	log.Println(ussn.user.Id, "food", ussn.user.Food, "+", delta)
-	ussn.user.Food += delta
+	log.Println(ussn.user.Id, "food")
 	now := time.Now()
-	ussn.user.GotFoodAt = &now
-	mako.UpdateFood(ussn.user)
+	err := mako.ClaimFood(ussn.user.Id, &now)
+	if err != nil {
+		ussn.handleError(err)
+		return
+	}
 
-	ussn.handleSc(&sc.UpdateUser{User: ussn.user}, noResp)
+	ussn.handleUpdateInfo()
 }
