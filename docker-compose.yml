@@ -7,11 +7,17 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - ./harue/persist:/var/lib/postgresql/data
       - ./harue/initdb:/docker-entrypoint-initdb.d
+    logging:
+      options:
+        max-size: 16m
   redis:
     image: redis
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./harue/cache:/data
+    logging:
+      options:
+        max-size: 16m
   teru:
     image: rolevax/teru
     ports:
@@ -22,6 +28,22 @@ services:
     depends_on:
       - db
       - redis
+    logging:
+      options:
+        max-size: 16m
+  toki:
+    image: rolevax/toki
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 3s
+    logging:
+      options:
+        max-size: 16m
   hisa:
     image: rolevax/hisa
     ports:
@@ -31,4 +53,8 @@ services:
     depends_on:
       - db
       - redis
+      - toki
+    logging:
+      options:
+        max-size: 16m
 

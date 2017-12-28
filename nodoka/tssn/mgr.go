@@ -56,6 +56,7 @@ func handleCtPlays(resp func(interface{})) {
 func handleReg(add bool, tssn *tssn) {
 	if add {
 		for w := 0; w < 4; w++ {
+			// TODO if exists, reject in some way
 			rec[tssn.match.Users[w].Id] = tssn
 		}
 	} else {

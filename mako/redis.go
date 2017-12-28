@@ -14,9 +14,9 @@ const (
 
 var rclient *redis.Client
 
-func init() {
+func InitRedis(addr string) {
 	rclient = redis.NewClient(&redis.Options{
-		Addr:     "redis:6379", // hostname in docker net
+		Addr:     addr,
 		Password: "",
 		DB:       0,
 	})

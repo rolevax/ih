@@ -1,16 +1,17 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net"
-	"os"
 	"time"
 
 	"github.com/rolevax/ih/mako"
 	"github.com/rolevax/ih/nodoka/book"
 	"github.com/rolevax/ih/nodoka/tssn"
 	"github.com/rolevax/ih/nodoka/ussn"
+	"github.com/rolevax/ih/ryuuka"
 )
 
 const Version = "0.9.1-alpha3"
@@ -23,19 +24,31 @@ func (w logWriter) Write(bytes []byte) (int, error) {
 }
 
 func main() {
-	port := "6171"
-	if len(os.Args) >= 2 {
-		port = os.Args[1]
-	}
-
 	log.SetFlags(0)
 	log.SetOutput(&logWriter{})
 
-	serve(port)
+	if flag.Parsed() {
+		log.Fatalln("unexpected flag parse before main()")
+	}
+
+	port := flag.String("port", "6171", "port to listen")
+	redis := flag.String("redis", "localhost:6379", "redis server addr")
+	db := flag.String("db", "localhost:5432", "pg db server addr")
+	ryuuka := flag.String("ryuuka", "localhost:6172", "2nd addr to listen")
+	toki := flag.String("toki", "localhost:8900", "toki server addr")
+
+	flag.Parse()
+
+	serve(*port, *redis, *db, *ryuuka, *toki)
 }
 
-func serve(port string) {
+func serve(port, redisAddr, dbAddr, ryuukaAddr, tokiAddr string) {
+	mako.InitRedis(redisAddr)
+	mako.InitDb(dbAddr)
 	mako.AddAcceptingVersion(Version)
+
+	ryuuka.Init(ryuukaAddr, tokiAddr)
+
 	ussn.Init()
 	tssn.Init()
 	book.Init()

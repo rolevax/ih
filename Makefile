@@ -4,17 +4,21 @@
 
 BIN_HISA=hisa/hisa
 BIN_TERU=teru/teru
+BIN_TOKI=toki/toki
 
-all: hisa teru
+all: hisa teru toki
 
 .PHONY: saki
 .PHONY: mihoko
 .PHONY: hisa
 .PHONY: teru
+.PHONY: toki
 
 hisa: ${BIN_HISA}
 
 teru: ${BIN_TERU}
+
+toki: ${BIN_TOKI}
 
 saki:
 	${MAKE} -C saki
@@ -27,18 +31,22 @@ mihoko:
 	           make
 	${MAKE} -C mihoko
 
-${BIN_HISA}: saki
+${BIN_HISA}: toki
 	cd hisa;\
 		go build;
 
-${BIN_TERU}: saki
+${BIN_TERU}:
 	cd teru;\
+		go build;
+
+${BIN_TOKI}: saki
+	cd toki;\
 		go build;
 
 .PHONY: clean
 
 clean:
 	${MAKE} -C saki clean
-	rm -f ${BIN_HISA} ${BIN_TERU}
+	rm -f ${BIN_HISA} ${BIN_TERU} ${BIN_TOKI}
 
 

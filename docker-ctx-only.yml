@@ -1,0 +1,19 @@
+version: "3"
+
+services:
+  db:
+    image: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./harue/persist:/var/lib/postgresql/data
+      - ./harue/initdb:/docker-entrypoint-initdb.d
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./harue/cache:/data
+

@@ -2,7 +2,7 @@
 # Makefile for docker images
 #
 
-all: teru-image hisa-image
+all: teru-image hisa-image toki-image
 
 teru-image:
 	mkdir -p teru-tmp
@@ -17,4 +17,11 @@ hisa-image:
 	cp ./hisa.dockerfile ./hisa-tmp/Dockerfile
 	docker build --rm -t rolevax/hisa ./hisa-tmp
 	rm -r hisa-tmp
+
+toki-image:
+	mkdir -p toki-tmp
+	cp ../toki/toki ./toki-tmp/toki
+	cp ./toki.dockerfile ./toki-tmp/Dockerfile
+	docker build --rm -t rolevax/toki ./toki-tmp
+	rm -r toki-tmp
 

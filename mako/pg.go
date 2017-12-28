@@ -10,10 +10,10 @@ import (
 
 var db *pg.DB
 
-func init() {
+func InitDb(addr string) {
 	db = pg.Connect(&pg.Options{
 		Network:  "tcp",
-		Addr:     "db:5432", // hostname in docker net
+		Addr:     addr,
 		User:     "postgres",
 		Password: "",
 		Database: "postgres",

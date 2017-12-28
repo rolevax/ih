@@ -34,9 +34,10 @@ func newChoices(ruleId model.RuleId) *choices {
 	case model.RuleFourDoges:
 		// all zero
 	case model.RuleClassic1In2:
-		for i, n := range rand.Perm(len(availIds)) {
-			who := i / 4
-			what := i % 4
+		perms := rand.Perm(len(availIds))[:8]
+		for i, n := range perms {
+			who := i / 2
+			what := i%2 + 1 // leave first 0
 			c.gidcs[who][what] = availIds[n]
 		}
 	}

@@ -1,12 +1,14 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
 
 	restful "github.com/emicklei/go-restful"
+	"github.com/rolevax/ih/mako"
 	"github.com/rolevax/ih/teru/account"
 	"github.com/rolevax/ih/teru/admin"
 	"github.com/rolevax/ih/teru/my"
@@ -29,6 +31,16 @@ func (w logWriter) Write(bytes []byte) (int, error) {
 func main() {
 	log.SetFlags(0)
 	log.SetOutput(&logWriter{})
+
+	if flag.Parsed() {
+		log.Fatalln("unexpected flag parse before main()")
+	}
+
+	redis := flag.String("redis", "localhost:6379", "redis server addr")
+	db := flag.String("db", "localhost:5432", "pg db server addr")
+	flag.Parse()
+	mako.InitRedis(*redis)
+	mako.InitDb(*db)
 
 	addWebService()
 	supportCors()

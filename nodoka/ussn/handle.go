@@ -156,10 +156,9 @@ func (ussn *ussn) handleLookAround() {
 	}
 
 	msg := &sc.LookAround{
-		Conn:  water.ct,
-		Play:  playCt,
-		Water: water.water,
-		//Rooms: rooms,
+		Conn:       water.ct,
+		Play:       playCt,
+		Water:      water.water,
 		MatchWaits: waits,
 	}
 	ussn.handleSc(msg, noResp)

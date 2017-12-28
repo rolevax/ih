@@ -9,7 +9,6 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/rolevax/ih/ako/model"
 	"github.com/rolevax/ih/nodoka"
-	"github.com/rolevax/ih/saki"
 )
 
 const recvTimeout = 15 * time.Second
@@ -28,8 +27,8 @@ type tssn struct {
 	onlines     [4]bool
 	nonces      [4]int
 	answerTimer *time.Timer
-	table       saki.TableSession
 	waitClient  bool
+	gameOver    bool
 }
 
 func Start(mr *model.MatchResult) {
@@ -96,16 +95,13 @@ func (tssn *tssn) anyOnline() bool {
 }
 
 func (tssn *tssn) checkGameOver() {
-	if !tssn.anyOnline() || (tssn.table != nil && tssn.table.GameOver()) {
+	if !tssn.anyOnline() || tssn.gameOver {
 		tssn.p.Stop()
 	}
 }
 
 func (tssn *tssn) bye(ctx actor.Context) {
 	nodoka.Tmgr.Tell(&cpReg{add: false, tssn: tssn})
-	if tssn.table != nil {
-		saki.DeleteTableSession(tssn.table)
-	}
 	ctx.SetBehavior(func(ctx actor.Context) {}) // clear bahavior
 
 	log.Println("TSSN ----", tssn.match.Uids())

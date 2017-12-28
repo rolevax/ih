@@ -9,8 +9,9 @@ import (
 	"github.com/rolevax/ih/ako/cs"
 	"github.com/rolevax/ih/ako/model"
 	"github.com/rolevax/ih/ako/sc"
+	"github.com/rolevax/ih/ako/ss"
 	"github.com/rolevax/ih/nodoka"
-	"github.com/rolevax/ih/saki"
+	"github.com/rolevax/ih/ryuuka"
 )
 
 func (tssn *tssn) Happy(ctx actor.Context) {
@@ -53,30 +54,46 @@ func (tssn *tssn) handleActionI(i int, act *cs.TableAction) {
 		return
 	}
 	tssn.waits[i] = false
-	mails := tssn.table.Action(i, act.ActStr, act.ActArg, act.ActTile)
-	defer saki.DeleteMailVector(mails)
-	tssn.handleMails(mails)
+	outputs, err := ryuuka.SendToToki(&ss.TableAction{
+		Tid:     int64(tssn.match.Users[0].Id),
+		Who:     int64(i),
+		ActStr:  act.ActStr,
+		ActArg:  int64(act.ActArg),
+		ActTile: act.ActTile,
+	})
+	if err != nil {
+		// FUCK
+		return
+	}
+	tssn.handleOutputs(outputs.(*ss.TableOutputs))
 }
 
 func (tssn *tssn) start() {
 	gids := &tssn.gids
 	log.Println("TSSN ****", gids)
-	tssn.table = saki.NewTableSession(
-		int(gids[0]), int(gids[1]),
-		int(gids[2]), int(gids[3]),
-	)
 
-	mails := tssn.table.Start()
-	defer saki.DeleteMailVector(mails)
-	tssn.handleMails(mails)
+	msg := &ss.TableStart{Tid: int64(tssn.match.Users[0].Id)}
+	for _, gid := range tssn.gids {
+		msg.Gids = append(msg.Gids, int64(gid))
+	}
+
+	outputs, err := ryuuka.SendToToki(msg)
+	if err != nil {
+		// FUCK
+		return
+	}
+	tssn.handleOutputs(outputs.(*ss.TableOutputs))
 }
 
-func (tssn *tssn) handleMails(mails saki.MailVector) {
-	size := int(mails.Size())
-	if size > 0 {
+func (tssn *tssn) handleOutputs(to *ss.TableOutputs) {
+	if to.GameOver {
+		tssn.gameOver = true
+	}
+
+	if len(to.Mails) > 0 {
 		var nonceInced [4]bool
-		for i := 0; i < size; i++ {
-			w := mails.Get(i).GetTo()
+		for _, mail := range to.Mails {
+			w := int(mail.Who)
 			if w != -1 && !nonceInced[w] {
 				tssn.nonces[w]++
 				nonceInced[w] = true
@@ -84,9 +101,9 @@ func (tssn *tssn) handleMails(mails saki.MailVector) {
 		}
 	}
 
-	for i := 0; i < size; i++ {
-		toWhom := mails.Get(i).GetTo()
-		str := mails.Get(i).GetMsg()
+	for _, mail := range to.Mails {
+		toWhom := int(mail.Who)
+		str := mail.Content
 		if toWhom == -1 {
 			var msg map[string]interface{}
 			if err := json.Unmarshal([]byte(str), &msg); err != nil {
@@ -138,7 +155,7 @@ func (tssn *tssn) sendUserMail(who int, msg *sc.TableEvent) {
 
 	err := tssn.sendPeer(who, msg)
 	if err != nil && msg.Event == "activated" {
-		if tssn.anyOnline() && !tssn.table.GameOver() {
+		if tssn.anyOnline() {
 			tssn.sweepOne(who)
 		}
 	}
@@ -154,13 +171,16 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 	msgStr string) {
 	switch msg["Type"] {
 	case "round-start-log":
-		fmt := "TSSN .... %v %v.%v%s d=%v depo=%v seed=%v"
 		al := ""
 		if msg["allLast"].(bool) {
 			al = "a"
 		}
-		log.Printf(fmt, tssn.match.Id, msg["round"], msg["extra"], al,
-			msg["dealer"], msg["deposit"], uint(msg["seed"].(float64)))
+		log.Printf(
+			"TSSN .... %v %v.%v%s d=%v depo=%v seed=%v",
+			tssn.match.Users[0].Id,
+			msg["round"], msg["extra"], al,
+			msg["dealer"], msg["deposit"], uint(msg["seed"].(float64)),
+		)
 	case "table-end-stat":
 		var stat model.EndTableStat
 		err := json.Unmarshal([]byte(msgStr), &stat)
@@ -225,20 +245,30 @@ func (tssn *tssn) injectResume(who int, msg *sc.TableEvent) {
 }
 
 func (tssn *tssn) sweepOne(i int) {
-	mails := tssn.table.SweepOne(i)
-	defer saki.DeleteMailVector(mails)
-	tssn.handleMails(mails)
+	outputs, err := ryuuka.SendToToki(&ss.TableSweepOne{
+		Tid: int64(tssn.match.Users[0].Id),
+		Who: int64(i),
+	})
+	if err != nil {
+		// FUCK
+		return
+	}
+	tssn.handleOutputs(outputs.(*ss.TableOutputs))
 }
 
 func (tssn *tssn) sweepAll() {
-	var targets int
-	mails := tssn.table.SweepAll(&targets)
-	for w := uint(0); w < 4; w++ {
-		if (targets & (1 << w)) != 0 {
-			tssn.waits[w] = false
-			tssn.kick(int(w), "happy timeout")
-		}
+	outputs, err := ryuuka.SendToToki(&ss.TableSweepAll{
+		Tid: int64(tssn.match.Users[0].Id),
+	})
+	if err != nil {
+		// FUCK
+		return
 	}
-	defer saki.DeleteMailVector(mails)
-	tssn.handleMails(mails)
+	to := outputs.(*ss.TableOutputs)
+	for _, who := range to.Sweepees {
+		w := int(who)
+		tssn.waits[w] = false
+		tssn.kick(w, "happy timeout")
+	}
+	tssn.handleOutputs(to)
 }

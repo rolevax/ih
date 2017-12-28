@@ -1,0 +1,41 @@
+syntax="proto3";
+package ss;
+
+message TablePing {
+}
+
+message TableStart {
+    int64 Tid = 1;
+    repeated int64 Gids = 2;
+}
+
+message TableAction {
+    int64 Tid = 1;
+    int64 Who = 2;
+    string ActStr = 3;
+    int64 ActArg = 4;
+    string ActTile = 5;
+}
+
+message TableSweepOne {
+    int64 Tid = 1;
+    int64 Who = 2;
+    bool All = 3;
+}
+
+message TableSweepAll {
+    int64 Tid = 1;
+}
+
+message TableMail {
+    int64 Who = 1;
+    string Content = 2;
+}
+
+message TableOutputs {
+    int64 Tid = 1;
+    bool GameOver = 2;
+    repeated TableMail Mails = 3;
+    repeated int64 Sweepees = 4;
+}
+
