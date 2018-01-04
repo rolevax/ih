@@ -62,7 +62,7 @@ func (tssn *tssn) handleActionI(i int, act *cs.TableAction) {
 		ActTile: act.ActTile,
 	})
 	if err != nil {
-		// FUCK
+		tssn.handleTokiCrash(err)
 		return
 	}
 	tssn.handleOutputs(outputs.(*ss.TableOutputs))
@@ -79,7 +79,7 @@ func (tssn *tssn) start() {
 
 	outputs, err := ryuuka.SendToToki(msg)
 	if err != nil {
-		// FUCK
+		tssn.handleTokiCrash(err)
 		return
 	}
 	tssn.handleOutputs(outputs.(*ss.TableOutputs))
@@ -182,12 +182,13 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 			msg["dealer"], msg["deposit"], uint(msg["seed"].(float64)),
 		)
 	case "table-end-stat":
-		var stat model.EndTableStat
-		err := json.Unmarshal([]byte(msgStr), &stat)
+		stat := &model.EndTableStat{}
+		err := json.Unmarshal([]byte(msgStr), stat)
 		if err != nil {
 			log.Fatalln("table-end-stat unmarshal", err)
 		}
 		//tssn.injectReplay(stat.Replay)
+		tssn.endTableAward(stat)
 		//TODO
 		//mako.UpdateUserGirl(tssn.abcd, tssn.uids, tssn.gids, &stat)
 		for w := 0; w < 4; w++ {
@@ -250,7 +251,7 @@ func (tssn *tssn) sweepOne(i int) {
 		Who: int64(i),
 	})
 	if err != nil {
-		// FUCK
+		tssn.handleTokiCrash(err)
 		return
 	}
 	tssn.handleOutputs(outputs.(*ss.TableOutputs))
@@ -261,7 +262,7 @@ func (tssn *tssn) sweepAll() {
 		Tid: int64(tssn.match.Users[0].Id),
 	})
 	if err != nil {
-		// FUCK
+		tssn.handleTokiCrash(err)
 		return
 	}
 	to := outputs.(*ss.TableOutputs)
@@ -271,4 +272,33 @@ func (tssn *tssn) sweepAll() {
 		tssn.kick(w, "happy timeout")
 	}
 	tssn.handleOutputs(to)
+}
+
+func (tssn *tssn) handleTokiCrash(err error) {
+	log.Println("TSSN toki", tssn.match.Users[0].Id, err)
+
+	for w := 0; w < 4; w++ {
+		tssn.addFoodChange(w, &model.FoodChange{
+			Delta:  32000,
+			Reason: "发现服务器Bug奖励",
+		})
+	}
+	tssn.p.Stop()
+}
+
+func (tssn *tssn) endTableAward(stat *model.EndTableStat) {
+	for w := 0; w < 4; w++ {
+		if stat.Ranks[w] == 1 {
+			tssn.addFoodChange(w, &model.FoodChange{
+				Delta:  8000,
+				Reason: "获得第一名",
+			})
+			if stat.ATop {
+				tssn.addFoodChange(w, &model.FoodChange{
+					Delta:  8000,
+					Reason: "三杀",
+				})
+			}
+		}
+	}
 }

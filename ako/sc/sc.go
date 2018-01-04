@@ -73,3 +73,7 @@ type TableEvent struct {
 	Args  map[string]interface{}
 	Nonce int
 }
+
+type TableEnd struct {
+	FoodChanges []*model.FoodChange
+}

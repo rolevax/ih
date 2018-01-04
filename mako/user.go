@@ -193,6 +193,22 @@ func ClaimFood(uid model.Uid, gotAt *time.Time) error {
 	return err
 }
 
+func UpdateFood(uid model.Uid, delta int) error {
+	res, err := db.Model(&model.User{}).
+		Set("food=food+?", delta).
+		Where("user_id=?", uid).
+		Update()
+
+	if err == nil {
+		aff := res.RowsAffected()
+		if aff != 1 {
+			err = fmt.Errorf("%d row(s) affected", aff)
+		}
+	}
+
+	return err
+}
+
 func checkName(name string) bool {
 	if strings.HasPrefix(name, "ⓝ") {
 		return false

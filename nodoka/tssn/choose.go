@@ -1,6 +1,7 @@
 package tssn
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 
@@ -9,19 +10,34 @@ import (
 	"github.com/rolevax/ih/ako/sc"
 )
 
-var availIds = []model.Gid{
-	710113, 710114, 710115,
-	712411, 712412, 712413,
-	712611, 712613,
-	712714, 712715,
-	712915,
-	713311, 713314,
-	713301,
-	713811, 713815,
-	714915,
-	715212,
-	990001, 990002, 990003, 990011,
-	990024,
+var (
+	availIds = []model.Gid{}
+
+	girlCosts = map[model.Gid]int{
+		0:      0,
+		710113: 2000, 710114: 3900, 710115: 8000,
+		712411: 5200, 712412: 5200, 712413: 3900,
+		712611: 8000, 712613: 7700,
+		712714: 2000, 712715: 3900,
+		712915: 3900,
+		713311: 7700, 713314: 3900,
+		713301: 3900,
+		713811: 3900, 713815: 7700,
+		714915: 7700,
+		715212: 8000,
+		990001: 5200, 990002: 11600, 990003: 7700, 990011: 12000,
+		990024: 5200,
+	}
+)
+
+func init() {
+	for gid, _ := range girlCosts {
+		if gid == 0 {
+			continue
+		}
+
+		availIds = append(availIds, gid)
+	}
 }
 
 type choices struct {
@@ -102,8 +118,19 @@ func (tssn *tssn) notifyChoose() {
 
 func (tssn *tssn) handleChoose(uid model.Uid, gidx int, onNext func()) {
 	if i, ok := tssn.findUser(uid); ok {
+		cost := girlCosts[tssn.gids[i]]
+		if tssn.match.Users[i].Food-cost < 0 {
+			tssn.gids[i] = 0 // use doge
+			tssn.kick(i, "insufficient food")
+		} else {
+			tssn.gids[i] = tssn.choices.gidcs[i][gidx]
+		}
+		tssn.addFoodChange(i, &model.FoodChange{
+			Delta:  -cost,
+			Reason: fmt.Sprintf("%v吃掉", tssn.gids[i]),
+		})
+
 		tssn.waits[i] = false
-		tssn.gids[i] = tssn.choices.gidcs[i][gidx]
 		if !tssn.hasWait() {
 			onNext()
 		}

@@ -80,3 +80,8 @@ type Task struct {
 	Assignee   *User
 	CPoint     int
 }
+
+type FoodChange struct {
+	Delta  int
+	Reason string
+}

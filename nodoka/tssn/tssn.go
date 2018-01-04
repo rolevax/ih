@@ -8,6 +8,8 @@ import (
 
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/rolevax/ih/ako/model"
+	"github.com/rolevax/ih/ako/sc"
+	"github.com/rolevax/ih/mako"
 	"github.com/rolevax/ih/nodoka"
 )
 
@@ -19,16 +21,17 @@ func init() {
 }
 
 type tssn struct {
-	p           *actor.PID
-	match       *model.MatchResult
-	choices     *choices
-	gids        [4]model.Gid
-	waits       [4]bool
-	onlines     [4]bool
-	nonces      [4]int
-	answerTimer *time.Timer
-	waitClient  bool
-	gameOver    bool
+	p            *actor.PID
+	match        *model.MatchResult
+	choices      *choices
+	gids         [4]model.Gid
+	waits        [4]bool
+	onlines      [4]bool
+	nonces       [4]int
+	foodChangess [4][]*model.FoodChange
+	answerTimer  *time.Timer
+	waitClient   bool
+	gameOver     bool
 }
 
 func Start(mr *model.MatchResult) {
@@ -67,7 +70,10 @@ func (tssn *tssn) sendPeer(i int, msg interface{}) error {
 		}
 		return err
 	}
-	return fmt.Errorf("tssn.sendPeer: %d not online", tssn.match.Users[i].Id)
+	return fmt.Errorf(
+		"tssn.sendPeer: %d not online",
+		tssn.match.Users[i].Id,
+	)
 }
 
 func (tssn *tssn) kick(uidx int, reason string) {
@@ -101,8 +107,25 @@ func (tssn *tssn) checkGameOver() {
 }
 
 func (tssn *tssn) bye(ctx actor.Context) {
+	for w := 0; w < 4; w++ {
+		sc := sc.TableEnd{
+			FoodChanges: tssn.foodChangess[w],
+		}
+		_ = tssn.sendPeer(w, sc)
+
+		sumDelta := 0
+		for _, fc := range sc.FoodChanges {
+			sumDelta += fc.Delta
+		}
+		_ = mako.UpdateFood(tssn.match.Users[w].Id, sumDelta)
+	}
+
 	nodoka.Tmgr.Tell(&cpReg{add: false, tssn: tssn})
 	ctx.SetBehavior(func(ctx actor.Context) {}) // clear bahavior
 
 	log.Println("TSSN ----", tssn.match.Uids())
+}
+
+func (tssn *tssn) addFoodChange(w int, fc *model.FoodChange) {
+	tssn.foodChangess[w] = append(tssn.foodChangess[w], fc)
 }
