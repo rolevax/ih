@@ -10,7 +10,6 @@ import (
 	"github.com/rolevax/ih/ako/model"
 	"github.com/rolevax/ih/ako/sc"
 	"github.com/rolevax/ih/ako/ss"
-	"github.com/rolevax/ih/nodoka"
 	"github.com/rolevax/ih/ryuuka"
 )
 
@@ -191,9 +190,6 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 		tssn.endTableAward(stat)
 		//TODO
 		//mako.UpdateUserGirl(tssn.abcd, tssn.uids, tssn.gids, &stat)
-		for w := 0; w < 4; w++ {
-			nodoka.Umgr.Tell(&nodoka.MuUpdateInfo{Uid: tssn.match.Users[w].Id})
-		}
 	case "riichi-auto":
 		who := int(msg["Who"].(float64))
 		tssn.p.Tell(&ccAction{
@@ -288,7 +284,8 @@ func (tssn *tssn) handleTokiCrash(err error) {
 
 func (tssn *tssn) endTableAward(stat *model.EndTableStat) {
 	for w := 0; w < 4; w++ {
-		if stat.Ranks[w] == 1 {
+		switch stat.Ranks[w] {
+		case 1:
 			tssn.addFoodChange(w, &model.FoodChange{
 				Delta:  8000,
 				Reason: "获得第一名",
@@ -297,6 +294,27 @@ func (tssn *tssn) endTableAward(stat *model.EndTableStat) {
 				tssn.addFoodChange(w, &model.FoodChange{
 					Delta:  8000,
 					Reason: "三杀",
+				})
+			}
+		case 2:
+			tssn.addFoodChange(w, &model.FoodChange{
+				Delta:  1500,
+				Reason: "获得第二名",
+			})
+		case 3:
+			tssn.addFoodChange(w, &model.FoodChange{
+				Delta:  1300,
+				Reason: "获得第三名",
+			})
+		case 4:
+			tssn.addFoodChange(w, &model.FoodChange{
+				Delta:  1000,
+				Reason: "获得第四名",
+			})
+			if stat.ALast {
+				tssn.addFoodChange(w, &model.FoodChange{
+					Delta:  1000,
+					Reason: "骑马补贴",
 				})
 			}
 		}

@@ -31,6 +31,8 @@ func Receive(ctx actor.Context) {
 		handleSweepOne(msg, ctx.Respond)
 	case *ss.TableSweepAll:
 		handleSweepAll(msg, ctx.Respond)
+	case *ss.TableDeleteIfAny:
+		handleDeleteIfAny(msg, ctx.Respond)
 	default:
 		log.Fatalln("unknown message type %T\n", msg)
 	}

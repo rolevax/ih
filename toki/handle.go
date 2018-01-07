@@ -32,6 +32,7 @@ func handleStart(msg *ss.TableStart, resp resp) {
 	mails := table.Start()
 	defer saki.DeleteMailVector(mails)
 
+	log.Println("new", msg.Tid)
 	output(msg.Tid, nil, mails, resp)
 }
 
@@ -85,6 +86,17 @@ func handleSweepAll(msg *ss.TableSweepAll, resp resp) {
 	output(msg.Tid, sweepees, mails, resp)
 }
 
+func handleDeleteIfAny(msg *ss.TableDeleteIfAny, resp resp) {
+	deleteTableIfAny(msg.Tid)
+
+	resp(&ss.TableOutputs{
+		Tid:      msg.Tid,
+		GameOver: true,
+		Sweepees: nil,
+		Mails:    nil,
+	})
+}
+
 func output(tid int64, swp []int64, mv saki.MailVector, resp resp) {
 	table := tables[tid]
 
@@ -96,8 +108,7 @@ func output(tid int64, swp []int64, mv saki.MailVector, resp resp) {
 	}
 
 	if reply.GameOver {
-		saki.DeleteTableSession(table)
-		delete(tables, tid)
+		deleteTableIfAny(tid)
 	}
 
 	resp(reply)
@@ -115,4 +126,13 @@ func makeMails(mails saki.MailVector) []*ss.TableMail {
 	}
 
 	return res
+}
+
+func deleteTableIfAny(tid int64) {
+	table, ok := tables[tid]
+	if ok {
+		saki.DeleteTableSession(table)
+		delete(tables, tid)
+		log.Println("delete", tid)
+	}
 }

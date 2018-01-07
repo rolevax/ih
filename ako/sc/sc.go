@@ -36,6 +36,7 @@ type GetReplay struct {
 type TableInit struct {
 	MatchResult model.MatchResult
 	Choices     [3]model.Gid
+	FoodCosts   [3]int
 }
 
 func (msg *TableInit) RightPers() *TableInit {

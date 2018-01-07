@@ -9,8 +9,10 @@ import (
 	"github.com/AsynkronIT/protoactor-go/actor"
 	"github.com/rolevax/ih/ako/model"
 	"github.com/rolevax/ih/ako/sc"
+	"github.com/rolevax/ih/ako/ss"
 	"github.com/rolevax/ih/mako"
 	"github.com/rolevax/ih/nodoka"
+	"github.com/rolevax/ih/ryuuka"
 )
 
 const recvTimeout = 15 * time.Second
@@ -108,7 +110,7 @@ func (tssn *tssn) checkGameOver() {
 
 func (tssn *tssn) bye(ctx actor.Context) {
 	for w := 0; w < 4; w++ {
-		sc := sc.TableEnd{
+		sc := &sc.TableEnd{
 			FoodChanges: tssn.foodChangess[w],
 		}
 		_ = tssn.sendPeer(w, sc)
@@ -117,11 +119,21 @@ func (tssn *tssn) bye(ctx actor.Context) {
 		for _, fc := range sc.FoodChanges {
 			sumDelta += fc.Delta
 		}
-		_ = mako.UpdateFood(tssn.match.Users[w].Id, sumDelta)
+		err := mako.UpdateFood(tssn.match.Users[w].Id, sumDelta)
+		if err != nil {
+			log.Println("tssn.bye: ", err)
+		}
+
+		nodoka.Umgr.Tell(&nodoka.MuUpdateInfo{Uid: tssn.match.Users[w].Id})
 	}
 
 	nodoka.Tmgr.Tell(&cpReg{add: false, tssn: tssn})
 	ctx.SetBehavior(func(ctx actor.Context) {}) // clear bahavior
+
+	// in all-offline case, need to notify delete manually
+	_, _ = ryuuka.SendToToki(&ss.TableDeleteIfAny{
+		Tid: int64(tssn.match.Users[0].Id),
+	})
 
 	log.Println("TSSN ----", tssn.match.Uids())
 }

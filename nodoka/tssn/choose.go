@@ -106,6 +106,9 @@ func (tssn *tssn) notifyChoose() {
 
 	for i, uid := range tssn.match.Uids() {
 		msg.Choices = tssn.choices.gidcs[i]
+		for j, gid := range msg.Choices {
+			msg.FoodCosts[j] = girlCosts[gid]
+		}
 		if tssn.waits[i] {
 			err := tssn.sendPeer(i, msg)
 			if err != nil {
@@ -118,16 +121,16 @@ func (tssn *tssn) notifyChoose() {
 
 func (tssn *tssn) handleChoose(uid model.Uid, gidx int, onNext func()) {
 	if i, ok := tssn.findUser(uid); ok {
+		tssn.gids[i] = tssn.choices.gidcs[i][gidx]
+
 		cost := girlCosts[tssn.gids[i]]
-		if tssn.match.Users[i].Food-cost < 0 {
+		if cost > 0 && tssn.match.Users[i].Food-cost < 0 {
 			tssn.gids[i] = 0 // use doge
 			tssn.kick(i, "insufficient food")
-		} else {
-			tssn.gids[i] = tssn.choices.gidcs[i][gidx]
 		}
 		tssn.addFoodChange(i, &model.FoodChange{
 			Delta:  -cost,
-			Reason: fmt.Sprintf("%v吃掉", tssn.gids[i]),
+			Reason: fmt.Sprintf("${%v}吃掉", tssn.gids[i]),
 		})
 
 		tssn.waits[i] = false

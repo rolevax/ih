@@ -101,6 +101,7 @@ func (ussn *ussn) auth(breq []byte) error {
 	}
 
 	if !mako.AcceptVersion(req.Version) {
+		log.Printf("%s using %s\n", req.Username, req.Version)
 		return errors.New("请更新客户端")
 	}
 
