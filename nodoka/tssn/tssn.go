@@ -111,6 +111,7 @@ func (tssn *tssn) checkGameOver() {
 func (tssn *tssn) bye(ctx actor.Context) {
 	for w := 0; w < 4; w++ {
 		sc := &sc.TableEnd{
+			Abortive:    !tssn.gameOver,
 			FoodChanges: tssn.foodChangess[w],
 		}
 		_ = tssn.sendPeer(w, sc)

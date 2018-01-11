@@ -76,5 +76,6 @@ type TableEvent struct {
 }
 
 type TableEnd struct {
+	Abortive    bool
 	FoodChanges []*model.FoodChange
 }
