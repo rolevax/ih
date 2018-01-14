@@ -86,7 +86,7 @@ void TableOpOb::onActivated(Who who, Table &table)
         activateDrawn(map, *view);
         break;
     case Mode::BARK:
-        focusWho = view->getFocus().who().index();
+        focusWho = view->getFocus().who().turnFrom(who);
         activateBark(map, *view);
         break;
     case Mode::END:

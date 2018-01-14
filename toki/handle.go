@@ -39,7 +39,8 @@ func handleStart(msg *ss.TableStart, resp resp) {
 func handleAction(msg *ss.TableAction, resp resp) {
 	table, ok := tables[msg.Tid]
 	if !ok {
-		log.Fatalln("table tan90")
+		outputTableTan90(msg.Tid, resp)
+		return
 	}
 
 	mails := table.Action(
@@ -56,7 +57,8 @@ func handleAction(msg *ss.TableAction, resp resp) {
 func handleSweepOne(msg *ss.TableSweepOne, resp resp) {
 	table, ok := tables[msg.Tid]
 	if !ok {
-		log.Fatalln("table tan90")
+		outputTableTan90(msg.Tid, resp)
+		return
 	}
 
 	mails := table.SweepOne(int(msg.Who))
@@ -68,7 +70,8 @@ func handleSweepOne(msg *ss.TableSweepOne, resp resp) {
 func handleSweepAll(msg *ss.TableSweepAll, resp resp) {
 	table, ok := tables[msg.Tid]
 	if !ok {
-		log.Fatalln("table tan90")
+		outputTableTan90(msg.Tid, resp)
+		return
 	}
 
 	sweepees := []int64{}
@@ -91,7 +94,7 @@ func handleDeleteIfAny(msg *ss.TableDeleteIfAny, resp resp) {
 
 	resp(&ss.TableOutputs{
 		Tid:      msg.Tid,
-		GameOver: true,
+		GameOver: false,
 		Sweepees: nil,
 		Mails:    nil,
 	})
@@ -109,6 +112,22 @@ func output(tid int64, swp []int64, mv saki.MailVector, resp resp) {
 
 	if reply.GameOver {
 		deleteTableIfAny(tid)
+	}
+
+	resp(reply)
+}
+
+func outputTableTan90(tid int64, resp resp) {
+	reply := &ss.TableOutputs{
+		Tid:      tid,
+		GameOver: false,
+		Sweepees: nil,
+		Mails: []*ss.TableMail{
+			&ss.TableMail{
+				Who:     -1,
+				Content: `{"Type": "table-tan90"}`,
+			},
+		},
 	}
 
 	resp(reply)

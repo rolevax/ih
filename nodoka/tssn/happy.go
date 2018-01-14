@@ -2,6 +2,7 @@ package tssn
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -166,8 +167,10 @@ func (tssn *tssn) sendUserMail(who int, msg *sc.TableEvent) {
 	}
 }
 
-func (tssn *tssn) handleSystemMail(msg map[string]interface{},
+func (tssn *tssn) handleSystemMail(
+	msg map[string]interface{},
 	msgStr string) {
+
 	switch msg["Type"] {
 	case "round-start-log":
 		al := ""
@@ -206,6 +209,8 @@ func (tssn *tssn) handleSystemMail(msg map[string]interface{},
 		log.Printf("TSSN EEEE %d cannot %d-%s-%s\n",
 			tssn.match.Id, tssn.match.Users[who].Id, actStr, actArg)
 		tssn.kick(who, "illegal table action")
+	case "table-tan90":
+		tssn.handleTokiCrash(fmt.Errorf("table tan90"))
 	default:
 		log.Fatalln("unknown system mail", msg)
 	}

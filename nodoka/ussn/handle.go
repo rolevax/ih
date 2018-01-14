@@ -79,6 +79,8 @@ func (ussn *ussn) handleCs(i interface{}) {
 		ussn.handleRoomQuit()
 	case *cs.MatchJoin:
 		ussn.handleMatchJoin(msg)
+	case *cs.MatchCancel:
+		ussn.handleMatchCancel(msg)
 	case *cs.GetReplayList:
 		ussn.handleGetReplayList()
 	case *cs.GetReplay:
@@ -119,6 +121,12 @@ func (ussn *ussn) handleMatchJoin(msg *cs.MatchJoin) {
 	nodoka.Bmgr.Tell(&nodoka.MbMatchJoin{
 		User:      *ussn.user,
 		MatchJoin: *msg,
+	})
+}
+
+func (ussn *ussn) handleMatchCancel(msg *cs.MatchCancel) {
+	nodoka.Bmgr.Tell(&nodoka.MbMatchCancel{
+		Uid: ussn.user.Id,
 	})
 }
 
