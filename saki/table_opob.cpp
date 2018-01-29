@@ -358,6 +358,7 @@ void TableOpOb::action(int w, const string &actStr,
 			args["who"] = w;
 			args["actStr"] = actStr;
 			args["actArg"] = actArg;
+			args["actTile"] = actTile;
 			system("cannot", args);
 		}
 	}

@@ -15,6 +15,13 @@ import (
 )
 
 func (tssn *tssn) Happy(ctx actor.Context) {
+	defer func() {
+		if v := recover(); v != nil {
+			err := fmt.Errorf("hisa internal: %v", v)
+			tssn.handleTokiCrash(err)
+		}
+	}()
+
 	switch msg := ctx.Message().(type) {
 	case *actor.Stopping:
 		tssn.bye(ctx)
@@ -28,7 +35,7 @@ func (tssn *tssn) Happy(ctx actor.Context) {
 	case *ccAction:
 		tssn.handleActionI(msg.UserIndex, msg.Act)
 	default:
-		log.Fatalf("tssn.Seat unexpected %T\n", msg)
+		log.Fatalf("tssn.Happy unexpected %T\n", msg)
 	}
 
 	switch ctx.Message().(type) {
@@ -205,9 +212,13 @@ func (tssn *tssn) handleSystemMail(
 	case "cannot":
 		who := int(msg["who"].(float64))
 		actStr := msg["actStr"].(string)
-		actArg := msg["actArg"].(string)
-		log.Printf("TSSN EEEE %d cannot %d-%s-%s\n",
-			tssn.match.Id, tssn.match.Users[who].Id, actStr, actArg)
+		actArg := int(msg["actArg"].(float64))
+		actTile := msg["actTile"].(string)
+		log.Printf(
+			"TSSN EEEE %d cannot %d:%s-%d-%s\n",
+			tssn.match.Users[0].Id, tssn.match.Users[who].Id,
+			actStr, actArg, actTile,
+		)
 		tssn.kick(who, "illegal table action")
 	case "table-tan90":
 		tssn.handleTokiCrash(fmt.Errorf("table tan90"))
