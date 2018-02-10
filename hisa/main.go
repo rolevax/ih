@@ -7,6 +7,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/rolevax/ih/hitomi"
 	"github.com/rolevax/ih/mako"
 	"github.com/rolevax/ih/nodoka/book"
 	"github.com/rolevax/ih/nodoka/tssn"
@@ -23,6 +24,15 @@ func (w logWriter) Write(bytes []byte) (int, error) {
 	return fmt.Print(prefix, " ", string(bytes))
 }
 
+type initArgs struct {
+	port       string
+	redisAddr  string
+	dbAddr     string
+	ryuukaAddr string
+	tokiAddr   string
+	dictPath   string
+}
+
 func main() {
 	log.SetFlags(0)
 	log.SetOutput(&logWriter{})
@@ -36,28 +46,38 @@ func main() {
 	db := flag.String("db", "localhost:5432", "pg db server addr")
 	ryuuka := flag.String("ryuuka", "localhost:6172", "2nd addr to listen")
 	toki := flag.String("toki", "localhost:8900", "toki server addr")
+	dict := flag.String("dict", "/srv/dict.txt", "sersitive word dictionary")
 
 	flag.Parse()
 
-	serve(*port, *redis, *db, *ryuuka, *toki)
+	serve(&initArgs{
+		port:       *port,
+		redisAddr:  *redis,
+		dbAddr:     *db,
+		ryuukaAddr: *ryuuka,
+		tokiAddr:   *toki,
+		dictPath:   *dict,
+	})
 }
 
-func serve(port, redisAddr, dbAddr, ryuukaAddr, tokiAddr string) {
-	mako.InitRedis(redisAddr)
-	mako.InitDb(dbAddr)
+func serve(args *initArgs) {
+	mako.InitRedis(args.redisAddr)
+	mako.InitDb(args.dbAddr)
 	mako.AddAcceptingVersion(Version)
 
-	ryuuka.Init(ryuukaAddr, tokiAddr)
+	hitomi.Init(args.dictPath)
+
+	ryuuka.Init(args.ryuukaAddr, args.tokiAddr)
 
 	ussn.Init()
 	tssn.Init()
 	book.Init()
 
-	ln, err := net.Listen("tcp", ":"+port)
+	ln, err := net.Listen("tcp", ":"+args.port)
 	if err != nil {
 		log.Fatalln(err)
 	} else {
-		log.Println("hisa server", Version, "listen", port)
+		log.Println("hisa server", Version, "listen", args.port)
 	}
 
 	for {

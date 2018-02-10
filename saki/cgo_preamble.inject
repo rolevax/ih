@@ -1,2 +1,2 @@
-#cgo LDFLAGS: ${SRCDIR}/build/libsaki.a
+#cgo LDFLAGS: -L${SRCDIR}/build/ -lsaki
 #cgo CXXFLAGS: -std=c++11

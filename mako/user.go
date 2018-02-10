@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-pg/pg"
 	"github.com/rolevax/ih/ako/model"
+	"github.com/rolevax/ih/hitomi"
 )
 
 func Login(username, password string) (*model.User, error) {
@@ -33,11 +34,13 @@ func Login(username, password string) (*model.User, error) {
 		log.Fatalln("mako.Login", err)
 	}
 
+	user.Username = hitomi.Filter(user.Username)
+
 	return user, nil
 }
 
 func SignUp(username, password string) error {
-	if !checkName(username) {
+	if !hitomi.CheckName(username) {
 		return errors.New("用户名不可用")
 	}
 
@@ -207,13 +210,6 @@ func UpdateFood(uid model.Uid, delta int) error {
 	}
 
 	return err
-}
-
-func checkName(name string) bool {
-	if strings.HasPrefix(name, "ⓝ") {
-		return false
-	}
-	return true
 }
 
 func hash(password string) string {

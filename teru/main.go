@@ -19,6 +19,7 @@ const (
 	Port        = ":8080"
 	CertPath    = "/srv/cert.pem"
 	PrivKeyPath = "/srv/key.pem"
+	DictPath    = "/srv/dict.txt"
 )
 
 type logWriter struct{}
@@ -41,6 +42,7 @@ func main() {
 	flag.Parse()
 	mako.InitRedis(*redis)
 	mako.InitDb(*db)
+	hitomi.Init(DictPath)
 
 	addWebService()
 	supportCors()

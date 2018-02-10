@@ -24,7 +24,7 @@ services:
       - 8080:8080
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - ./harue/ssl:/srv:ro
+      - ./harue/res:/srv:ro
     depends_on:
       - db
       - redis
