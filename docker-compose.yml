@@ -50,6 +50,7 @@ services:
       - 6171:6171
     volumes:
       - /etc/localtime:/etc/localtime:ro
+      - ./harue/res:/srv:ro
     depends_on:
       - db
       - redis
