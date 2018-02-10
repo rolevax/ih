@@ -8,6 +8,7 @@ import (
 	"time"
 
 	restful "github.com/emicklei/go-restful"
+	"github.com/rolevax/ih/hitomi"
 	"github.com/rolevax/ih/mako"
 	"github.com/rolevax/ih/teru/account"
 	"github.com/rolevax/ih/teru/admin"
