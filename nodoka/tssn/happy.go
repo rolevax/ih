@@ -56,9 +56,6 @@ func (tssn *tssn) handleAction(uid model.Uid, act *cs.TableAction) {
 func (tssn *tssn) handleActionI(i int, act *cs.TableAction) {
 	if act.ActStr == "RESUME" {
 		tssn.onlines[i] = true
-	} else if act.Nonce != tssn.nonces[i] {
-		tssn.kick(i, "wrong action nonce")
-		return
 	}
 	tssn.waits[i] = false
 	outputs, err := ryuuka.SendToToki(&ss.TableAction{
@@ -67,6 +64,7 @@ func (tssn *tssn) handleActionI(i int, act *cs.TableAction) {
 		ActStr:  act.ActStr,
 		ActArg:  int64(act.ActArg),
 		ActTile: act.ActTile,
+		Nonce:   int64(act.Nonce),
 	})
 	if err != nil {
 		tssn.handleTokiCrash(err)
@@ -93,35 +91,17 @@ func (tssn *tssn) start() {
 }
 
 func (tssn *tssn) handleOutputs(to *ss.TableOutputs) {
-	if to.GameOver {
-		tssn.gameOver = true
-	}
-
-	if len(to.Mails) > 0 {
-		var nonceInced [4]bool
-		for _, mail := range to.Mails {
-			w := int(mail.Who)
-			if w != -1 && !nonceInced[w] {
-				tssn.nonces[w]++
-				nonceInced[w] = true
-			}
-		}
-	}
-
 	for _, mail := range to.Mails {
 		toWhom := int(mail.Who)
 		str := mail.Content
+		var msg sc.TableEvent
+		if err := json.Unmarshal([]byte(str), &msg); err != nil {
+			log.Fatalln("unmarshal c++ str", err)
+		}
+
 		if toWhom == -1 {
-			var msg map[string]interface{}
-			if err := json.Unmarshal([]byte(str), &msg); err != nil {
-				log.Fatalln("unmarshal c++ str", err)
-			}
-			tssn.handleSystemMail(msg, str)
+			tssn.handleSystemMail(&msg)
 		} else {
-			var msg sc.TableEvent
-			if err := json.Unmarshal([]byte(str), &msg); err != nil {
-				log.Fatalln("unmarshal c++ str", err)
-			}
 			tssn.sendUserMail(toWhom, &msg)
 		}
 	}
@@ -133,28 +113,8 @@ func (tssn *tssn) handleOutputs(to *ss.TableOutputs) {
 }
 
 func (tssn *tssn) sendUserMail(who int, msg *sc.TableEvent) {
-	msg.Nonce = tssn.nonces[who]
-
 	if tssn.match.Users[who].Id.IsBot() {
-		if msg.Event == "activated" {
-			go func() {
-				// simulate ai thinking time
-				hesi := 300 * time.Millisecond
-				actMap := msg.Args["action"].(map[string]interface{})
-				if _, ok := actMap["PASS"]; ok {
-					hesi = 100 * time.Millisecond
-				}
-				time.Sleep(hesi)
-
-				tssn.p.Tell(&ccAction{
-					UserIndex: who,
-					Act: &cs.TableAction{
-						ActStr: "BOT",
-						Nonce:  msg.Nonce,
-					},
-				})
-			}()
-		}
+		log.Println("server-side bot feature deleted")
 		return
 	}
 
@@ -174,25 +134,31 @@ func (tssn *tssn) sendUserMail(who int, msg *sc.TableEvent) {
 	}
 }
 
-func (tssn *tssn) handleSystemMail(
-	msg map[string]interface{},
-	msgStr string) {
+func (tssn *tssn) handleSystemMail(msg *sc.TableEvent) {
 
-	switch msg["Type"] {
+	args := msg.Args
+
+	switch msg.Event {
+	case "game-over":
+		tssn.gameOver = true
 	case "round-start-log":
 		al := ""
-		if msg["allLast"].(bool) {
+		if args["allLast"].(bool) {
 			al = "a"
 		}
 		log.Printf(
 			"TSSN .... %v %v.%v%s d=%v depo=%v seed=%v",
 			tssn.match.Users[0].Id,
-			msg["round"], msg["extra"], al,
-			msg["dealer"], msg["deposit"], uint(msg["seed"].(float64)),
+			args["round"], args["extra"], al,
+			args["dealer"], args["deposit"], uint(args["seed"].(float64)),
 		)
 	case "table-end-stat":
 		stat := &model.EndTableStat{}
-		err := json.Unmarshal([]byte(msgStr), stat)
+		bytes, err := json.Marshal(msg.Args)
+		if err != nil {
+			log.Fatalln("table-end-stat marshal", err)
+		}
+		err = json.Unmarshal(bytes, stat)
 		if err != nil {
 			log.Fatalln("table-end-stat unmarshal", err)
 		}
@@ -201,23 +167,25 @@ func (tssn *tssn) handleSystemMail(
 		//TODO
 		//mako.UpdateUserGirl(tssn.abcd, tssn.uids, tssn.gids, &stat)
 	case "riichi-auto":
-		who := int(msg["Who"].(float64))
+		who := int(args["Who"].(float64))
 		tssn.p.Tell(&ccAction{
 			UserIndex: who,
 			Act: &cs.TableAction{
-				Nonce:  tssn.nonces[who],
+				Nonce:  int(args["Nonce"].(float64)),
 				ActStr: "SPIN_OUT",
 			},
 		})
-	case "cannot":
-		who := int(msg["who"].(float64))
-		actStr := msg["actStr"].(string)
-		actArg := int(msg["actArg"].(float64))
-		actTile := msg["actTile"].(string)
+	case "action-expired":
+		who := int(args["Who"].(float64))
 		log.Printf(
-			"TSSN EEEE %d cannot %d:%s-%d-%s\n",
+			"TSSN EEEE %d action-expired by %d\n",
 			tssn.match.Users[0].Id, tssn.match.Users[who].Id,
-			actStr, actArg, actTile,
+		)
+	case "action-illegal":
+		who := int(args["Who"].(float64))
+		log.Printf(
+			"TSSN EEEE %d action-illegal by %d\n",
+			tssn.match.Users[0].Id, tssn.match.Users[who].Id,
 		)
 		tssn.kick(who, "illegal table action")
 	case "table-tan90":
@@ -278,10 +246,11 @@ func (tssn *tssn) sweepAll() {
 		return
 	}
 	to := outputs.(*ss.TableOutputs)
-	for _, who := range to.Sweepees {
-		w := int(who)
-		tssn.waits[w] = false
-		tssn.kick(w, "happy timeout")
+	for w, waiting := range tssn.waits {
+		if waiting {
+			tssn.waits[w] = false
+			tssn.kick(w, "happy timeout")
+		}
 	}
 	tssn.handleOutputs(to)
 }

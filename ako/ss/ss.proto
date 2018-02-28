@@ -15,6 +15,7 @@ message TableAction {
     string ActStr = 3;
     int64 ActArg = 4;
     string ActTile = 5;
+    int64 Nonce = 6;
 }
 
 message TableSweepOne {
@@ -38,8 +39,6 @@ message TableMail {
 
 message TableOutputs {
     int64 Tid = 1;
-    bool GameOver = 2;
-    repeated TableMail Mails = 3;
-    repeated int64 Sweepees = 4;
+    repeated TableMail Mails = 2;
 }
 

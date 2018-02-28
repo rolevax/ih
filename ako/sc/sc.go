@@ -72,7 +72,6 @@ func (msg *TableSeat) RightPers() *TableSeat {
 type TableEvent struct {
 	Event string
 	Args  map[string]interface{}
-	Nonce int
 }
 
 type TableEnd struct {

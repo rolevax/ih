@@ -14,35 +14,25 @@ TableSession::~TableSession()
 
 std::vector<Mail> TableSession::Start() 
 {
-    return mOpOb->popMails();
+    return mOpOb->start();
 }
 
 std::vector<Mail> TableSession::Action(int who, 
                                        const std::string &actStr,
 									   int actArg,
-                                       const std::string &actTile) 
+                                       const std::string &actTile,
+									   int nonce) 
 {
-    mOpOb->action(who, actStr, actArg, actTile);
-    return mOpOb->popMails();
+    return mOpOb->action(who, actStr, actArg, actTile, nonce);
 }
 
-std::vector<Mail> TableSession::SweepAll(int *targets) 
+std::vector<Mail> TableSession::SweepAll() 
 {
-	std::vector<int> whos = mOpOb->sweepAll();
-	*targets = 0;
-	for (int w : whos)
-		*targets |= (1 << w);
-    return mOpOb->popMails();
+	return mOpOb->sweepAll();
 }
 
 std::vector<Mail> TableSession::SweepOne(int who)
 {
-    mOpOb->sweepOne(who);
-    return mOpOb->popMails();
-}
-
-bool TableSession::GameOver() const
-{
-	return mOpOb->gameOver();
+    return mOpOb->sweepOne(who);
 }
 

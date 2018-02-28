@@ -1,6 +1,7 @@
 #ifndef SAKI_TABLE_STAT_H
 #define SAKI_TABLE_STAT_H
 
+/* FUCK
 #include "libsaki/table/table_observer.h"
 
 #include <map>
@@ -65,6 +66,7 @@ private:
 	std::array<std::map<const char*, int>, 4> mSumHans;
     std::array<int, 4> mKzeykms;
 };
+*/
 
 
 

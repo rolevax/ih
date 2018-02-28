@@ -26,7 +26,7 @@ SWIG_OUTPUT_CXX=saki_wrap.cxx
 
 CGO_INJ=cgo_preamble.inject
 CGO_SRC=*.cpp
-CGO_HDR=*.h *.hpp
+CGO_HDR=*.h
 
 # inject the CGO preamble before the '*/' end-of-commend
 SED_MAGIC=sed -n -e '/*\//r ${CGO_INJ}'\

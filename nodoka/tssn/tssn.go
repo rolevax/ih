@@ -29,7 +29,6 @@ type tssn struct {
 	gids         [4]model.Gid
 	waits        [4]bool
 	onlines      [4]bool
-	nonces       [4]int
 	foodChangess [4][]*model.FoodChange
 	answerTimer  *time.Timer
 	waitClient   bool

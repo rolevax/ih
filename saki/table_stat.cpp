@@ -2,6 +2,7 @@
 
 
 
+/*
 TableStat::TableStat()
 {
     mWins.fill(0);
@@ -276,4 +277,5 @@ const std::array<int, 4> &TableStat::kzeykms() const
 {
 	return mKzeykms;
 }
+*/
 

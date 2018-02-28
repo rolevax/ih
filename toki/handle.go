@@ -33,7 +33,7 @@ func handleStart(msg *ss.TableStart, resp resp) {
 	defer saki.DeleteMailVector(mails)
 
 	log.Println("new", msg.Tid)
-	output(msg.Tid, nil, mails, resp)
+	output(msg.Tid, mails, resp)
 }
 
 func handleAction(msg *ss.TableAction, resp resp) {
@@ -48,10 +48,11 @@ func handleAction(msg *ss.TableAction, resp resp) {
 		msg.ActStr,
 		int(msg.ActArg),
 		msg.ActTile,
+		int(msg.Nonce),
 	)
 	defer saki.DeleteMailVector(mails)
 
-	output(msg.Tid, nil, mails, resp)
+	output(msg.Tid, mails, resp)
 }
 
 func handleSweepOne(msg *ss.TableSweepOne, resp resp) {
@@ -64,7 +65,7 @@ func handleSweepOne(msg *ss.TableSweepOne, resp resp) {
 	mails := table.SweepOne(int(msg.Who))
 	defer saki.DeleteMailVector(mails)
 
-	output(msg.Tid, nil, mails, resp)
+	output(msg.Tid, mails, resp)
 }
 
 func handleSweepAll(msg *ss.TableSweepAll, resp resp) {
@@ -74,44 +75,25 @@ func handleSweepAll(msg *ss.TableSweepAll, resp resp) {
 		return
 	}
 
-	sweepees := []int64{}
-	targets := 0
-
-	mails := table.SweepAll(&targets)
+	mails := table.SweepAll()
 	defer saki.DeleteMailVector(mails)
 
-	for w := uint(0); w < 4; w++ {
-		if (targets & (1 << w)) != 0 {
-			sweepees = append(sweepees, int64(w))
-		}
-	}
-
-	output(msg.Tid, sweepees, mails, resp)
+	output(msg.Tid, mails, resp)
 }
 
 func handleDeleteIfAny(msg *ss.TableDeleteIfAny, resp resp) {
 	deleteTableIfAny(msg.Tid)
 
 	resp(&ss.TableOutputs{
-		Tid:      msg.Tid,
-		GameOver: false,
-		Sweepees: nil,
-		Mails:    nil,
+		Tid:   msg.Tid,
+		Mails: nil,
 	})
 }
 
-func output(tid int64, swp []int64, mv saki.MailVector, resp resp) {
-	table := tables[tid]
-
+func output(tid int64, mv saki.MailVector, resp resp) {
 	reply := &ss.TableOutputs{
-		Tid:      tid,
-		GameOver: table.GameOver(),
-		Sweepees: swp,
-		Mails:    makeMails(mv),
-	}
-
-	if reply.GameOver {
-		deleteTableIfAny(tid)
+		Tid:   tid,
+		Mails: makeMails(mv),
 	}
 
 	resp(reply)
@@ -119,9 +101,7 @@ func output(tid int64, swp []int64, mv saki.MailVector, resp resp) {
 
 func outputTableTan90(tid int64, resp resp) {
 	reply := &ss.TableOutputs{
-		Tid:      tid,
-		GameOver: false,
-		Sweepees: nil,
+		Tid: tid,
 		Mails: []*ss.TableMail{
 			&ss.TableMail{
 				Who:     -1,

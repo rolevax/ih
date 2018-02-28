@@ -16,10 +16,10 @@ public:
 
 	std::vector<Mail> Start();
 	std::vector<Mail> Action(int who, const std::string &actStr, 
-                             int actArg, const std::string &actTile);
-	std::vector<Mail> SweepAll(int *targets);
+                             int actArg, const std::string &actTile,
+							 int nonce);
+	std::vector<Mail> SweepAll();
 	std::vector<Mail> SweepOne(int who);
-	bool GameOver() const;
 
 private:
 	TableOpOb *mOpOb;
