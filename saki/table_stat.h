@@ -1,7 +1,6 @@
 #ifndef SAKI_TABLE_STAT_H
 #define SAKI_TABLE_STAT_H
 
-/* FUCK
 #include "libsaki/table/table_observer.h"
 
 #include <map>
@@ -12,23 +11,18 @@ using namespace saki;
 
 
 
-class TableStat : public TableObserver
+class TableStat : public TableObserverDispatched
 {
 public:
     TableStat();
     virtual ~TableStat() = default;
 
-    void onRoundStarted(int r, int e, Who d, 
-                        bool al, int dp, uint32_t s) override;
-    void onDealt(const Table &table) override;
-    void onDrawn(const Table &table, Who who) override;
-    void onBarked(const Table &table, Who who, 
-                  const M37 &bark, bool spin) override;
-    void onRoundEnded(const Table &table, RoundResult result,
-                      const std::vector<Who> &openers, Who gunner,
-                      const std::vector<Form> &forms) override;
-    void onTableEnded(const std::array<Who, 4> &rank,
-                      const std::array<int, 4> &scores) override;
+    void onTableEvent(const Table &table, const TE::RoundStarted &event) override;
+    void onTableEvent(const Table &table, const TE::Dealt &event) override;
+    void onTableEvent(const Table &table, const TE::Drawn &event) override;
+    void onTableEvent(const Table &table, const TE::Barked &event) override;
+    void onTableEvent(const Table &table, const TE::RoundEnded &event) override;
+    void onTableEvent(const Table &table, const TE::TableEnded &event) override;
 
     int roundCt() const;
     const std::array<int, 4> &wins() const;
@@ -45,8 +39,7 @@ public:
     const std::array<std::map<const char*, int>, 4> &yakus() const;
     const std::array<std::map<const char*, int>, 4> &sumHans() const;
     const std::array<int, 4> &kzeykms() const;
-
-private:
+    const std::array<int, 4> &scores() const;
 
 private:
     int mRoundCt = 0;
@@ -62,11 +55,11 @@ private:
     std::array<int, 4> mReadys;
     std::array<int, 4> mReadySumTurns;
     std::array<int, 4> mWinSumTurns;
-	std::array<std::map<const char*, int>, 4> mYakus;
-	std::array<std::map<const char*, int>, 4> mSumHans;
+    std::array<std::map<const char*, int>, 4> mYakus;
+    std::array<std::map<const char*, int>, 4> mSumHans;
     std::array<int, 4> mKzeykms;
+    std::array<int, 4> mScores;
 };
-*/
 
 
 

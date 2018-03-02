@@ -17,27 +17,12 @@ void rotate(T &arr)
     arr[3] = temp;
 }
                   
-
-TableOpOb::Mails mailsOfMsgs(const TableServer::Msgs &msgs)
-{
-    TableOpOb::Mails mails;
-
-    for (const TableMsg &msg : msgs) {
-        int to = msg.to.somebody() ? msg.to.index() : -1;
-        mails.emplace_back(to, msg.content.marshal());
-    }
-
-    return mails;
-}
-
 TableOpOb::TableOpOb(const std::array<int, 4> &girlIds)
 {
     Rule rule;
     rule.roundLimit = 8;
     std::array<int, 4> points { 25000, 25000, 25000, 25000 };
-    //FUCK
-    //std::vector<TableObserver*> obs { &mStat, &mReplay };
-    std::vector<TableObserver*> obs { &mReplay };
+    std::vector<TableObserver*> obs { &mStat, &mReplay };
     Table::InitConfig config {
         points, girlIds, rule, Who(0)
     };
@@ -63,9 +48,9 @@ auto TableOpOb::action(int w, const string &actStr,
     if (actStr == "RESUME")
         return resume(w);
 
-	Action action = makeAction(actStr, actArg, actTile);
-	auto msgs = mServer->action(who, action, nonce);
-	return mailsOfMsgs(msgs);
+    Action action = makeAction(actStr, actArg, actTile);
+    auto msgs = mServer->action(who, action, nonce);
+    return mailsOfMsgs(msgs);
 }
 
 auto TableOpOb::sweepOne(int w) -> Mails
@@ -110,21 +95,46 @@ auto TableOpOb::resume(int c) -> Mails
     return mailsOfMsgs(msgs);
 }
 
-void TableOpOb::tableEndStat(const std::array<int, 4> &scores)
+auto TableOpOb::mailsOfMsgs(const TableServer::Msgs &msgs) -> Mails
 {
-    /*
+    TableOpOb::Mails mails;
+
+    auto push = [&mails](const TableMsg &msg) {
+        int to = msg.to.somebody() ? msg.to.index() : -1;
+        mails.emplace_back(to, msg.content.marshal());
+    };
+
+    for (const TableMsg &msg : msgs) {
+        // filter: add table-end-stat before game-over
+        if (msg.content.event() == "game-over")
+            push(tableEndStat());
+
+        push(msg);
+    }
+
+    return mails;
+}
+
+auto TableOpOb::tableEndStat() -> TableMsg
+{
+    using json = nlohmann::json;
+
     json args;
 
     json rankList;
     for (int w = 0; w < 4; w++)
-        rankList.push_back(mTable->getRank(Who(w)));
+        rankList.push_back(mServer->table().getRank(Who(w)));
     args["Ranks"] = rankList;
 
-    args["Points"] = mTable->getPoints();
+    args["Points"] = mServer->table().getPoints();
+
+
+    const auto &scores = mStat.scores();
     args["ATop"] = std::count_if(scores.begin(), scores.end(), 
                                  [](int s) { return s > 0; }) == 1;
     args["ALast"] = std::count_if(scores.begin(), scores.end(), 
                                   [](int s) { return s < 0; }) == 1;
+
     args["Round"] = mStat.roundCt();
     args["Wins"] = mStat.wins();
     args["Guns"] = mStat.guns();
@@ -141,10 +151,9 @@ void TableOpOb::tableEndStat(const std::array<int, 4> &scores)
     args["SumHans"] = mStat.sumHans();
     args["Kzeykms"] = mStat.kzeykms();
 
-    args["Replay"] = createReplay(mReplay);
+    args["Replay"] = mReplay;
 
-    system("table-end-stat", args);
-    */
+    return TableMsg { Who(), TableMsgContent("table-end-stat", args) };
 }
 
 

@@ -2,8 +2,7 @@
 #define SAKI_TABLEOPOB_H
 
 #include "mail.h"
-//FUCK
-//#include "table_stat.h"
+#include "table_stat.h"
 
 #include "libsaki/app/table_server.h"
 #include "libsaki/app/replay.h"
@@ -18,28 +17,29 @@ using string = std::string;
 class TableOpOb
 {
 public:
-	TableOpOb(const std::array<int, 4> &girlIds);
-	~TableOpOb() = default;
+    TableOpOb(const std::array<int, 4> &girlIds);
+    ~TableOpOb() = default;
 
-	using Mails = std::vector<Mail>;
+    using Mails = std::vector<Mail>;
 
-	Mails start();
-	Mails action(int who, const string &actStr,
+    Mails start();
+    Mails action(int who, const string &actStr,
                 int argArg, const string &actTile,
-				int nonce);
-	Mails sweepAll();
-	Mails sweepOne(int who);
-	Mails resume(int who);
+                int nonce);
+    Mails sweepAll();
+    Mails sweepOne(int who);
+    Mails resume(int who);
 
 private:
-	void tableEndStat(const std::array<int, 4> &scores);
+    Mails mailsOfMsgs(const TableServer::Msgs &msgs);
+    saki::TableMsg tableEndStat();
 
 private:
-	//TableStat mStat;
-	saki::TableEnvStub mEnv; // temp
-	saki::Replay mReplay;
-	std::vector<Mail> mMails;
-	std::unique_ptr<saki::TableServer> mServer;
+    TableStat mStat;
+    saki::TableEnvStub mEnv; // temp
+    saki::Replay mReplay;
+    std::vector<Mail> mMails;
+    std::unique_ptr<saki::TableServer> mServer;
 };
 
 

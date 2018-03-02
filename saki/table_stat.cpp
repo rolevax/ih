@@ -1,8 +1,8 @@
-#include "table_opob.h"
+#include "table_stat.h"
+#include "libsaki/table/table.h"
 
 
 
-/*
 TableStat::TableStat()
 {
     mWins.fill(0);
@@ -15,54 +15,52 @@ TableStat::TableStat()
     mRiichiSumPoints.fill(0);
     mReadys.fill(0);
     mReadySumTurns.fill(0);
-	mWinSumTurns.fill(0);
-	mKzeykms.fill(0);
+    mWinSumTurns.fill(0);
+    mKzeykms.fill(0);
+    mScores.fill(0);
 }
 
-void TableStat::onRoundStarted(int r, int e, Who d,
-                               bool al, int dp, uint32_t s)
+void TableStat::onTableEvent(const Table &table, const TE::RoundStarted &event)
 {
-    (void) r; (void) e; (void) d; (void) al; (void) dp; (void) s;
     mReadyMarkeds.fill(false);
 }
 
-void TableStat::onDealt(const Table &table)
+void TableStat::onTableEvent(const Table &table, const TE::Dealt &event)
 {
-    for (int w = 0; w < 4; w++) {
-        const Hand &hand = table.getHand(Who(w));
+    for (Who who : whos::ALL4) {
+        const Hand &hand = table.getHand(who);
+        int w = who.index();
         if (!mReadyMarkeds[w] && hand.ready()) {
-			mReadySumTurns[w] += 0; // just mean this
-			mReadys[w]++;
-			mReadyMarkeds[w] = true;
+            mReadySumTurns[w] += 0; // just mean this
+            mReadys[w]++;
+            mReadyMarkeds[w] = true;
         }
     }
 }
 
-void TableStat::onDrawn(const Table &table, Who who)
+void TableStat::onTableEvent(const Table &table, const TE::Drawn &event)
 {
-    const Hand &hand = table.getHand(who);
-    if (!mReadyMarkeds[who.index()] && hand.ready()) {
-		mReadyMarkeds[who.index()] = true;
-		mReadys[who.index()]++;
-		mReadySumTurns[who.index()] += table.getRiver(who).size() + 1;
+    const Hand &hand = table.getHand(event.who);
+    int w = event.who.index();
+    if (!mReadyMarkeds[w] && hand.ready()) {
+        mReadyMarkeds[w] = true;
+        mReadys[w]++;
+        mReadySumTurns[w] += table.getRiver(event.who).size() + 1;
     }
 }
 
-void TableStat::onBarked(const Table &table, Who who,
-                         const M37 &bark, bool spin)
+void TableStat::onTableEvent(const Table &table, const TE::Barked &event)
 {
-    (void) bark; (void) spin;
-    const Hand &hand = table.getHand(who);
-    if (!mReadyMarkeds[who.index()] && hand.ready()) {
-		mReadyMarkeds[who.index()] = true;
-		mReadys[who.index()]++;
-		mReadySumTurns[who.index()] += table.getRiver(who).size() + 1;
+    const Hand &hand = table.getHand(event.who);
+    int w = event.who.index();
+    if (!mReadyMarkeds[w] && hand.ready()) {
+        mReadyMarkeds[w] = true;
+        mReadys[w]++;
+        mReadySumTurns[w] += table.getRiver(event.who).size() + 1;
     }
 }
 
-void TableStat::onRoundEnded(const Table &table, RoundResult result,
-                             const std::vector<Who> &openers, Who gunner,
-                             const std::vector<Form> &forms)
+void TableStat::onTableEvent(const Table &table, const TE::RoundEnded &event)
 {
     using RR = RoundResult;
 
@@ -70,6 +68,10 @@ void TableStat::onRoundEnded(const Table &table, RoundResult result,
     deltas.fill(0);
 
     mRoundCt++;
+
+    RR result = event.result;
+    const auto &openers = event.openers;
+    const auto &forms  = event.forms;
 
     // excluding SCHR case, counting only real-gain cases
     if (result == RR::TSUMO || result == RR::RON) {
@@ -80,82 +82,83 @@ void TableStat::onRoundEnded(const Table &table, RoundResult result,
             int gain = form.gain();
             mWinSumPoints[who.index()] += gain;
             deltas[who.index()] += gain;
-			int turn = table.getRiver(who).size();
-			if (result == RR::TSUMO)
-				turn++;
-			mWinSumTurns[who.index()] += turn;
+            int turn = table.getRiver(who).size();
+            if (result == RR::TSUMO)
+                turn++;
+            mWinSumTurns[who.index()] += turn;
 
-			std::vector<const char*> keys = form.keys();
-			int han = form.han();
-			std::map<const char*, int> &yaku = mYakus[who.index()];
-			std::map<const char*, int> &sumHan = mSumHans[who.index()];
-			for (const char *key : keys) {
-				if (yaku.find(key) == yaku.end()) {
-					yaku[key] = 1;
-					if (!form.isPrototypalYakuman())
-						sumHan[key] = han;
-				} else {
-					yaku[key]++;
-					if (!form.isPrototypalYakuman())
-						sumHan[key] += han;
-				}
-			}
+            std::vector<const char*> keys = form.keys();
+            int han = form.han();
+            std::map<const char*, int> &yaku = mYakus[who.index()];
+            std::map<const char*, int> &sumHan = mSumHans[who.index()];
+            for (const char *key : keys) {
+                if (yaku.find(key) == yaku.end()) {
+                    yaku[key] = 1;
+                    if (!form.isPrototypalYakuman())
+                        sumHan[key] = han;
+                } else {
+                    yaku[key]++;
+                    if (!form.isPrototypalYakuman())
+                        sumHan[key] += han;
+                }
+            }
 
-			auto update = [&](const char *key, int ct) {
-				if (ct == 0)
-					return;
-				if (yaku.find(key) == yaku.end())
-					yaku[key] = 0;
-				yaku[key] += ct;
-			};
+            auto update = [&](const char *key, int ct) {
+                if (ct == 0)
+                    return;
+                if (yaku.find(key) == yaku.end())
+                    yaku[key] = 0;
+                yaku[key] += ct;
+            };
 
-			if (!form.isPrototypalYakuman() && han >= 13)
-				mKzeykms[who.index()]++;
+            if (!form.isPrototypalYakuman() && han >= 13)
+                mKzeykms[who.index()]++;
 
-			if (form.dora() > 0) {
-				const auto &drids = table.getMount().getDrids();
-				int hyou = drids[0] % table.getHand(who);
-				if (result == RR::RON)
-					hyou += drids[0] % table.getFocusTile();
-				update("dora", hyou);
-				int kan = 0;
-				for (size_t i = 1; i < drids.size(); i++) {
-					kan += drids[i] % table.getHand(who);
-					if (result == RR::RON)
-						kan += drids[i] % table.getFocusTile();
-				}
-				update("kandora", kan);
-			}
+            if (form.dora() > 0) {
+                const auto &drids = table.getMount().getDrids();
+                int hyou = drids[0] % table.getHand(who);
+                if (result == RR::RON)
+                    hyou += drids[0] % table.getFocusTile();
+                update("dora", hyou);
+                int kan = 0;
+                for (size_t i = 1; i < drids.size(); i++) {
+                    kan += drids[i] % table.getHand(who);
+                    if (result == RR::RON)
+                        kan += drids[i] % table.getFocusTile();
+                }
+                update("kandora", kan);
+            }
 
-			if (form.uradora() > 0) {
-				const auto &urids = table.getMount().getUrids();
-				int hyou = urids[0] % table.getHand(who);
-				if (result == RR::RON)
-					hyou += urids[0] % table.getFocusTile();
-				update("uradora", hyou);
-				int kan = 0;
-				for (size_t i = 1; i < urids.size(); i++) {
-					kan += urids[i] % table.getHand(who);
-					if (result == RR::RON)
-						kan += urids[i] % table.getFocusTile();
-				}
-				update("kanuradora", kan);
-			}
+            if (form.uradora() > 0) {
+                const auto &urids = table.getMount().getUrids();
+                int hyou = urids[0] % table.getHand(who);
+                if (result == RR::RON)
+                    hyou += urids[0] % table.getFocusTile();
+                update("uradora", hyou);
+                int kan = 0;
+                for (size_t i = 1; i < urids.size(); i++) {
+                    kan += urids[i] % table.getHand(who);
+                    if (result == RR::RON)
+                        kan += urids[i] % table.getFocusTile();
+                }
+                update("kanuradora", kan);
+            }
 
-			if (form.akadora() > 0) {
-				update("akadora", form.akadora());
-			}
+            if (form.akadora() > 0) {
+                update("akadora", form.akadora());
+            }
         }
     }
 
     // excluding SCHR case, counting only real-loss cases
     if (result == RR::RON) {
-        mGuns[gunner.index()]++;
+        int g = event.gunner.index();
+        mGuns[g]++;
         int sumLoss = 0;
         for (const Form &form : forms)
             sumLoss += form.loss(false);
-        mGunSumPoints[gunner.index()] += sumLoss;
-        deltas[gunner.index()] -= sumLoss;
+        mGunSumPoints[g] += sumLoss;
+        deltas[g] -= sumLoss;
     }
 
     if (result == RR::HP) {
@@ -196,10 +199,11 @@ void TableStat::onRoundEnded(const Table &table, RoundResult result,
     }
 }
 
-void TableStat::onTableEnded(const std::array<Who, 4> &rank,
-                             const std::array<int, 4> &scores)
+void TableStat::onTableEvent(const Table &table, const TE::TableEnded &event)
 {
-    // FUCK
+    (void) table;
+
+    mScores = event.scores;
 }
 
 
@@ -250,32 +254,36 @@ const std::array<int, 4> &TableStat::riichiSumPoints() const
 
 const std::array<int, 4> &TableStat::readySumTurns() const
 {
-	return mReadySumTurns;
+    return mReadySumTurns;
 }
 
 const std::array<int, 4> &TableStat::readys() const
 {
-	return mReadys;
+    return mReadys;
 }
 
 const std::array<int, 4> &TableStat::winSumTurns() const
 {
-	return mWinSumTurns;
+    return mWinSumTurns;
 }
 
 const std::array<std::map<const char*, int>, 4> &TableStat::yakus() const
 {
-	return mYakus;
+    return mYakus;
 }
 
 const std::array<std::map<const char*, int>, 4> &TableStat::sumHans() const
 {
-	return mSumHans;
+    return mSumHans;
 }
 
 const std::array<int, 4> &TableStat::kzeykms() const
 {
-	return mKzeykms;
+    return mKzeykms;
 }
-*/
+
+const std::array<int, 4> &TableStat::scores() const
+{
+    return mScores;
+}
 
