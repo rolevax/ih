@@ -40,14 +40,17 @@ func main() {
 
 	redis := flag.String("redis", "localhost:6379", "redis server addr")
 	db := flag.String("db", "localhost:5432", "pg db server addr")
+	certPath := flag.String("cert", CertPath, "path to SSL certificate")
+	privKeyPath := flag.String("key", PrivKeyPath, "path to SSL private key")
+	dictPath := flag.String("dict", DictPath, "path to sensitive word dictionary")
 	flag.Parse()
 	mako.InitRedis(*redis)
 	mako.InitDb(*db)
-	hitomi.Init(DictPath)
+	hitomi.Init(*dictPath)
 
 	addWebService()
 	supportCors()
-	log.Fatal(http.ListenAndServeTLS(Port, CertPath, PrivKeyPath, nil))
+	log.Fatal(http.ListenAndServeTLS(Port, *certPath, *privKeyPath, nil))
 }
 
 func addWebService() {

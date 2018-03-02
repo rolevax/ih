@@ -34,19 +34,17 @@ func Login(username, password string) (*model.User, error) {
 		log.Fatalln("mako.Login", err)
 	}
 
-	user.Username = hitomi.Filter(user.Username)
-
 	return user, nil
 }
 
 func SignUp(username, password string) error {
-	if !hitomi.CheckName(username) {
-		return errors.New("用户名不可用")
-	}
-
 	tx, err := db.Begin()
 	if err != nil {
-		log.Fatalln("db.SignUp", err)
+		return err
+	}
+
+	if !hitomi.CheckName(username) {
+		return errors.New("用户名不可用")
 	}
 
 	var exist bool
@@ -58,7 +56,7 @@ func SignUp(username, password string) error {
 
 	if err != nil {
 		tx.Rollback()
-		log.Fatalln("db.SignUp", err)
+		return err
 	}
 
 	if exist {
@@ -66,6 +64,7 @@ func SignUp(username, password string) error {
 		return errors.New("用户名已存在")
 	}
 
+	// using raw query since password is absent from the model
 	var uid model.Uid
 	_, err = tx.QueryOne(
 		&uid,
@@ -75,7 +74,7 @@ func SignUp(username, password string) error {
 
 	if err != nil {
 		tx.Rollback()
-		log.Fatalln("db.SignUp", err)
+		return err
 	}
 
 	tx.Commit()
