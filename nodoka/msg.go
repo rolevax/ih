@@ -9,7 +9,7 @@ type MtHasUser struct {
 	Uid model.Uid
 }
 
-type MtCtPlays struct{}
+type MtCtTables struct{}
 
 type MtAction struct {
 	Uid model.Uid

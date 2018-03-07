@@ -143,7 +143,7 @@ func (ussn *ussn) handleLookAround() {
 	}
 	water := res.(*pcWater)
 
-	playCt, err := (&nodoka.MtCtPlays{}).Req()
+	tableCt, err := (&nodoka.MtCtTables{}).Req()
 	if err != nil {
 		ussn.handleError(err)
 		return
@@ -165,7 +165,7 @@ func (ussn *ussn) handleLookAround() {
 
 	msg := &sc.LookAround{
 		Conn:       water.ct,
-		Play:       playCt,
+		Table:      tableCt,
 		Water:      water.water,
 		MatchWaits: waits,
 	}

@@ -10,7 +10,7 @@ type Auth struct {
 
 type LookAround struct {
 	Conn       int
-	Play       int
+	Table      int
 	Water      []string
 	Rooms      []*model.Room
 	MatchWaits []int

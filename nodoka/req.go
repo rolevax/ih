@@ -23,7 +23,7 @@ func (msg *MtHasUser) Req() (bool, error) {
 	}
 }
 
-func (msg *MtCtPlays) Req() (int, error) {
+func (msg *MtCtTables) Req() (int, error) {
 	res, err := Req(Tmgr, msg)
 	if err != nil {
 		return 0, err

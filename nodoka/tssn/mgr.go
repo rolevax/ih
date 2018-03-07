@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	rec map[model.Uid]*tssn = make(map[model.Uid]*tssn)
+	rec     map[model.Uid]*tssn = make(map[model.Uid]*tssn)
+	tableCt int
 )
 
 func Init() {
@@ -29,8 +30,8 @@ func Receive(ctx actor.Context) {
 	case *actor.Restarting:
 	case *nodoka.MtHasUser:
 		handleHasUser(msg.Uid, ctx.Respond)
-	case *nodoka.MtCtPlays:
-		handleCtPlays(ctx.Respond)
+	case *nodoka.MtCtTables:
+		handleCtTables(ctx.Respond)
 	case *nodoka.MtChoose:
 		handleChoose(msg)
 	case *nodoka.MtSeat:
@@ -49,8 +50,8 @@ func handleHasUser(uid model.Uid, resp func(interface{})) {
 	resp(ok)
 }
 
-func handleCtPlays(resp func(interface{})) {
-	resp(len(rec))
+func handleCtTables(resp func(interface{})) {
+	resp(tableCt)
 }
 
 func handleReg(add bool, tssn *tssn) {
@@ -59,10 +60,12 @@ func handleReg(add bool, tssn *tssn) {
 			// TODO if exists, reject in some way
 			rec[tssn.match.Users[w].Id] = tssn
 		}
+		tableCt++
 	} else {
 		for w := 0; w < 4; w++ {
 			delete(rec, tssn.match.Users[w].Id)
 		}
+		tableCt--
 	}
 }
 
