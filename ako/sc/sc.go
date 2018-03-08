@@ -69,9 +69,11 @@ func (msg *TableSeat) RightPers() *TableSeat {
 	return next
 }
 
+type VarMap map[string]interface{}
+
 type TableEvent struct {
 	Event string
-	Args  map[string]interface{}
+	Args  VarMap
 }
 
 type TableEnd struct {

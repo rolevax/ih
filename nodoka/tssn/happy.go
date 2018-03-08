@@ -11,6 +11,7 @@ import (
 	"github.com/rolevax/ih/ako/model"
 	"github.com/rolevax/ih/ako/sc"
 	"github.com/rolevax/ih/ako/ss"
+	"github.com/rolevax/ih/mako"
 	"github.com/rolevax/ih/ryuuka"
 )
 
@@ -135,46 +136,17 @@ func (tssn *tssn) sendUserMail(who int, msg *sc.TableEvent) {
 }
 
 func (tssn *tssn) handleSystemMail(msg *sc.TableEvent) {
-
 	args := msg.Args
 
 	switch msg.Event {
 	case "game-over":
 		tssn.gameOver = true
 	case "round-start-log":
-		al := ""
-		if args["allLast"].(bool) {
-			al = "a"
-		}
-		log.Printf(
-			"TSSN .... %v %v.%v%s d=%v depo=%v seed=%v",
-			tssn.match.Users[0].Id,
-			args["round"], args["extra"], al,
-			args["dealer"], args["deposit"], uint(args["seed"].(float64)),
-		)
+		tssn.handleRoundStartLog(msg.Args)
 	case "table-end-stat":
-		stat := &model.EndTableStat{}
-		bytes, err := json.Marshal(msg.Args)
-		if err != nil {
-			log.Fatalln("table-end-stat marshal", err)
-		}
-		err = json.Unmarshal(bytes, stat)
-		if err != nil {
-			log.Fatalln("table-end-stat unmarshal", err)
-		}
-		//tssn.injectReplay(stat.Replay)
-		tssn.endTableAward(stat)
-		//TODO
-		//mako.UpdateUserGirl(tssn.abcd, tssn.uids, tssn.gids, &stat)
+		tssn.handleTableEndStat(msg)
 	case "riichi-auto":
-		who := int(args["Who"].(float64))
-		tssn.p.Tell(&ccAction{
-			UserIndex: who,
-			Act: &cs.TableAction{
-				Nonce:  int(args["Nonce"].(float64)),
-				ActStr: "SPIN_OUT",
-			},
-		})
+		tssn.handleRiichiAuto(msg.Args)
 	case "action-expired":
 		who := int(args["Who"].(float64))
 		log.Printf(
@@ -195,20 +167,58 @@ func (tssn *tssn) handleSystemMail(msg *sc.TableEvent) {
 	}
 }
 
-/* TODO merge into mako.EndTable(...)
+func (tssn *tssn) handleRoundStartLog(args sc.VarMap) {
+	al := ""
+	if args["allLast"].(bool) {
+		al = "a"
+	}
+	log.Printf(
+		"TSSN .... %v %v.%v%s d=%v depo=%v seed=%v",
+		tssn.match.Users[0].Id,
+		args["round"], args["extra"], al,
+		args["dealer"], args["deposit"], uint(args["seed"].(float64)),
+	)
+}
+
+func (tssn *tssn) handleTableEndStat(msg *sc.TableEvent) {
+	stat := &model.EndTableStat{}
+	bytes, err := json.Marshal(msg.Args)
+	if err != nil {
+		log.Fatalln("table-end-stat marshal", err)
+	}
+	err = json.Unmarshal(bytes, stat)
+	if err != nil {
+		log.Fatalln("table-end-stat unmarshal", err)
+	}
+	tssn.injectReplay(stat.Replay)
+	tssn.endTableAward(stat)
+	err = mako.UpdateUserGirl(tssn.match.Uids(), stat)
+	if err != nil {
+		log.Println("table-end-stat db:", err)
+	}
+}
+
+func (tssn *tssn) handleRiichiAuto(args sc.VarMap) {
+	who := int(args["Who"].(float64))
+	tssn.p.Tell(&ccAction{
+		UserIndex: who,
+		Act: &cs.TableAction{
+			Nonce:  int(args["Nonce"].(float64)),
+			ActStr: "SPIN_OUT",
+		},
+	})
+}
+
 func (tssn *tssn) injectReplay(replay map[string]interface{}) {
 	var users [4]map[string]interface{}
 	for w := 0; w < 4; w++ {
 		user := make(map[string]interface{})
-		user["Id"] = tssn.uids[w]
-		user["Username"] = tssn.users[w].Username
-		user["Level"] = tssn.users[w].Level
-		user["Rating"] = tssn.users[w].Rating
+		user["Id"] = tssn.match.Users[w].Id
+		user["Username"] = tssn.match.Users[w].Username
 		users[w] = user
 	}
 	replay["users"] = users
 }
-*/
 
 func (tssn *tssn) injectResume(who int, msg *sc.TableEvent) {
 	if msg.Event == "resume" {

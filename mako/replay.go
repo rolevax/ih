@@ -35,14 +35,15 @@ func GetReplay(replayId uint) (string, error) {
 	return text, err
 }
 
-func updateReplay(tx *pg.Tx, uids [4]model.Uid,
-	replay map[string]interface{}) error {
+type replayMap map[string]interface{}
+
+func updateReplay(tx *pg.Tx, uids [4]model.Uid, replay replayMap) error {
 	jsonb, err := json.Marshal(replay)
 	if err != nil {
 		return err
 	}
 
-	var rid uint
+	var rid uint64
 	_, err = tx.QueryOne(
 		&rid,
 		"INSERT INTO replays(content) VALUES (?) RETURNING replay_id",
@@ -54,9 +55,9 @@ func updateReplay(tx *pg.Tx, uids [4]model.Uid,
 
 	_, err = tx.Exec(
 		`INSERT INTO replay_of_user(user_id, replay_ids)
-		VALUES (?, ?), (?, ?), (?, ?), (?, ?)
+		VALUES (?, '{?}'), (?, '{?}'), (?, '{?}'), (?, '{?}')
 		ON CONFLICT (user_id) DO UPDATE
-		SET replay_ids = ? || replay_ids`,
+		SET replay_ids = CAST(? AS bigint) || replay_of_user.replay_ids`,
 		uids[0], rid, uids[1], rid, uids[2], rid, uids[3], rid,
 		rid,
 	)

@@ -20,28 +20,23 @@ func GetCultis(uid model.Uid) []model.Culti {
 	return cs
 }
 
-func UpdateUserGirl(uids [4]model.Uid,
-	gids [4]model.Gid, args *model.EndTableStat) {
+func UpdateUserGirl(uids [4]model.Uid, args *model.EndTableStat) error {
 	tx, err := db.Begin()
 	if err != nil {
-		log.Fatalln(err)
-	}
-
-	err = updateUserGirlStat(tx, uids, gids, args)
-	if err != nil {
-		tx.Rollback()
-		log.Fatalln(err)
+		return err
 	}
 
 	err = updateReplay(tx, uids, args.Replay)
 	if err != nil {
 		tx.Rollback()
-		log.Fatalln(err)
+		return err
 	}
 
 	tx.Commit()
+	return nil
 }
 
+// deprecated
 func updateUserGirlStat(tx *pg.Tx, uids [4]model.Uid,
 	gids [4]model.Gid, args *model.EndTableStat) error {
 	for i := 0; i < 4; i++ {
