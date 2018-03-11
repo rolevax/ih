@@ -39,7 +39,7 @@ func recvAuth(sc *sc.Auth, rl *readline.Instance) {
 }
 
 func recvLookAround(sc *sc.LookAround) {
-	log.Println("conn", sc.Conn, "play", sc.Play)
+	log.Println("connCt", sc.Conn, "tableCt", sc.Table)
 	for _, room := range sc.Rooms {
 		uids := []model.Uid{}
 		for _, u := range room.Users {
