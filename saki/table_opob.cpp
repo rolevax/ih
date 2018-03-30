@@ -22,12 +22,19 @@ TableOpOb::TableOpOb(const std::array<int, 4> &girlIds)
     Rule rule;
     rule.roundLimit = 8;
     std::array<int, 4> points { 25000, 25000, 25000, 25000 };
+
+	std::array<std::unique_ptr<Girl>, 4> girls;
+	for (int w = 0; w < 4; w++) {
+		Girl::Id id = static_cast<Girl::Id>(girlIds[w]);
+		girls[w] = Girl::create(Who(w), id);
+	}
+
     std::vector<TableObserver*> obs { &mStat, &mReplay };
     Table::InitConfig config {
-        points, girlIds, rule, Who(0)
+        points, std::move(girls), rule, Who(0)
     };
 
-    mServer.reset(new TableServer(config, obs, mEnv));
+    mServer.reset(new TableServer(std::move(config), obs, mEnv));
 }
 
 auto TableOpOb::start() -> Mails

@@ -51,7 +51,7 @@ func (msg *TableInit) RightPers() *TableInit {
 }
 
 type TableSeat struct {
-	Gids       [4]model.Gid
+	GirlKeys   [4]model.GirlKey
 	TempDealer int
 }
 
@@ -61,10 +61,10 @@ func (msg *TableSeat) RightPers() *TableSeat {
 
 	*next = *msg
 	next.TempDealer = (msg.TempDealer + 3) % 4
-	next.Gids[0] = msg.Gids[1]
-	next.Gids[1] = msg.Gids[2]
-	next.Gids[2] = msg.Gids[3]
-	next.Gids[3] = msg.Gids[0]
+	next.GirlKeys[0] = msg.GirlKeys[1]
+	next.GirlKeys[1] = msg.GirlKeys[2]
+	next.GirlKeys[2] = msg.GirlKeys[3]
+	next.GirlKeys[3] = msg.GirlKeys[0]
 
 	return next
 }

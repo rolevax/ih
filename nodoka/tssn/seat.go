@@ -49,8 +49,11 @@ func (tssn *tssn) notifySeat() {
 
 	msg := &sc.TableSeat{
 		TempDealer: 0,
-		Gids:       tssn.gids,
 	}
+	for w := 0; w < 4; w++ {
+		msg.GirlKeys[w] = model.GirlKey{tssn.gids[w], ""}
+	}
+
 	for w := 0; w < 4; w++ {
 		if tssn.waits[w] {
 			tssn.sendPeer(w, msg)

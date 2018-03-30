@@ -1,2 +1,2 @@
 #cgo LDFLAGS: -L${SRCDIR}/build/ -lsaki
-#cgo CXXFLAGS: -std=c++11
+#cgo CXXFLAGS: -std=c++1z

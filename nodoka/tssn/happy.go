@@ -259,7 +259,7 @@ func (tssn *tssn) sweepAll() {
 	for w, waiting := range tssn.waits {
 		if waiting {
 			tssn.waits[w] = false
-			tssn.kick(w, "happy timeout")
+			tssn.kick(w, "happy timeout, sweep all")
 		}
 	}
 	tssn.handleOutputs(to)

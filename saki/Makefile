@@ -13,7 +13,7 @@
 BUILD_DIR=./build
 
 CXX=g++
-CXXFLAGS=-std=c++11 -c -fPIC -O2
+CXXFLAGS=-std=c++1z -c -fPIC -O2
 CXXSRC=$(shell find $$PWD/libsaki -name "*.cpp")
 CXXHDR=$(shell find $$PWD/libsaki -name "*.h")
 

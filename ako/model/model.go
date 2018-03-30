@@ -3,6 +3,11 @@ package model
 // girl id, signed-int for compatibility to libsaki
 type Gid int
 
+type GirlKey struct {
+	Id   Gid    `json:"id"`
+	Path string `json:"path"`
+}
+
 type RuleId int
 
 const (
