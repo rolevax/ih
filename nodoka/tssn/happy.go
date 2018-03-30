@@ -27,6 +27,9 @@ func (tssn *tssn) Happy(ctx actor.Context) {
 	case *actor.Stopping:
 		tssn.bye(ctx)
 	case *actor.ReceiveTimeout:
+		// somehow reset to 0 everytime this msg comes
+		// diff from what doc says, may be their bug
+		ctx.SetReceiveTimeout(recvTimeout)
 		tssn.sweepAll()
 	case *pcSeat:
 		i, _ := tssn.findUser(msg.Uid)
@@ -122,9 +125,14 @@ func (tssn *tssn) sendUserMail(who int, msg *sc.TableEvent) {
 	tssn.injectResume(who, msg)
 
 	err := tssn.sendPeer(who, msg)
-	if err != nil && msg.Event == "activated" {
-		if tssn.anyOnline() {
-			tssn.sweepOne(who)
+	if msg.Event == "activated" {
+		if err != nil {
+			// clear off-liner's activation
+			if tssn.anyOnline() {
+				tssn.sweepOne(who)
+			}
+		} else {
+			tssn.waits[who] = true
 		}
 	}
 
@@ -248,6 +256,8 @@ func (tssn *tssn) sweepOne(i int) {
 }
 
 func (tssn *tssn) sweepAll() {
+	log.Println("TSSN swpa", tssn.match.Users[0].Id)
+
 	outputs, err := ryuuka.SendToToki(&ss.TableSweepAll{
 		Tid: int64(tssn.match.Users[0].Id),
 	})
