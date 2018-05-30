@@ -15,7 +15,7 @@ import (
 	"github.com/rolevax/ih/ryuuka"
 )
 
-const Version = "0.9.4"
+const Version = "0.9.5"
 
 type logWriter struct{}
 
