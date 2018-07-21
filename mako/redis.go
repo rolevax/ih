@@ -14,6 +14,10 @@ const (
 
 var rclient *redis.Client
 
+func GetRClient() *redis.Client {
+	return rclient
+}
+
 func InitRedis(addr string) {
 	rclient = redis.NewClient(&redis.Options{
 		Addr:     addr,

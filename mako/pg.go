@@ -10,6 +10,10 @@ import (
 
 var db *pg.DB
 
+func GetDb() *pg.DB {
+	return db
+}
+
 func InitDb(addr string) {
 	db = pg.Connect(&pg.Options{
 		Network:  "tcp",
