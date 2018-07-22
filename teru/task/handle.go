@@ -119,9 +119,5 @@ func getUser(req *restful.Request) (*model.User, error) {
 		return nil, err
 	}
 
-	user := mako.GetUser(uid)
-	if user == nil {
-		return nil, fmt.Errorf("user tan90")
-	}
-	return user, nil
+	return mako.GetUser(uid)
 }

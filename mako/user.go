@@ -9,7 +9,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/go-pg/pg"
 	"github.com/go-redis/redis"
 	"github.com/rolevax/ih/ako/model"
 	"github.com/rolevax/ih/hitomi"
@@ -29,7 +28,7 @@ func Login(username, password string) (*model.User, error) {
 		return nil, err
 	}
 
-	return GetUser(auth.Uid), nil
+	return GetUser(auth.Uid)
 }
 
 func SignUp(username, password string) error {
@@ -77,38 +76,33 @@ func SignUp(username, password string) error {
 	return nil
 }
 
-func GetUser(uid model.Uid) *model.User {
-	user := &model.User{
-		Id: uid,
-	}
-
-	err := db.Select(user)
-
+func GetUser(uid model.Uid) (*model.User, error) {
+	str, err := rclient.Get(keyUser(uid)).Result()
 	if err != nil {
-		if err == pg.ErrNoRows {
-			return nil
-		}
-		log.Fatalln("mako.GetUser", err)
+		return nil, err
 	}
 
-	return user
+	user := &model.User{}
+	err = json.Unmarshal([]byte(str), user)
+	if err != nil {
+		return nil, err
+	}
+
+	cPoint, _ := rclient.ZScore(keyCPoints, uid.ToString()).Result()
+	user.CPoint = int(cPoint)
+
+	return user, nil
 }
 
 func GetUsers(uids *[4]model.Uid) [4]*model.User {
 	var users [4]*model.User
 
-	_, err := db.Query(
-		&users,
-		`SELECT user_id, username, level, pt, rating
-		FROM users WHERE user_id in (?)
-		ORDER BY user_id=? DESC,
-				 user_id=? DESC,
-				 user_id=? DESC,
-				 user_id=? DESC`,
-		pg.In(uids), uids[0], uids[1], uids[2], uids[3],
-	)
-	if err != nil {
-		log.Fatalln(err)
+	for i, uid := range uids {
+		user, err := GetUser(uid)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		users[i] = user
 	}
 
 	return users

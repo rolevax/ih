@@ -48,7 +48,7 @@ func (ussn *ussn) handleSc(msg interface{}, resp func(interface{})) {
 }
 
 func (ussn *ussn) handleUpdateInfo() {
-	ussn.user = mako.GetUser(ussn.user.Id)
+	ussn.user, _ = mako.GetUser(ussn.user.Id)
 	sc := &sc.UpdateUser{
 		User: ussn.user,
 	}

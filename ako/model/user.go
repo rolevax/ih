@@ -1,6 +1,7 @@
 package model
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/go-pg/pg/orm"
@@ -22,6 +23,10 @@ func (uid Uid) IsBot() bool {
 
 func (uid Uid) IsHuman() bool {
 	return !uid.IsBot()
+}
+
+func (uid Uid) ToString() string {
+	return strconv.Itoa(int(uid))
 }
 
 type Auth struct {
