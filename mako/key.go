@@ -8,6 +8,7 @@ import (
 
 const (
 	keyCPoints = "mako.c.points"
+	keyGenUid  = "mako.gen.uid"
 )
 
 func keyAuth(username string) string {

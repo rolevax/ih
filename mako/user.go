@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/go-redis/redis"
@@ -32,46 +33,31 @@ func Login(username, password string) (*model.User, error) {
 }
 
 func SignUp(username, password string) error {
-	tx, err := db.Begin()
-	if err != nil {
-		return err
-	}
-
 	if !hitomi.CheckName(username) {
 		return errors.New("用户名不可用")
 	}
 
-	var exist bool
-	_, err = tx.QueryOne(
-		&exist,
-		"SELECT EXISTS(SELECT 1 FROM users WHERE username=?)",
-		username,
-	)
-
+	uid, err := rclient.Incr(keyGenUid).Result()
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 
-	if exist {
-		tx.Rollback()
+	auth := &model.Auth{
+		Uid:      model.Uid(uid),
+		Password: hash(password),
+	}
+	bytes, err := json.Marshal(auth)
+	if err != nil {
+		return err
+	}
+
+	ok, err := rclient.SetNX(keyAuth(username), bytes, 0).Result()
+	if err != nil {
+		return err
+	}
+	if !ok {
 		return errors.New("用户名已存在")
 	}
-
-	// using raw query since password is absent from the model
-	var uid model.Uid
-	_, err = tx.QueryOne(
-		&uid,
-		"INSERT INTO users(username, password) VALUES (?,?) RETURNING user_id",
-		username, hash(password),
-	)
-
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	tx.Commit()
 
 	return nil
 }
@@ -108,18 +94,32 @@ func GetUsers(uids *[4]model.Uid) [4]*model.User {
 	return users
 }
 
-func GetCPoints() []model.CPointEntry {
-	var res []model.CPointEntry
-
-	err := db.Model(&res).
-		Where("c_point > 0").
-		Order("c_point DESC").
-		Select()
+func GetCPoints() ([]model.CPointEntry, error) {
+	zs, err := rclient.ZRangeWithScores(keyCPoints, 0, -1).Result()
 	if err != nil {
-		log.Fatalln("mako.GetCPoints", err)
+		return nil, err
 	}
 
-	return res
+	var res []model.CPointEntry
+
+	for _, z := range zs {
+		i, err := strconv.Atoi(z.Member.(string))
+		if err != nil {
+			return nil, err
+		}
+
+		user, err := GetUser(model.Uid(i))
+		if err != nil {
+			return nil, err
+		}
+
+		res = append(res, model.CPointEntry{
+			Username: user.Username,
+			CPoint:   int(z.Score),
+		})
+	}
+
+	return res, nil
 }
 
 func UpdateCPoint(username string, delta int) error {

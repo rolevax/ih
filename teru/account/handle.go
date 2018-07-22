@@ -69,7 +69,13 @@ func GetCPoints(request *restful.Request, response *restful.Response) {
 	sc := &msg.ScCpoints{}
 	defer response.WriteEntity(sc)
 
-	sc.Entries = mako.GetCPoints()
+	entries, err := mako.GetCPoints()
+	if err != nil {
+		sc.Error = err.Error()
+		return
+	}
+
+	sc.Entries = entries
 }
 
 func slow() {
