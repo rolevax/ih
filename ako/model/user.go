@@ -24,6 +24,11 @@ func (uid Uid) IsHuman() bool {
 	return !uid.IsBot()
 }
 
+type Auth struct {
+	Uid      Uid
+	Password string
+}
+
 type User struct {
 	Id        Uid `sql:"user_id,pk"`
 	Username  string

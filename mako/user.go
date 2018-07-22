@@ -3,36 +3,33 @@ package mako
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/go-pg/pg"
+	"github.com/go-redis/redis"
 	"github.com/rolevax/ih/ako/model"
 	"github.com/rolevax/ih/hitomi"
 )
 
 func Login(username, password string) (*model.User, error) {
-	user := &model.User{}
-
-	if db == nil {
-		log.Fatalln("mako.Login: db is nil")
+	str, err := rclient.Get(keyAuth(username)).Result()
+	if err == redis.Nil {
+		return nil, errors.New("用户，不存在的x")
+	} else if err != nil {
+		return nil, err
 	}
 
-	err := db.Model(user).
-		Where("username=?", username).
-		Where("password=?", hash(password)).
-		Select()
-
+	auth := &model.Auth{}
+	err = json.Unmarshal([]byte(str), auth)
 	if err != nil {
-		if err == pg.ErrNoRows {
-			return nil, errors.New("用户名或密码错误")
-		}
-		log.Fatalln("mako.Login", err)
+		return nil, err
 	}
 
-	return user, nil
+	return GetUser(auth.Uid), nil
 }
 
 func SignUp(username, password string) error {
