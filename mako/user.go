@@ -16,17 +16,13 @@ import (
 )
 
 func Login(username, password string) (*model.User, error) {
-	str, err := rclient.Get(keyAuth(username)).Result()
-	if err == redis.Nil {
-		return nil, errors.New("用户，不存在的x")
-	} else if err != nil {
+	auth, err := GetAuth(username)
+	if err != nil {
 		return nil, err
 	}
 
-	auth := &model.Auth{}
-	err = json.Unmarshal([]byte(str), auth)
-	if err != nil {
-		return nil, err
+	if hash(password) != auth.Password {
+		return nil, errors.New("密码错误")
 	}
 
 	return GetUser(auth.Uid)
@@ -60,6 +56,23 @@ func SignUp(username, password string) error {
 	}
 
 	return nil
+}
+
+func GetAuth(username string) (*model.Auth, error) {
+	str, err := rclient.Get(keyAuth(username)).Result()
+	if err == redis.Nil {
+		return nil, errors.New("用户，不存在的x")
+	} else if err != nil {
+		return nil, err
+	}
+
+	auth := &model.Auth{}
+	err = json.Unmarshal([]byte(str), auth)
+	if err != nil {
+		return nil, err
+	}
+
+	return auth, nil
 }
 
 func GetUser(uid model.Uid) (*model.User, error) {
@@ -123,19 +136,16 @@ func GetCPoints() ([]model.CPointEntry, error) {
 }
 
 func UpdateCPoint(username string, delta int) error {
-	res, err := db.Model(&model.CPointEntry{}).
-		Set("c_point=c_point+?", delta).
-		Where("username=?", username).
-		Update()
-
-	if err == nil {
-		aff := res.RowsAffected()
-		if aff != 1 {
-			err = fmt.Errorf("%d row(s) affected", aff)
-		}
+	auth, err := GetAuth(username)
+	if err != nil {
+		return err
 	}
 
-	return err
+	return rclient.ZIncrBy(
+		keyCPoints,
+		float64(delta),
+		auth.Uid.ToString(),
+	).Err()
 }
 
 func ClaimFood(uid model.Uid, gotAt *time.Time) error {
