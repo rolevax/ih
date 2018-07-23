@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	keyCPoints = "mako.c.points"
-	keyGenUid  = "mako.gen.uid"
+	keyCPoints   = "mako.c.points"
+	keyGenUid    = "mako.gen.uid"
+	keyOpenTasks = "mako.open.tasks"
 )
 
 func keyAuth(username string) string {
@@ -17,4 +18,8 @@ func keyAuth(username string) string {
 
 func keyUser(uid model.Uid) string {
 	return fmt.Sprintf("mako.user:%v", uid)
+}
+
+func keyTask(taskId int) string {
+	return fmt.Sprintf("mako.task:%v", taskId)
 }

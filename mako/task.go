@@ -1,42 +1,81 @@
 package mako
 
 import (
+	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/rolevax/ih/ako/model"
 )
 
 func UpsertTask(task *model.Task) error {
-	_, err := db.Model(task).
-		OnConflict("(task_id) DO UPDATE").
-		Set("title = EXCLUDED.title").
-		Set("content = EXCLUDED.content").
-		Set("c_point = EXCLUDED.c_point").
-		Insert()
+	bytes, err := json.Marshal(task)
+	if err != nil {
+		return err
+	}
 
-	return err
+	err = rclient.Set(keyTask(task.Id), bytes, 0).Err()
+	if err != nil {
+		return err
+	}
+
+	if task.State != model.TaskStateClosed {
+		err := rclient.SAdd(keyOpenTasks, task.Id).Err()
+		if err != nil {
+			return err
+		}
+	} else {
+		err := rclient.SRem(keyOpenTasks, task.Id).Err()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func GetTasks() ([]model.Task, error) {
-	res := []model.Task{}
-	err := db.Model(&res).
-		Column("task.*", "Assignee").
-		Where("task.state <= 2").
-		Order("task.task_id").
-		Select()
+	ids, err := rclient.SMembers(keyOpenTasks).Result()
 	if err != nil {
 		return nil, err
 	}
+
+	res := []model.Task{}
+	for _, str := range ids {
+		id, err := strconv.Atoi(str)
+		if err != nil {
+			return nil, err
+		}
+
+		task, err := GetTask(id)
+		if err != nil {
+			return nil, err
+		}
+
+		res = append(res, *task)
+	}
+
 	return res, nil
 }
 
 func GetTask(taskId int) (*model.Task, error) {
-	res := &model.Task{Id: taskId}
-	err := db.Select(res)
-	return res, err
+	jsonStr, err := rclient.Get(keyTask(taskId)).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	task := &model.Task{}
+	err = json.Unmarshal([]byte(jsonStr), task)
+	if err != nil {
+		return nil, err
+	}
+
+	return task, nil
 }
 
 func StartTask(uid model.Uid, taskId int) error {
+	// TODO FUCK CONTINUE
+
 	ct, err := db.Model(&model.Task{}).
 		Where("assignee_id=?", uid).
 		Count()
