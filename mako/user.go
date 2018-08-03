@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -149,36 +148,11 @@ func UpdateCPoint(username string, delta int) error {
 }
 
 func ClaimFood(uid model.Uid, gotAt *time.Time) error {
-	res, err := db.Model(&model.User{}).
-		Set("food=food+(50*c_point)").
-		Set("got_food_at=?", gotAt).
-		Where("user_id=?", uid).
-		Update()
-
-	if err == nil {
-		aff := res.RowsAffected()
-		if aff != 1 {
-			err = fmt.Errorf("%d row(s) affected", aff)
-		}
-	}
-
-	return err
+	return errors.New("零食系统已关闭")
 }
 
 func UpdateFood(uid model.Uid, delta int) error {
-	res, err := db.Model(&model.User{}).
-		Set("food=food+?", delta).
-		Where("user_id=?", uid).
-		Update()
-
-	if err == nil {
-		aff := res.RowsAffected()
-		if aff != 1 {
-			err = fmt.Errorf("%d row(s) affected", aff)
-		}
-	}
-
-	return err
+	return errors.New("零食系统已关闭")
 }
 
 func hash(password string) string {
