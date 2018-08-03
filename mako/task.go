@@ -1,178 +1,39 @@
 package mako
 
 import (
-	"encoding/json"
-	"fmt"
-	"strconv"
+	"errors"
 
 	"github.com/rolevax/ih/ako/model"
 )
 
 func UpsertTask(task *model.Task) error {
-	bytes, err := json.Marshal(task)
-	if err != nil {
-		return err
-	}
-
-	err = rclient.Set(keyTask(task.Id), bytes, 0).Err()
-	if err != nil {
-		return err
-	}
-
-	if task.State != model.TaskStateClosed {
-		err := rclient.SAdd(keyOpenTasks, task.Id).Err()
-		if err != nil {
-			return err
-		}
-	} else {
-		err := rclient.SRem(keyOpenTasks, task.Id).Err()
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return errors.New("任务系统已关闭")
 }
 
 func GetTasks() ([]model.Task, error) {
-	ids, err := rclient.SMembers(keyOpenTasks).Result()
-	if err != nil {
-		return nil, err
-	}
-
-	res := []model.Task{}
-	for _, str := range ids {
-		id, err := strconv.Atoi(str)
-		if err != nil {
-			return nil, err
-		}
-
-		task, err := GetTask(id)
-		if err != nil {
-			return nil, err
-		}
-
-		res = append(res, *task)
-	}
-
-	return res, nil
+	return nil, errors.New("任务系统已关闭")
 }
 
 func GetTask(taskId int) (*model.Task, error) {
-	jsonStr, err := rclient.Get(keyTask(taskId)).Result()
-	if err != nil {
-		return nil, err
-	}
-
-	task := &model.Task{}
-	err = json.Unmarshal([]byte(jsonStr), task)
-	if err != nil {
-		return nil, err
-	}
-
-	return task, nil
+	return nil, errors.New("任务系统已关闭")
 }
 
 func StartTask(uid model.Uid, taskId int) error {
-	// TODO FUCK CONTINUE
-
-	ct, err := db.Model(&model.Task{}).
-		Where("assignee_id=?", uid).
-		Count()
-	if err != nil {
-		return err
-	}
-	if ct != 0 {
-		return fmt.Errorf("当前任务验收通过后才能接受新任务")
-	}
-
-	_, err = db.Model(&model.Task{}).
-		Set("state=?", model.TaskStateDoing).
-		Set("assignee_id=?", uid).
-		Where("task_id=? AND state=?", taskId, model.TaskStateToDo).
-		Update()
-	return err
+	return errors.New("任务系统已关闭")
 }
 
 func NotifyCheckTask(uid model.Uid, taskId int) error {
-	_, err := db.Model(&model.Task{}).
-		Set("state=?", model.TaskStateToCheck).
-		Where("task_id=? AND state=?", taskId, model.TaskStateDoing).
-		Update()
-	return err
+	return errors.New("任务系统已关闭")
 }
 
 func AcceptWorkOnTask(taskId int) error {
-	task := &model.Task{Id: taskId}
-	err := db.Select(task)
-	if err != nil {
-		return err
-	}
-
-	res, err := db.Model(&model.Task{}).
-		Set("state=?", model.TaskStateClosed).
-		Set("assignee_id=NULL").
-		Where("task_id=? AND state=?", taskId, model.TaskStateToCheck).
-		Update()
-	if err != nil {
-		return err
-	}
-	if res.RowsAffected() != 1 {
-		return fmt.Errorf("task: %d rows affected", res.RowsAffected())
-	}
-
-	res, err = db.Model(&model.User{}).
-		Set("c_point=c_point+?", task.CPoint).
-		Where("user_id=?", task.AssigneeId).
-		Update()
-	if err != nil {
-		return err
-	}
-	if res.RowsAffected() != 1 {
-		return fmt.Errorf("user: %d rows affected", res.RowsAffected())
-	}
-
-	return nil
+	return errors.New("任务系统已关闭")
 }
 
 func ExpectAssigneeOnTask(taskId int) error {
-	res, err := db.Model(&model.Task{}).
-		Set("state=?", model.TaskStateDoing).
-		Where("task_id=? AND state=?", taskId, model.TaskStateToCheck).
-		Update()
-
-	if err != nil {
-		return err
-	}
-
-	if res.RowsAffected() != 1 {
-		return fmt.Errorf("%d rows affected", res.RowsAffected())
-	}
-
-	return nil
+	return errors.New("任务系统已关闭")
 }
 
 func FireAssigneeFromTask(taskId int, isDoing bool) error {
-	var currState model.TaskState
-	if isDoing {
-		currState = model.TaskStateDoing
-	} else {
-		currState = model.TaskStateToCheck
-	}
-
-	res, err := db.Model(&model.Task{}).
-		Set("state=?", model.TaskStateToDo).
-		Set("assignee_id=NULL").
-		Where("task_id=? AND state=?", taskId, currState).
-		Update()
-
-	if err != nil {
-		return err
-	}
-
-	if res.RowsAffected() != 1 {
-		return fmt.Errorf("%d rows affected", res.RowsAffected())
-	}
-
-	return nil
+	return errors.New("任务系统已关闭")
 }
