@@ -11,5 +11,5 @@ for an introduction to Pancake Mahjong.
 1. Install [Docker](https://docs.docker.com/engine/installation/)
    and [Docker Compose](https://docs.docker.com/compose/install/)
 2. Build the Docker image by `make mihoko`
-3. Start the server by `docker-compuse up -d`
+3. Start the server by `docker-compose up -d`
 
